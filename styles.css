@@ -125,11 +125,12 @@
   gap: 0;
   top: 24px;
   right: 24px;
-  padding: 16px;
+  padding: 12px 20px;
   position: fixed;
   min-width: auto;
-  max-width: none; /* Ensure no constraint on zoom */
+  max-width: calc(100vw - 48px);
   white-space: nowrap; /* Never wrap */
+  box-sizing: border-box;
 
   transform-origin: center center;
   animation: liquidExpand 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -823,8 +824,12 @@
    Ensure Text fits Dark Backgrounds in Glass Mode 
    (Since generic glass text is dark #224)
 */
+.qs-theme-dark.qs-hud,
 .qs-theme-dark .qs-hud,
-.qs-theme-glass-dark.qs-status {
+.qs-theme-glass-dark.qs-hud,
+.qs-hud.qs-theme-glass-dark,
+.qs-theme-glass-dark.qs-status,
+.qs-status.qs-theme-glass-dark {
   color: #ffffff !important;
 }
 
@@ -1100,13 +1105,22 @@
 }
 
 /* Theme Toggle Icons */
-.qs-theme-glass .qs-icon-sun {
+.qs-icon-sun {
   display: block !important;
 }
-.qs-theme-glass .qs-icon-moon {
+.qs-icon-moon {
   display: none !important;
 }
-/* No dark preference in Glass mode anymore */
+.qs-theme-dark .qs-icon-moon,
+.qs-theme-glass-dark .qs-icon-moon,
+.qs-theme-glass.qs-theme-glass-dark .qs-icon-moon {
+  display: block !important;
+}
+.qs-theme-dark .qs-icon-sun,
+.qs-theme-glass-dark .qs-icon-sun,
+.qs-theme-glass.qs-theme-glass-dark .qs-icon-sun {
+  display: none !important;
+}
 
 /* Toast Specifics */
 .qs-theme-glass.qs-status {
@@ -1380,37 +1394,75 @@
 }
 
 /* Responsive */
+
+/* Tier 1: Mid Sizes (641px - 900px) */
 @media (max-width: 900px) {
   .qs-guide {
-    padding: 8px;
+    top: 16px;
+    right: 16px;
+    padding: 10px 18px;
+    max-width: calc(100vw - 32px);
   }
-  .qs-guide-btn {
-    height: 48px;
-    min-width: 48px;
-    font-size: 14px;
+  .qs-guide-buttons {
+    gap: 10px;
+  }
+  .qs-segmented {
+    gap: 10px;
+  }
+  /* Harmonized 40px height across ALL action buttons */
+  .qs-guide-btn:not(.qs-theme-toggle) {
+    height: 40px;
+    min-width: 40px;
+    font-size: 13px;
     padding: 0 16px;
+    gap: 8px;
   }
-  .qs-guide-btn svg {
-    width: 24px;
-    height: 24px;
+  .qs-guide-buttons > .qs-guide-btn:not(.qs-theme-toggle) {
+    height: 40px;
+    min-width: 40px;
+    padding: 0 18px;
   }
   .qs-segmented .qs-guide-btn {
     height: 40px;
+  }
+  .qs-segmented .qs-guide-btn:first-child {
+    height: 40px;
+    padding: 0 16px;
   }
   .qs-segmented .qs-guide-btn:last-child {
     width: 40px;
     height: 40px;
     min-width: 40px;
+    padding: 0;
+  }
+  .qs-guide-btn:not(.qs-theme-toggle) svg {
+    width: 20px;
+    height: 20px;
   }
   .qs-segmented .qs-guide-btn:last-child svg {
     width: 20px;
     height: 20px;
   }
+  /* Theme toggle remains transparent naked icon */
+  .qs-guide-buttons > .qs-theme-toggle {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    background: transparent !important;
+    border: 0 solid transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .qs-guide-buttons > .qs-theme-toggle svg {
+    width: 22px;
+    height: 22px;
+  }
   .qs-status {
     padding: 10px 20px;
     min-height: 48px;
     font-size: 14px;
-    bottom: 32px;
+    bottom: 28px;
+    max-width: calc(100vw - 32px);
   }
   .qs-status-icon {
     width: 24px;
@@ -1427,37 +1479,75 @@
     height: 20px;
   }
 }
-@media (max-width: 600px) {
+
+/* Tier 2: Compact Sizes (481px - 640px) */
+@media (max-width: 640px) {
   .qs-guide {
-    padding: 6px;
+    top: 12px;
+    right: 12px;
+    padding: 8px 14px;
+    max-width: calc(100vw - 24px);
   }
-  .qs-guide-btn {
-    height: 40px;
-    min-width: 40px;
-    font-size: 13px;
+  .qs-guide-buttons {
+    gap: 8px;
+  }
+  .qs-segmented {
+    gap: 8px;
+  }
+  /* Harmonized 36px height across ALL action buttons */
+  .qs-guide-btn:not(.qs-theme-toggle) {
+    height: 36px;
+    min-width: 36px;
+    font-size: 12px;
+    padding: 0 12px;
+    gap: 6px;
+  }
+  .qs-guide-buttons > .qs-guide-btn:not(.qs-theme-toggle) {
+    height: 36px;
+    min-width: 36px;
+    padding: 0 14px;
+  }
+  .qs-segmented .qs-guide-btn {
+    height: 36px;
+  }
+  .qs-segmented .qs-guide-btn:first-child {
+    height: 36px;
     padding: 0 12px;
   }
-  .qs-guide-btn svg {
+  .qs-segmented .qs-guide-btn:last-child {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+  }
+  .qs-guide-btn:not(.qs-theme-toggle) svg {
+    width: 18px;
+    height: 18px;
+  }
+  .qs-segmented .qs-guide-btn:last-child svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* Theme toggle remains transparent naked icon */
+  .qs-guide-buttons > .qs-theme-toggle {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    background: transparent !important;
+    border: 0 solid transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .qs-guide-buttons > .qs-theme-toggle svg {
     width: 20px;
     height: 20px;
   }
-  .qs-segmented .qs-guide-btn {
-    height: 32px;
-  }
-  .qs-segmented .qs-guide-btn:last-child {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-  }
-  .qs-segmented .qs-guide-btn:last-child svg {
-    width: 16px;
-    height: 16px;
-  }
   .qs-status {
     padding: 8px 16px;
-    min-height: 40px;
+    min-height: 42px;
     font-size: 13px;
-    bottom: 24px;
+    bottom: 20px;
+    max-width: calc(100vw - 24px);
   }
   .qs-status-icon {
     width: 20px;
@@ -1472,6 +1562,76 @@
   .qs-save-btn svg {
     width: 16px;
     height: 16px;
+  }
+}
+
+/* Tier 3: Mobile Dock (<= 480px) */
+@media (max-width: 480px) {
+  .qs-guide {
+    top: 8px;
+    right: 8px;
+    padding: 6px 12px;
+    max-width: calc(100vw - 16px);
+  }
+  .qs-guide-buttons {
+    gap: 6px;
+  }
+  .qs-segmented {
+    gap: 6px;
+  }
+  /* Hide text labels, convert action buttons into clean circular icon dock */
+  .qs-guide-btn span {
+    display: none !important;
+  }
+  .qs-guide-btn:not(.qs-theme-toggle) {
+    height: 32px;
+    width: 32px;
+    min-width: 32px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+  }
+  .qs-segmented .qs-guide-btn:first-child {
+    height: 32px;
+    width: 32px;
+    min-width: 32px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+  }
+  .qs-segmented .qs-guide-btn:last-child {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+  }
+  .qs-guide-buttons > .qs-guide-btn:not(.qs-theme-toggle) {
+    height: 32px;
+    width: 32px;
+    min-width: 32px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+  }
+  .qs-guide-btn:not(.qs-theme-toggle) svg {
+    width: 16px;
+    height: 16px;
+  }
+  .qs-segmented .qs-guide-btn:last-child svg {
+    width: 16px;
+    height: 16px;
+  }
+  /* Theme toggle remains transparent naked icon */
+  .qs-guide-buttons > .qs-theme-toggle {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    background: transparent !important;
+    border: 0 solid transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .qs-guide-buttons > .qs-theme-toggle svg {
+    width: 18px;
+    height: 18px;
   }
 }
 

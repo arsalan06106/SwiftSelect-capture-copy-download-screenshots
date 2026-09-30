@@ -59,6 +59,25 @@ export function init() {
 
   observer.observe(document.documentElement, config);
   observer.observe(document.body, config);
+
+  let scrollPending = false;
+  const onScrollOrResize = () => {
+    if (scrollPending) return;
+    scrollPending = true;
+    requestAnimationFrame(() => {
+      const ui = window.SwiftSelect?.ui;
+      if (
+        (ui?.guideHost && ui.guideHost.style.display !== "none") ||
+        (ui?.statusHost && ui.statusHost.style.display !== "none")
+      ) {
+        applyTheme(currentUserTheme);
+      }
+      scrollPending = false;
+    });
+  };
+
+  window.addEventListener("scroll", onScrollOrResize, { passive: true });
+  window.addEventListener("resize", onScrollOrResize, { passive: true });
 }
 
 export function handleThemeToggle() {
@@ -71,41 +90,91 @@ export function handleThemeToggle() {
   chrome.storage.local.set({ userTheme: currentUserTheme });
 }
 
-export function applyTheme(theme) {
+export function applyTheme(theme = currentUserTheme) {
   const ui = window.SwiftSelect?.ui;
   if (!ui) return;
 
-  const elements = [ui.guideEl, ui.statusEl, ui.hudEl, ui.box, ui.overlay];
-  elements.forEach((el) => {
-    if (el) {
-      el.classList.remove(
-        "qs-theme-dark",
-        "qs-theme-glass",
-        "qs-theme-glass-dark",
-      );
-    }
+  if (ui.guideEl) {
+    ui.guideEl._qsThemeState = null;
+    applyElementTheme(ui.guideEl, theme);
+  }
+
+  if (ui.statusEl) {
+    ui.statusEl._qsThemeState = null;
+    applyElementTheme(ui.statusEl, theme);
+  }
+
+  if (ui.hudEl) {
+    ui.hudEl._qsThemeState = null;
+    applyElementTheme(ui.hudEl, theme);
+  }
+
+  const decorative = [ui.box, ui.overlay].filter(Boolean);
+  decorative.forEach((el) => {
+    el.classList.remove(
+      "qs-theme-dark",
+      "qs-theme-glass",
+      "qs-theme-glass-dark",
+    );
   });
 
   const isDarkSite = isPageDark();
 
   if (theme === "standard") {
-    _applyStandardPalette(elements, isDarkSite);
+    _applyStandardPalette(decorative, isDarkSite);
     if (isDarkSite) {
-      elements.forEach((el) => {
-        if (el) el.classList.add("qs-theme-dark");
-      });
+      decorative.forEach((el) => el.classList.add("qs-theme-dark"));
     }
   } else if (theme === "glass") {
     if (isDarkSite) {
-      elements.forEach((el) => {
-        if (el) el.classList.add("qs-theme-glass", "qs-theme-glass-dark");
-      });
+      decorative.forEach((el) =>
+        el.classList.add("qs-theme-glass", "qs-theme-glass-dark")
+      );
     } else {
-      elements.forEach((el) => {
-        if (el) el.classList.add("qs-theme-glass");
-      });
+      decorative.forEach((el) => el.classList.add("qs-theme-glass"));
     }
   }
+}
+
+export function applyElementTheme(
+  el,
+  theme = currentUserTheme,
+  targetRect = null,
+) {
+  if (!el) return false;
+
+  let rect = targetRect;
+  if (!rect) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) {
+      rect = r;
+    } else {
+      rect = _getFallbackRectForElement(el);
+    }
+  }
+
+  const isDark = isAreaDark(rect);
+
+  el.classList.remove(
+    "qs-theme-dark",
+    "qs-theme-glass",
+    "qs-theme-glass-dark",
+  );
+
+  if (theme === "standard") {
+    _applyStandardPalette([el], isDark);
+    if (isDark) {
+      el.classList.add("qs-theme-dark");
+    }
+  } else if (theme === "glass") {
+    if (isDark) {
+      el.classList.add("qs-theme-glass", "qs-theme-glass-dark");
+    } else {
+      el.classList.add("qs-theme-glass");
+    }
+  }
+
+  return isDark;
 }
 
 function _applyStandardPalette(elements, isDarkSite) {
@@ -290,6 +359,464 @@ export function shouldUseDarkMode() {
   return isPageDark();
 }
 
+let _tabScreenshotCanvas = null;
+let _tabScreenshotCtx = null;
+let _tabScreenshotVersion = 0;
+let _scratchCanvas = null;
+let _scratchCtx = null;
+
+export function setTabScreenshot(dataUrl) {
+  if (!dataUrl) return;
+  const version = ++_tabScreenshotVersion;
+  const img = new Image();
+  img.onload = () => {
+    if (version !== _tabScreenshotVersion) return;
+    if (!_tabScreenshotCanvas) {
+      _tabScreenshotCanvas = document.createElement("canvas");
+    }
+    _tabScreenshotCanvas.width = img.naturalWidth || img.width;
+    _tabScreenshotCanvas.height = img.naturalHeight || img.height;
+    _tabScreenshotCtx = _tabScreenshotCanvas.getContext("2d", {
+      willReadFrequently: true,
+    });
+    _tabScreenshotCtx.drawImage(img, 0, 0);
+
+    const ui = window.SwiftSelect?.ui;
+    if (ui) {
+      if (ui.guideHost && ui.guideHost.style.display !== "none" && ui.guideEl) {
+        applyElementTheme(ui.guideEl, currentUserTheme);
+      }
+      if (
+        ui.statusHost &&
+        ui.statusHost.style.display !== "none" &&
+        ui.statusEl
+      ) {
+        applyElementTheme(ui.statusEl, currentUserTheme);
+      }
+      if (ui.hudEl && ui.hudEl.style.display !== "none") {
+        applyElementTheme(ui.hudEl, currentUserTheme);
+      }
+    }
+  };
+  img.src = dataUrl;
+}
+
+function _isSwiftSelectElement(el) {
+  if (!el || el.nodeType !== Node.ELEMENT_NODE) return true;
+  if (el.id && el.id.startsWith("qs-")) return true;
+  if (typeof el.className === "string" && el.className.includes("qs-"))
+    return true;
+
+  const ui = window.SwiftSelect?.ui;
+  if (ui) {
+    if (
+      el === ui.guideHost ||
+      el === ui.statusHost ||
+      el === ui.overlayHost ||
+      el === ui.highlighterHost
+    ) {
+      return true;
+    }
+  }
+
+  const root = el.getRootNode();
+  if (root instanceof ShadowRoot) {
+    const host = root.host;
+    if (
+      host &&
+      (host === ui?.guideHost ||
+        host === ui?.statusHost ||
+        host === ui?.overlayHost ||
+        host === ui?.highlighterHost ||
+        (typeof host.className === "string" && host.className.includes("qs-")))
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function samplePointTheme(x, y) {
+  // 1. Ground truth: sample the physical screen pixels from tab screenshot if available
+  if (_tabScreenshotCanvas && _tabScreenshotCtx) {
+    try {
+      const vw = window.innerWidth || document.documentElement.clientWidth || 1;
+      const vh =
+        window.innerHeight || document.documentElement.clientHeight || 1;
+      const sx = Math.max(
+        0,
+        Math.min(
+          _tabScreenshotCanvas.width - 1,
+          Math.round(x * (_tabScreenshotCanvas.width / vw)),
+        ),
+      );
+      const sy = Math.max(
+        0,
+        Math.min(
+          _tabScreenshotCanvas.height - 1,
+          Math.round(y * (_tabScreenshotCanvas.height / vh)),
+        ),
+      );
+      const pixel = _tabScreenshotCtx.getImageData(sx, sy, 1, 1).data;
+      if (pixel[3] > 30) {
+        const luma = _luma({ r: pixel[0], g: pixel[1], b: pixel[2] });
+        return luma < 128 ? "dark" : "light";
+      }
+    } catch (e) {}
+  }
+
+  // 2. DOM Sampling Fallback
+  let stack = [];
+  try {
+    stack = document.elementsFromPoint(x, y) || [];
+  } catch (e) {
+    return null;
+  }
+
+  const cleanStack = stack.filter((el) => !_isSwiftSelectElement(el));
+  if (cleanStack.length === 0) {
+    return null;
+  }
+
+  let rAcc = 0;
+  let gAcc = 0;
+  let bAcc = 0;
+  let aAcc = 0;
+  let textTheme = null;
+  let isInsideVideoPlayer = false;
+
+  for (const el of cleanStack) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) continue;
+
+    if (
+      el instanceof HTMLVideoElement ||
+      el.tagName === "VIDEO" ||
+      (el.className &&
+        typeof el.className === "string" &&
+        (el.className.includes("video") ||
+          el.className.includes("player") ||
+          el.className.includes("ytp-") ||
+          el.className.includes("caption")))
+    ) {
+      isInsideVideoPlayer = true;
+    }
+
+    let style = null;
+    try {
+      style = window.getComputedStyle(el);
+    } catch (e) {
+      continue;
+    }
+    if (!style) continue;
+
+    const bg = _parseColor(style.backgroundColor);
+    if (bg && bg.a > 0.01) {
+      const aTop = aAcc;
+      const aBottom = bg.a;
+      const aOut = aTop + aBottom * (1 - aTop);
+      if (aOut > 0) {
+        rAcc = (rAcc * aTop + bg.r * aBottom * (1 - aTop)) / aOut;
+        gAcc = (gAcc * aTop + bg.g * aBottom * (1 - aTop)) / aOut;
+        bAcc = (bAcc * aTop + bg.b * aBottom * (1 - aTop)) / aOut;
+        aAcc = aOut;
+      }
+      if (aAcc >= 0.95) break;
+    }
+
+    // Try sampling video frame directly
+    if (
+      (el instanceof HTMLVideoElement || el.tagName === "VIDEO") &&
+      el.videoWidth > 0 &&
+      el.readyState >= 2
+    ) {
+      try {
+        if (!_scratchCanvas) {
+          _scratchCanvas = document.createElement("canvas");
+          _scratchCanvas.width = 1;
+          _scratchCanvas.height = 1;
+          _scratchCtx = _scratchCanvas.getContext("2d", {
+            willReadFrequently: true,
+          });
+        }
+        if (_scratchCtx) {
+          const vRect = el.getBoundingClientRect();
+          const sx = Math.max(
+            0,
+            Math.min(
+              el.videoWidth - 1,
+              Math.round((x - vRect.left) * (el.videoWidth / vRect.width)),
+            ),
+          );
+          const sy = Math.max(
+            0,
+            Math.min(
+              el.videoHeight - 1,
+              Math.round((y - vRect.top) * (el.videoHeight / vRect.height)),
+            ),
+          );
+          _scratchCtx.clearRect(0, 0, 1, 1);
+          _scratchCtx.drawImage(el, sx, sy, 1, 1, 0, 0, 1, 1);
+          const pixel = _scratchCtx.getImageData(0, 0, 1, 1).data;
+          const cpA = pixel[3] / 255;
+          if (cpA > 0.01) {
+            const aTop = aAcc;
+            const aBottom = cpA;
+            const aOut = aTop + aBottom * (1 - aTop);
+            if (aOut > 0) {
+              rAcc = (rAcc * aTop + pixel[0] * aBottom * (1 - aTop)) / aOut;
+              gAcc = (gAcc * aTop + pixel[1] * aBottom * (1 - aTop)) / aOut;
+              bAcc = (bAcc * aTop + pixel[2] * aBottom * (1 - aTop)) / aOut;
+              aAcc = aOut;
+            }
+            if (aAcc >= 0.95) break;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (el instanceof HTMLCanvasElement && el.width > 0 && el.height > 0) {
+      try {
+        const ctx =
+          el.getContext("2d", { willReadFrequently: true }) ||
+          el.getContext("2d");
+        if (ctx) {
+          const cRect = el.getBoundingClientRect();
+          const cx = Math.max(
+            0,
+            Math.min(
+              el.width - 1,
+              Math.round((x - cRect.left) * (el.width / cRect.width)),
+            ),
+          );
+          const cy = Math.max(
+            0,
+            Math.min(
+              el.height - 1,
+              Math.round((y - cRect.top) * (el.height / cRect.height)),
+            ),
+          );
+          const pixel = ctx.getImageData(cx, cy, 1, 1).data;
+          const cpA = pixel[3] / 255;
+          if (cpA > 0.01) {
+            const aTop = aAcc;
+            const aBottom = cpA;
+            const aOut = aTop + aBottom * (1 - aTop);
+            if (aOut > 0) {
+              rAcc = (rAcc * aTop + pixel[0] * aBottom * (1 - aTop)) / aOut;
+              gAcc = (gAcc * aTop + pixel[1] * aBottom * (1 - aTop)) / aOut;
+              bAcc = (bAcc * aTop + pixel[2] * aBottom * (1 - aTop)) / aOut;
+              aAcc = aOut;
+            }
+            if (aAcc >= 0.95) break;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (
+      (el instanceof HTMLImageElement || el.tagName === "IMG") &&
+      el.naturalWidth > 0 &&
+      el.complete
+    ) {
+      try {
+        if (!_scratchCanvas) {
+          _scratchCanvas = document.createElement("canvas");
+          _scratchCanvas.width = 1;
+          _scratchCanvas.height = 1;
+          _scratchCtx = _scratchCanvas.getContext("2d", {
+            willReadFrequently: true,
+          });
+        }
+        if (_scratchCtx) {
+          const imgRect = el.getBoundingClientRect();
+          const sx = Math.max(
+            0,
+            Math.min(
+              el.naturalWidth - 1,
+              Math.round(
+                (x - imgRect.left) * (el.naturalWidth / imgRect.width),
+              ),
+            ),
+          );
+          const sy = Math.max(
+            0,
+            Math.min(
+              el.naturalHeight - 1,
+              Math.round(
+                (y - imgRect.top) * (el.naturalHeight / imgRect.height),
+              ),
+            ),
+          );
+          _scratchCtx.clearRect(0, 0, 1, 1);
+          _scratchCtx.drawImage(el, sx, sy, 1, 1, 0, 0, 1, 1);
+          const pixel = _scratchCtx.getImageData(0, 0, 1, 1).data;
+          const cpA = pixel[3] / 255;
+          if (cpA > 0.01) {
+            const aTop = aAcc;
+            const aBottom = cpA;
+            const aOut = aTop + aBottom * (1 - aTop);
+            if (aOut > 0) {
+              rAcc = (rAcc * aTop + pixel[0] * aBottom * (1 - aTop)) / aOut;
+              gAcc = (gAcc * aTop + pixel[1] * aBottom * (1 - aTop)) / aOut;
+              bAcc = (bAcc * aTop + pixel[2] * aBottom * (1 - aTop)) / aOut;
+              aAcc = aOut;
+            }
+            if (aAcc >= 0.95) break;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Check text color cues (e.g. subtitles)
+    if (!textTheme && el.innerText && el.innerText.trim().length > 0) {
+      const textColor = _parseColor(style.color);
+      if (textColor && textColor.a >= 0.5) {
+        const tl = _luma(textColor);
+        if (tl > 180) textTheme = "dark";
+        else if (tl < 75) textTheme = "light";
+      }
+    }
+  }
+
+  // If a confident background color was found from elements or video:
+  if (aAcc >= 0.75) {
+    const finalLuma = _luma({ r: rAcc, g: gAcc, b: bAcc });
+    return finalLuma < 128 ? "dark" : "light";
+  }
+
+  // If transparent but we found clear text cues (like white subtitles!), trust it!
+  if (textTheme) {
+    return textTheme;
+  }
+
+  // If inside a video player container and no background was found, player is dark
+  if (isInsideVideoPlayer) {
+    return "dark";
+  }
+
+  const rootBg =
+    (document.body &&
+      _parseColor(window.getComputedStyle(document.body).backgroundColor)) ||
+    (document.documentElement &&
+      _parseColor(
+        window.getComputedStyle(document.documentElement).backgroundColor,
+      ));
+
+  const base =
+    rootBg && rootBg.a >= 0.5 ? rootBg : { r: 255, g: 255, b: 255 };
+
+  const aTop = aAcc;
+  rAcc = rAcc * aTop + base.r * (1 - aTop);
+  gAcc = gAcc * aTop + base.g * (1 - aTop);
+  bAcc = bAcc * aTop + base.b * (1 - aTop);
+
+  const finalLuma = _luma({ r: rAcc, g: gAcc, b: bAcc });
+  return finalLuma < 128 ? "dark" : "light";
+}
+
+export function isAreaDark(rect) {
+  if (!rect || rect.width <= 0 || rect.height <= 0) {
+    return isPageDark();
+  }
+
+  const vw = window.innerWidth || document.documentElement.clientWidth || 1;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 1;
+
+  const samplePoints = [];
+  const xFracs = [0.2, 0.5, 0.8];
+  const yFracs = [0.25, 0.5, 0.75];
+
+  for (const fx of xFracs) {
+    for (const fy of yFracs) {
+      const px = Math.max(
+        0,
+        Math.min(vw - 1, Math.round(rect.left + rect.width * fx)),
+      );
+      const py = Math.max(
+        0,
+        Math.min(vh - 1, Math.round(rect.top + rect.height * fy)),
+      );
+      samplePoints.push([px, py]);
+    }
+  }
+
+  let darkVotes = 0;
+  let lightVotes = 0;
+
+  for (const [x, y] of samplePoints) {
+    const vote = samplePointTheme(x, y);
+    if (vote === "dark") darkVotes++;
+    else if (vote === "light") lightVotes++;
+  }
+
+  if (darkVotes + lightVotes > 0) {
+    return darkVotes > lightVotes;
+  }
+
+  return isPageDark();
+}
+
+function _getFallbackRectForElement(el) {
+  const vw = window.innerWidth || document.documentElement.clientWidth || 800;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 600;
+
+  const ui = window.SwiftSelect?.ui;
+  if (ui) {
+    if (el === ui.guideEl) {
+      return {
+        left: Math.max(0, vw - 24 - 320),
+        top: 24,
+        width: 320,
+        height: 56,
+      };
+    }
+    if (el === ui.statusEl) {
+      return {
+        left: Math.max(0, (vw - 260) / 2),
+        top: Math.max(0, vh - 40 - 76),
+        width: 260,
+        height: 76,
+      };
+    }
+    if (el === ui.hudEl) {
+      return {
+        left: Math.max(0, (vw - 100) / 2),
+        top: Math.max(0, (vh - 30) / 2),
+        width: 100,
+        height: 30,
+      };
+    }
+  }
+
+  if (el?.classList?.contains("qs-guide")) {
+    return {
+      left: Math.max(0, vw - 24 - 320),
+      top: 24,
+      width: 320,
+      height: 56,
+    };
+  }
+  if (el?.classList?.contains("qs-status")) {
+    return {
+      left: Math.max(0, (vw - 260) / 2),
+      top: Math.max(0, vh - 40 - 76),
+      width: 260,
+      height: 76,
+    };
+  }
+  if (el?.classList?.contains("qs-hud")) {
+    return {
+      left: Math.max(0, (vw - 100) / 2),
+      top: Math.max(0, (vh - 30) / 2),
+      width: 100,
+      height: 30,
+    };
+  }
+
+  return null;
+}
+
 export function isPageDark() {
   try {
     const explicitTheme = _readExplicitPageTheme();
@@ -314,30 +841,23 @@ export function isPageDark() {
     for (const [rawX, rawY] of points) {
       const x = Math.max(0, Math.min(vw - 1, Math.round(rawX)));
       const y = Math.max(0, Math.min(vh - 1, Math.round(rawY)));
-      const stack = document.elementsFromPoint(x, y);
-      const vote = _sampleStackTheme(stack);
+      const vote = samplePointTheme(x, y);
 
       if (vote === "dark") darkScore += 1;
       if (vote === "light") lightScore += 1;
     }
 
-    const rootVote = _sampleStackTheme([
-      document.body,
-      document.documentElement,
-    ]);
-    if (rootVote === "dark") darkScore += 2;
-    if (rootVote === "light") lightScore += 2;
-
     if (lightScore || darkScore) {
       return darkScore > lightScore * 1.15;
     }
 
-    const roots = [document.documentElement, document.body];
-    const rootScheme = roots
-      .map((r) => (r ? window.getComputedStyle(r).colorScheme : ""))
-      .join(" ");
-    if (/\bdark\b/i.test(rootScheme) && !/\blight\b/i.test(rootScheme))
-      return true;
+    const roots = [document.documentElement, document.body].filter(Boolean);
+    for (const r of roots) {
+      const bg = _parseColor(window.getComputedStyle(r).backgroundColor);
+      if (bg && bg.a >= 0.5) {
+        return _luma(bg) < 128;
+      }
+    }
 
     return Boolean(
       window.matchMedia &&
@@ -358,7 +878,6 @@ function _readExplicitPageTheme() {
       el.getAttribute("data-color-mode"),
       el.getAttribute("data-color-scheme"),
       el.style?.colorScheme,
-      window.getComputedStyle(el).colorScheme,
     ]
       .filter(Boolean)
       .join(" ")
@@ -368,34 +887,6 @@ function _readExplicitPageTheme() {
       return "light";
     if (/\bdark\b/.test(explicit) && !/\blight\b/.test(explicit))
       return "dark";
-  }
-
-  return null;
-}
-
-function _sampleStackTheme(stack) {
-  for (const el of stack) {
-    if (!_isThemeSampleCandidate(el)) continue;
-
-    const style = window.getComputedStyle(el);
-    const bg = _parseColor(style.backgroundColor);
-
-    if (bg && bg.a >= 0.35) {
-      const surface = _classifySurfaceColor(bg);
-      if (surface) return surface;
-    }
-  }
-
-  for (const el of stack) {
-    if (!_isThemeSampleCandidate(el)) continue;
-    if (!el.innerText || !el.innerText.trim()) continue;
-
-    const text = _parseColor(window.getComputedStyle(el).color);
-    if (!text || text.a < 0.35) continue;
-
-    const textLuma = _luma(text);
-    if (textLuma > 220) return "dark";
-    if (textLuma < 55) return "light";
   }
 
   return null;

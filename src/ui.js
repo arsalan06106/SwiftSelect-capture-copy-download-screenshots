@@ -10,6 +10,8 @@ import { handleCaptureFullPage } from "./capture/fullpage.js";
 import {
   handleThemeToggle,
   applyTheme,
+  applyElementTheme,
+  setTabScreenshot,
   shouldUseDarkMode,
   currentUserTheme,
   isPageDark,
@@ -229,6 +231,7 @@ export async function ensureUi() {
             freezeBg.style.backgroundImage = `url(${resp.dataUrl})`;
             freezeBg.style.opacity = "1";
           }
+          setTabScreenshot(resp.dataUrl);
           resolve(resp.dataUrl);
           return;
         }
@@ -279,11 +282,7 @@ export async function ensureUi() {
   }
 
   if (hudEl) {
-    if (shouldUseDarkMode()) {
-      hudEl.classList.add("qs-theme-dark");
-    } else {
-      hudEl.classList.remove("qs-theme-dark");
-    }
+    applyElementTheme(hudEl, currentUserTheme);
   }
 
   if (!guideHost) {
@@ -412,10 +411,10 @@ export async function ensureUi() {
   }
 
   if (guideHost) {
-    applyTheme(currentUserTheme);
     guideHost.style.display = "flex";
     guideEl.classList.remove("qs-hiding");
     void guideEl.offsetWidth;
+    applyElementTheme(guideEl, currentUserTheme);
   }
 }
 
@@ -544,10 +543,11 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false) {
     timeout = 2500;
   }
 
-  applyTheme(currentUserTheme);
   statusHost.style.display = "";
   statusEl.style.display = "flex";
   currentStatus = type;
+  void statusEl.offsetWidth;
+  applyElementTheme(statusEl, currentUserTheme);
 
   if (isUpdating) {
     statusEl.getAnimations().forEach(anim => { if (!anim.animationName) anim.cancel(); });
@@ -662,6 +662,14 @@ export function updateSelection(rect) {
     // Restore animation for fresh appearances (e.g. new drag)
     hudEl.style.animation = "";
     hudEl.style.transform = `translate3d(${hudLeft}px, ${hudTop}px, 0)`;
+
+    const hudRect = {
+      left: hudLeft,
+      top: hudTop,
+      width: hudEl.offsetWidth || 90,
+      height: hudHeight,
+    };
+    applyElementTheme(hudEl, currentUserTheme, hudRect);
 
     if (curtains && curtains.length === 1) {
       const curtain = curtains[0];

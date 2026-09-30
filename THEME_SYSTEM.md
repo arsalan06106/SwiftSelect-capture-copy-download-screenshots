@@ -4,31 +4,31 @@ SwiftSelect's toolbar and status bar support light and dark themes. The system i
 
 <br>
 
-## Page Luminance Detection
+## Surface Sampling & Element Contrast Detection
 
-`theme.js` exports an `isPageDark()` function that samples the page's background colour. It reads `window.getComputedStyle(document.body).backgroundColor`, parses the RGB values, and computes relative luminance using the standard formula.
+Rather than applying a single page-wide luminance assumption across all UI components, SwiftSelect samples the area **directly beneath each element** (main menu toolbar, notification toasts, and selection HUD pill):
 
-If the luminance is below a threshold, the page is considered dark.
+1. **Localized Sampling (`isAreaDark(rect)`)**:
+   - Computes a distributed 9-point grid across the element's rendered bounding box (`document.elementsFromPoint`).
+   - Filters out extension UI elements and alpha-composites background colors from top to bottom down the stack.
+   - Evaluates `<canvas>` and same-origin `<img>` elements as well as text contrast cues (`style.color`).
+   - Seamlessly handles transparent containers by compositing against the root page canvas.
+
+2. **Per-Element Adaptive Theming (`applyElementTheme(el, theme, targetRect)`)**:
+   - If the surface beneath the element is dark → element receives dark mode (`qs-theme-glass-dark` or `qs-theme-dark`) with high-contrast light text (`#ffffff` / `#e1e1e1`) and icons.
+   - If the surface beneath the element is light → element receives light mode (`qs-theme-glass` or light standard) with high-contrast dark text (`#224` / `#1f1f1f`) and icons.
+   - Preserves independent legibility across mixed-theme pages (e.g. dark headers with light content feeds).
 
 <br>
 
 ## Theme Preference Storage
 
-When the user clicks the theme toggle button in the toolbar, the new preference is saved to `chrome.storage.local` under a key tied to the page's origin. This means different sites can have different theme preferences.
-
-<br>
-
-## Theme Resolution
-
-`shouldUseDarkMode()` resolves the active theme using this priority:
-
-1. If the user has explicitly set a preference for this origin → use it
-2. Otherwise → match the page luminance
+When the user clicks the theme toggle button in the toolbar, the preference (`glass` or `standard`) is saved to `chrome.storage.local`.
 
 <br>
 
 ## Application
 
-`applyTheme()` toggles a `qs-theme-dark` class on the toolbar, status bar, and HUD elements. All colour changes are handled by CSS custom properties scoped under that class in `styles.css`.
-
-The theme is reapplied whenever the toolbar is shown and whenever the status bar appears, ensuring consistency even if the page's background changes between activations.
+- `applyElementTheme()` dynamically styles individual components whenever they appear or move.
+- `applyTheme()` reapplies themes across all registered elements, reacting to window resizes, scrolls, and mutation events.
+- Caches the last computed state (`_qsThemeState`) per element to eliminate redundant DOM mutations and ensure smooth 60fps performance during drag selection.

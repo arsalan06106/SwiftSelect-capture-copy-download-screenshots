@@ -51,7 +51,10 @@ export async function captureFrame(retries = 3) {
       const resp = await new Promise((resolve) => {
         chrome.runtime.sendMessage({ type: "capture-visible-tab" }, resolve);
       });
-      if (resp?.success) return resp.dataUrl;
+      if (resp?.success) {
+        window.SwiftSelect?.theme?.setTabScreenshot?.(resp.dataUrl);
+        return resp.dataUrl;
+      }
       const errMsg = resp?.error || "capture-visible-tab failed";
       if (errMsg.includes("MAX_CAPTURE") && attempt < retries) {
         const delay = 600 * Math.pow(2, attempt);
@@ -77,6 +80,7 @@ export async function handleCaptureVisible() {
       chrome.runtime.sendMessage({ type: "capture-visible-tab" }, resolve);
     });
     if (!resp?.success) throw new Error(resp?.error || "Capture failed");
+    window.SwiftSelect?.theme?.setTabScreenshot?.(resp.dataUrl);
 
     const img = await loadImage(resp.dataUrl);
 
@@ -145,6 +149,7 @@ export async function handleCaptureAndDownload() {
       chrome.runtime.sendMessage({ type: "capture-visible-tab" }, resolve);
     });
     if (!resp?.success) throw new Error(resp?.error || "Capture failed");
+    window.SwiftSelect?.theme?.setTabScreenshot?.(resp.dataUrl);
 
     const img = await loadImage(resp.dataUrl);
 
@@ -213,6 +218,7 @@ export async function captureAndCrop(viewRect) {
       });
       if (!resp?.success) throw new Error(resp?.error || "Capture failed");
       dataUrl = resp.dataUrl;
+      window.SwiftSelect?.theme?.setTabScreenshot?.(dataUrl);
     }
 
     const img = await loadImage(dataUrl);
