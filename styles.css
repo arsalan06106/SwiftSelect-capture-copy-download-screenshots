@@ -125,12 +125,11 @@
   gap: 0;
   top: 24px;
   right: 24px;
-  padding: 12px 20px;
+  padding: 16px;
   position: fixed;
   min-width: auto;
-  max-width: calc(100vw - 48px);
+  max-width: none; /* Ensure no constraint on zoom */
   white-space: nowrap; /* Never wrap */
-  box-sizing: border-box;
 
   transform-origin: center center;
   animation: liquidExpand 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
