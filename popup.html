@@ -144,40 +144,193 @@
           color: #ffffff;
         }
       }
+      #toolbar-view {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .qs-notice {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 16px 14px 18px 14px;
+        width: 275px;
+        box-sizing: border-box;
+        gap: 10px;
+      }
+      .qs-notice-badge {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.05);
+        color: #6b7280;
+      }
+      .qs-notice-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 17px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 2px 0 2px 0;
+        position: relative;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .qs-notice-icon:hover {
+        transform: scale(1.05);
+      }
+      .qs-notice-icon svg {
+        width: 25px;
+        height: 25px;
+        fill: currentColor;
+      }
+      .qs-notice-icon.warning {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(239, 68, 68, 0.06));
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        box-shadow: 0 8px 18px -4px rgba(239, 68, 68, 0.22);
+      }
+      .qs-notice-icon.file {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(245, 158, 11, 0.06));
+        color: #d97706;
+        border: 1px solid rgba(245, 158, 11, 0.28);
+        box-shadow: 0 8px 18px -4px rgba(245, 158, 11, 0.22);
+      }
+      .qs-notice-title {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.25px;
+        color: #111827;
+        line-height: 1.25;
+      }
+      .qs-notice-desc {
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: #4b5563;
+        padding: 0 2px;
+      }
+      .qs-notice-tip {
+        font-size: 11.5px;
+        line-height: 1.45;
+        color: #6b7280;
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px dashed rgba(0, 0, 0, 0.12);
+        padding: 8px 12px;
+        border-radius: 12px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .qs-notice-btn {
+        margin-top: 4px;
+        padding: 9px 18px;
+        font-size: 12.5px;
+        font-weight: 600;
+        font-family: inherit;
+        border-radius: 999px;
+        border: none;
+        cursor: pointer;
+        background: #111827;
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+      }
+      .qs-notice-btn:hover {
+        opacity: 0.94;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+      }
+      .qs-notice-btn:active {
+        transform: scale(0.96);
+      }
+      @media (prefers-color-scheme: dark) {
+        .qs-notice-badge {
+          background: rgba(255, 255, 255, 0.08);
+          color: #d1d5db;
+        }
+        .qs-notice-title {
+          color: #f9fafb;
+        }
+        .qs-notice-desc {
+          color: #9ca3af;
+        }
+        .qs-notice-tip {
+          color: #9ca3af;
+          background: rgba(255, 255, 255, 0.04);
+          border-color: rgba(255, 255, 255, 0.14);
+        }
+        .qs-notice-icon.file {
+          background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(245, 158, 11, 0.08));
+          color: #fbbf24;
+          border-color: rgba(245, 158, 11, 0.35);
+        }
+        .qs-notice-btn {
+          background: #ffffff;
+          color: #111827;
+          box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+        }
+        .qs-notice-btn:hover {
+          box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="qs-segmented">
-      <button
-        class="qs-guide-btn"
-        id="btn-visible"
-        title="Select Area (Click for Visible)"
-      >
+    <div id="toolbar-view">
+      <div class="qs-segmented">
+        <button
+          class="qs-guide-btn"
+          id="btn-visible"
+          title="Capture Visible Screen (Save & Copy) [V]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
+            <path
+              d="M185.09-105.87q-32.51 0-55.87-23.35-23.35-23.36-23.35-55.87v-589.82q0-32.74 23.35-56.26 23.36-23.53 55.87-23.53h589.82q32.74 0 56.26 23.53 23.53 23.52 23.53 56.26v366.34q-18.78-11.99-38.86-21.75-20.09-9.76-40.93-15.59v-165.05h-255.3v171.74q-34.35 12.7-63.76 32.98-29.42 20.29-54.59 48.11H185.09v173.04l149 2.26q11.13 22.09 23.89 41.11t27.15 35.85H185.09Zm0-332.04h255.3v-173.05h-255.3v173.05Zm0-252.26h589.82v-84.74H185.09v84.74ZM480-480Zm0 0Zm0 0Zm0 0ZM656.69-43.04q-91.43 0-167.26-48.68-75.82-48.67-111.39-132.63 35.57-83.39 111.39-132.06 75.83-48.68 167.79-48.68 91.95 0 167.71 48.75 75.75 48.75 112.03 132.49-34.13 84.46-111.17 132.63-77.03 48.18-169.1 48.18Zm.64-71.31q59.63 0 112.34-29.5 52.72-29.5 88.98-80.5-36.26-50.43-89.09-80.21-52.83-29.79-112.46-29.79-59.62 0-112.06 29.79-52.43 29.78-88.13 80.21 35.7 51 88.25 80.5t112.17 29.5Zm.12-55.48q-22.93 0-38.56-15.68-15.63-15.68-15.63-38.61 0-22.92 15.75-38.55 15.76-15.63 38.26-15.63 23.21 0 38.84 15.75 15.63 15.75 15.63 38.25 0 23.21-15.68 38.84-15.68 15.63-38.61 15.63Z"
+            />
+          </svg>
+        </button>
+        <button
+          class="qs-guide-btn"
+          id="btn-horizontal"
+          title="Capture Horizontal View (Save & Copy) [H]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path
+              d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm2 0v12h16V6H4z"
+            />
+            <path
+              d="M7 12l2.5-2.5v1.5h5V9.5l2.5 2.5-2.5 2.5v-1.5h-5v1.5L7 12z"
+            />
+          </svg>
+        </button>
+      </div>
+      <button class="qs-guide-btn full-page" id="btn-full" title="Capture Full Page [F]">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
           <path
-            d="M185.09-105.87q-32.51 0-55.87-23.35-23.35-23.36-23.35-55.87v-589.82q0-32.74 23.35-56.26 23.36-23.53 55.87-23.53h589.82q32.74 0 56.26 23.53 23.53 23.52 23.53 56.26v366.34q-18.78-11.99-38.86-21.75-20.09-9.76-40.93-15.59v-165.05h-255.3v171.74q-34.35 12.7-63.76 32.98-29.42 20.29-54.59 48.11H185.09v173.04l149 2.26q11.13 22.09 23.89 41.11t27.15 35.85H185.09Zm0-332.04h255.3v-173.05h-255.3v173.05Zm0-252.26h589.82v-84.74H185.09v84.74ZM480-480Zm0 0Zm0 0Zm0 0ZM656.69-43.04q-91.43 0-167.26-48.68-75.82-48.67-111.39-132.63 35.57-83.39 111.39-132.06 75.83-48.68 167.79-48.68 91.95 0 167.71 48.75 75.75 48.75 112.03 132.49-34.13 84.46-111.17 132.63-77.03 48.18-169.1 48.18Zm.64-71.31q59.63 0 112.34-29.5 52.72-29.5 88.98-80.5-36.26-50.43-89.09-80.21-52.83-29.79-112.46-29.79-59.62 0-112.06 29.79-52.43 29.78-88.13 80.21 35.7 51 88.25 80.5t112.17 29.5Zm.12-55.48q-22.93 0-38.56-15.68-15.63-15.68-15.63-38.61 0-22.92 15.75-38.55 15.76-15.63 38.26-15.63 23.21 0 38.84 15.75 15.63 15.75 15.63 38.25 0 23.21-15.68 38.84-15.68 15.63-38.61 15.63Z"
-          />
-        </svg>
-      </button>
-      <button
-        class="qs-guide-btn"
-        id="btn-download"
-        title="Capture and Download"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-          <path
-            d="M480-318.09 266.65-531.44l57.13-56 116.61 116.61V-814.7h79.22v343.87l116.61-116.61 57.13 56L480-318.09ZM225.09-145.87q-32.51 0-55.87-23.35-23.35-23.36-23.35-55.87v-143h79.22v143h509.82v-143h79.79v143q0 32.48-23.53 55.85-23.52 23.37-56.26 23.37H225.09Z"
+            d="M67-743.87V-933h189.13v73H140v116.13H67Zm753 0V-860H703.87v-73H893v189.13h-73ZM67-27v-189.13h73V-100h116.13v73H67Zm636.87 0v-73H820v-116.13h73V-27H703.87ZM273-233h414v-494H273v494Zm0 79.22q-31.38 0-55.3-23.92-23.92-23.92-23.92-55.3v-494q0-31.38 23.92-55.3 23.92-23.92 55.3-23.92h414q31.38 0 55.3 23.92 23.92 23.92 23.92 55.3v494q0 31.38-23.92 55.3-23.92 23.92-55.3 23.92H273Zm94.74-413.96h225.09v-65.09H367.74v65.09Zm0 120h225.09v-65.09H367.74v65.09Zm0 120h225.09v-65.09H367.74v65.09ZM273-233v-494 494Z"
           />
         </svg>
       </button>
     </div>
-    <button class="qs-guide-btn full-page" id="btn-full" title="Full Page">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960">
-        <path
-          d="M67-743.87V-933h189.13v73H140v116.13H67Zm753 0V-860H703.87v-73H893v189.13h-73ZM67-27v-189.13h73V-100h116.13v73H67Zm636.87 0v-73H820v-116.13h73V-27H703.87ZM273-233h414v-494H273v494Zm0 79.22q-31.38 0-55.3-23.92-23.92-23.92-23.92-55.3v-494q0-31.38 23.92-55.3 23.92-23.92 55.3-23.92h414q31.38 0 55.3 23.92 23.92 23.92 23.92 55.3v494q0 31.38-23.92 55.3-23.92 23.92-55.3 23.92H273Zm94.74-413.96h225.09v-65.09H367.74v65.09Zm0 120h225.09v-65.09H367.74v65.09Zm0 120h225.09v-65.09H367.74v65.09ZM273-233v-494 494Z"
-        />
-      </svg>
-    </button>
+
+    <div id="notice-view" class="qs-notice" style="display: none;">
+      <span class="qs-notice-badge" id="notice-badge">Chrome Security</span>
+      <div class="qs-notice-icon" id="notice-icon"></div>
+      <div class="qs-notice-title" id="notice-title">Notice</div>
+      <div class="qs-notice-desc" id="notice-desc">Description</div>
+      <div class="qs-notice-tip" id="notice-tip">💡 SwiftSelect works on all normal websites and web apps.</div>
+      <button class="qs-notice-btn" id="notice-action-btn" style="display: none;">
+        <span id="notice-action-text">Open Settings</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42L16.86 11H5v2z"/></svg>
+      </button>
+    </div>
     <script src="popup.js"></script>
   </body>
 </html>

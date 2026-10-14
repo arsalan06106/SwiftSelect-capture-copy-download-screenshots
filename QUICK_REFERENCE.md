@@ -4,15 +4,22 @@ A compact cheat sheet for SwiftSelect's interface and shortcuts.
 
 <br>
 
-## Activation
+## Activation & Shortcuts
 
-| Action                          | Result                                  |
-| :------------------------------ | :-------------------------------------- |
-| Click extension icon            | Opens selection mode                    |
-| <kbd>Alt</kbd> + <kbd>X</kbd>   | Opens selection mode                    |
-| <kbd>Alt</kbd> + <kbd>S</kbd>   | Captures visible area & downloads       |
-| <kbd>Alt</kbd> + <kbd>F</kbd>   | Captures full page & downloads          |
-| <kbd>Esc</kbd>                  | Cancels and closes                      |
+| Action                                            | Result                                  |
+| :------------------------------------------------ | :-------------------------------------- |
+| Click extension icon                              | Opens selection mode                    |
+| <kbd>Alt</kbd> + <kbd>X</kbd>                     | Opens selection mode                    |
+| <kbd>Alt</kbd> + <kbd>S</kbd>                     | Captures visible area & downloads       |
+| <kbd>Alt</kbd> + <kbd>H</kbd>                     | Captures horizontal view & downloads    |
+| <kbd>Alt</kbd> + <kbd>F</kbd>                     | Captures full page & downloads          |
+| <kbd>Esc</kbd>                                    | Cancels and closes                      |
+
+### In-Session Hotkeys (When Toolbar is Open)
+- <kbd>Alt</kbd> + <kbd>S</kbd> or <kbd>S</kbd> / <kbd>V</kbd>: Save & Copy Visible Area
+- <kbd>Alt</kbd> + <kbd>H</kbd> or <kbd>H</kbd>: Save & Copy Horizontal View
+- <kbd>Alt</kbd> + <kbd>F</kbd> or <kbd>F</kbd>: Save & Copy Full Page
+- <kbd>Alt</kbd> + <kbd>X</kbd> or <kbd>Esc</kbd>: Cancel selection
 
 <br>
 
@@ -28,31 +35,53 @@ A compact cheat sheet for SwiftSelect's interface and shortcuts.
 
 ## Toolbar Buttons
 
-From left to right when the toolbar appears:
+From left to right when the floating toolbar appears:
 
-| Button         | Action                              | Output                    |
-| :------------- | :---------------------------------- | :------------------------ |
-| Eye icon       | Capture visible area                | Copied to clipboard       |
-| Download icon  | Capture visible area & download     | Clipboard + file download |
-| Scroll icon    | Capture full page                   | File download             |
-| Moon/Sun icon  | Toggle light/dark theme             | Preference saved           |
+| Button         | Action                               | Output                    | Hotkey |
+| :------------- | :----------------------------------- | :------------------------ | :----- |
+| Eye icon       | Capture visible area                 | Clipboard + file download | `Alt+S` / `V` |
+| Wide-view icon | Capture horizontal view              | Clipboard + file download | `Alt+H` / `H` |
+| Scroll icon    | Capture full page                    | High-res file download    | `Alt+F` / `F` |
+
+*Hovering over any action button for ~1600ms displays an elegant floating liquid-glass card with shortcut key and description.*
+
+<br>
+
+## Right-Click Context Menu
+
+Right-click the extension icon in Chrome's toolbar (or right-click anywhere on any page) to access:
+
+- **Quick Capture**:
+  - `Select Area (Alt+X)`
+  - `Capture Visible Area (Alt+S)`
+  - `Capture Horizontal View (Alt+H)`
+  - `Capture Full Page (Alt+F)`
+- **Theme Selection**:
+  - `Liquid Glass (Modern)` (default, adaptive)
+  - `Standard Minimal`
+  - `Always Light`
+  - `Always Dark`
+- **Configure Keyboard Shortcuts...**
 
 <br>
 
 ## Output Behaviour
 
-| Capture Type   | Clipboard | File Download | Notes                                    |
-| :------------- | :-------- | :------------ | :--------------------------------------- |
-| Region select  | ✓         | On demand ¹   | Save button appears in status bar        |
-| Visible area   | ✓         | Optional      | Via toolbar download button or Alt+S     |
-| Full page      | —         | ✓             | Too large for clipboard in most cases    |
+| Capture Type    | Clipboard | File Download | Notes                                    |
+| :-------------- | :-------- | :------------ | :--------------------------------------- |
+| Region select   | ✓         | On demand ¹   | Save button appears in status bar        |
+| Visible area    | ✓         | Auto          | Copied to clipboard & saved as PNG       |
+| Horizontal view | ✓         | Auto          | Copied to clipboard & saved as PNG       |
+| Full page       | ✓ ²       | Auto          | Saved as lossless PNG (pixel-perfect)    |
 
-¹ After a region capture, the status bar shows a save button. Clicking it downloads the captured image.
+¹ After a region capture, the status bar shows a save button. Clicking it downloads the captured image.  
+² Full-page captures attempt silent clipboard copy; if image exceeds clipboard size limits, file download succeeds seamlessly.
 
 <br>
 
-## Limitations
+## Limitations & Page State
 
-- Cannot run on `chrome://`, `edge://`, `about:` pages, or the Chrome Web Store
-- Full-page capture may produce artifacts on pages with complex CSS transforms or WebGL canvases
-- Clipboard write can be blocked by page Content Security Policy; the extension falls back to download in that case
+- Restricted on `chrome://`, `edge://`, `about:` pages, and the Chrome Web Store (clicking extension icon displays explanatory guidance).
+- On `file://` local pages, Chrome requires "Allow access to file URLs" permission in `chrome://extensions/`.
+- Full-page capture may produce artifacts on pages with complex WebGL canvases.
+- Clipboard write can be blocked by page Content Security Policy; the extension falls back to download in that case.

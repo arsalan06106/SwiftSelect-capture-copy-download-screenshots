@@ -2,59 +2,80 @@
  * main content script entry point
  */
 
-if (window.__swiftSelectInjected_v2) {
-  // Already injected
-} else {
+if (!window.__swiftSelectInjected_v2) {
   window.SwiftSelect = window.SwiftSelect || {};
   window.__swiftSelectInjected_v2 = true;
 
-  (async () => {
-    // We use dynamic imports for the bundled ES modules
-    const theme = await import(chrome.runtime.getURL("src/theme.js"));
-    const ui = await import(chrome.runtime.getURL("src/ui.js"));
-    const events = await import(chrome.runtime.getURL("src/events.js"));
-    const region = await import(chrome.runtime.getURL("src/capture/region.js"));
-    const fullpage = await import(
-      chrome.runtime.getURL("src/capture/fullpage.js")
-    );
+  let modulesPromise = null;
 
-    // Initialize namespace bridge
-    window.SwiftSelect.theme = theme;
-    window.SwiftSelect.ui = ui;
-    window.SwiftSelect.events = events;
-    window.SwiftSelect.capture = { ...region, ...fullpage };
+  function getModules() {
+    if (!modulesPromise) {
+      modulesPromise = Promise.all([
+        import(chrome.runtime.getURL("src/theme.js")),
+        import(chrome.runtime.getURL("src/ui.js")),
+        import(chrome.runtime.getURL("src/events.js")),
+        import(chrome.runtime.getURL("src/capture/region.js")),
+        import(chrome.runtime.getURL("src/capture/fullpage.js")),
+      ]).then(([theme, ui, events, region, fullpage]) => {
+        window.SwiftSelect.theme = theme;
+        window.SwiftSelect.ui = ui;
+        window.SwiftSelect.events = events;
+        window.SwiftSelect.capture = { ...region, ...fullpage };
+        theme.init();
+        return { theme, ui, events, region, fullpage };
+      });
+    }
+    return modulesPromise;
+  }
 
-    // Initial theme setup
-    theme.init();
+  // Pre-load modules immediately
+  getModules().catch((err) =>
+    console.error("SwiftSelect module load error:", err),
+  );
 
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Synchronous listener registration so zero messages are dropped
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    getModules().then(({ theme, ui, events, region, fullpage }) => {
       if (message.type === "start-selection") {
         ui.ensureUi();
         events.addListeners();
-      } else if (message.type === "capture-download") {
-        region.handleCaptureAndDownload();
+        sendResponse({ success: true });
+      } else if (
+        message.type === "capture-visible" ||
+        message.type === "capture-download"
+      ) {
+        region.handleCaptureVisible();
+        sendResponse({ success: true });
+      } else if (message.type === "capture-horizontal") {
+        fullpage.handleCaptureHorizontal();
+        sendResponse({ success: true });
       } else if (message.type === "capture-full") {
         fullpage.handleCaptureFullPage();
+        sendResponse({ success: true });
       } else if (message.type === "fullpage-progress") {
-        // Progress from background/offscreen
-        const ps = document.querySelector(".qs-progress-text");
-        if (ps) ps.textContent = `${message.progress}%`;
+        const ps = ui.guideShadow?.querySelector(".qs-progress-text");
+        const isDone = message.progress >= 100;
         chrome.runtime.sendMessage({
           type: "update-badge",
-          text: `${message.progress}%`,
+          text: isDone ? "✓" : `${message.progress}%`,
+          color: isDone ? "#10B981" : "#BA4B5C",
         });
+        sendResponse({ success: true });
       } else if (message.type === "fullpage-action") {
         const { action, data } = message;
         if (action === "unroll-page") {
-          sendResponse(fullpage.handleUnrollPage());
+          sendResponse(fullpage.handleUnrollPage(data));
         } else if (action === "update-unroll") {
-          sendResponse(fullpage.handleUpdateUnroll(data.scrollTop));
+          sendResponse(
+            fullpage.handleUpdateUnroll(data.scrollTop, data.scrollLeft),
+          );
         } else if (action === "restore-unroll") {
           fullpage.handleRestoreUnroll();
           sendResponse({ success: true });
         }
-        return true; // async for fullpage-action
       }
     });
-  })();
+
+    return true; // Keep channel open for async response
+  });
 }

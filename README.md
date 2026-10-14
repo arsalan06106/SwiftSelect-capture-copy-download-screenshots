@@ -28,15 +28,16 @@ The fastest screenshot tool for Chrome. Select a region, grab the viewport, or s
 <br>
 ## The Mechanics of SwiftSelect
 
-Most screenshot extensions are slow, cluttered, or demand unnecessary sign-ups. SwiftSelect does exactly three things and executes them instantly.
+Most screenshot extensions are slow, cluttered, or demand unnecessary sign-ups. SwiftSelect gives you instant capture with zero friction.
 
 | Mode | Action | Output |
 | :--- | :--- | :--- |
-| Region Select | Draw a box around any element | Copied to clipboard |
-| Visible Area | Capture the current viewport | Copied to clipboard and optional download |
-| Full Page | Scroll and stitch the entire page | Saved as a file |
+| Region Select | Draw a box around any element | Copied to clipboard (+ save button) |
+| Visible Area | Capture current viewport | Copied to clipboard & auto-downloaded |
+| Horizontal View | Capture wide content / zoomed areas | Copied to clipboard & auto-downloaded |
+| Full Page | Scroll and stitch entire page | High-res image file |
 
-Full-page capture reliably processes complex single-page applications, bypassing sticky headers and fixed elements.
+Full-page and horizontal captures reliably handle complex single-page applications and wide data tables, bypassing sticky headers and fixed elements.
 
 <br>
 <div align="center">
@@ -44,18 +45,27 @@ Full-page capture reliably processes complex single-page applications, bypassing
 </div>
 
 <br>
-## Shortcuts
+## Shortcuts & In-Session Hotkeys
 
-Every action has a dedicated shortcut to eliminate toolbar hunting.
+Every action has dedicated shortcuts and in-session single-key hotkeys.
 
+### Global Chrome Shortcuts
 | Shortcut | Action |
 | :--- | :--- |
-| <kbd>Alt</kbd> + <kbd>X</kbd> | Activate SwiftSelect and open the floating toolbar |
-| <kbd>Alt</kbd> + <kbd>S</kbd> | Capture visible area and download |
-| <kbd>Alt</kbd> + <kbd>F</kbd> | Capture full page and download |
+| <kbd>Alt</kbd> + <kbd>X</kbd> | Activate SwiftSelect floating toolbar |
+| <kbd>Alt</kbd> + <kbd>S</kbd> | Capture visible area & download |
+| <kbd>Alt</kbd> + <kbd>H</kbd> | Capture horizontal view & download |
+| <kbd>Alt</kbd> + <kbd>F</kbd> | Capture full page & download |
+
+### In-Session Hotkeys (When Toolbar is Open)
+| Key | Action |
+| :--- | :--- |
+| <kbd>V</kbd> | Capture visible area & download |
+| <kbd>H</kbd> | Capture horizontal view & download |
+| <kbd>F</kbd> | Capture full page & download |
 | <kbd>Esc</kbd> | Cancel and close |
 
-Clicking the extension icon in the toolbar also activates region selection mode directly.
+Clicking the extension icon in the toolbar also activates selection mode directly.
 
 <br>
 

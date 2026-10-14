@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SwiftSelect - Capture, Copy & Download Screenshots",
-  "version": "1.5.9",
+  "version": "1.6.0",
   "description": "The all-in-one tool to snap, scroll-capture, copy and download screenshots instantly.",
   "permissions": [
     "scripting",
@@ -10,7 +10,8 @@
     "clipboardWrite",
     "offscreen",
     "tabCapture",
-    "storage"
+    "storage",
+    "contextMenus"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -33,19 +34,29 @@
   "commands": {
     "activate-selection": {
       "suggested_key": {
-        "default": "Alt+X"
+        "default": "Alt+X",
+        "mac": "MacCtrl+X"
       },
       "description": "Activate selection mode"
     },
     "capture-visible-download": {
       "suggested_key": {
-        "default": "Alt+S"
+        "default": "Alt+S",
+        "mac": "MacCtrl+S"
       },
       "description": "Capture visible area & download"
     },
+    "capture-horizontal": {
+      "suggested_key": {
+        "default": "Alt+H",
+        "mac": "MacCtrl+H"
+      },
+      "description": "Capture horizontal view & download"
+    },
     "capture-full-page": {
       "suggested_key": {
-        "default": "Alt+F"
+        "default": "Alt+F",
+        "mac": "MacCtrl+F"
       },
       "description": "Capture full page & download"
     }

@@ -32,12 +32,26 @@ If `navigator.clipboard.write()` fails (some pages block it), the extension fall
 
 Triggered via the toolbar eye button or `Alt+S` shortcut.
 
-This is simpler than region capture: it grabs the entire viewport without cropping.
+Captures strictly what is currently displayed on screen:
 
 1. The UI is hidden (toolbar, overlay, highlighter all set to `display: none`).
 2. A brief delay (`requestAnimationFrame` + 100ms) ensures the browser finishes painting without the extension UI.
-3. `captureVisibleTab()` grabs the viewport.
-4. The result is written to clipboard and/or downloaded.
+3. `captureVisibleTab()` grabs the viewport, and native browser scrollbars are mathematically cropped out.
+4. The result is copied to clipboard AND automatically saved/downloaded.
+
+<br>
+
+## Horizontal View Capture
+
+Triggered via the toolbar wide-screen button (`[ <-> ]`) or `Alt+H`.
+
+Captures the current visible vertical section expanded across the entire horizontal content width (ideal for wide tables, spreadsheets, or zoomed-in pages) while fully preserving `position: fixed` and `position: sticky` sidebars/headers (such as Twitter/X feeds and dashboards):
+
+1. Measures `measureFullContentWidth()`. If the page does not overflow horizontally (`contentWidth <= window.innerWidth + 5`), unroll CSS and transforms are completely bypassed, preventing any vertical shifts or containing block dislocations for fixed sidebars.
+2. When horizontal overflow exists, only horizontal unrolling is applied (`translate3d(var(--scroll-left), 0px, 0px)` with `neutralizeStickyElements()` locking fixed sidebars to their current viewport positions).
+3. The offscreen document traverses horizontal coordinate tiles across the width with zero vertical shift (`scrollTop: 0`).
+4. Tiles are stitched onto a panoramic canvas of size `rectWidth × innerHeight` (in device pixels).
+5. The result is copied to clipboard AND downloaded instantly with zero artificial UI delays.
 
 <br>
 
@@ -73,29 +87,67 @@ Before scrolling begins, `fullpage.js` runs `neutralizeStickyElements()`:
 
 This prevents headers, navbars, and floating buttons from appearing in every captured frame.
 
-### The Scroll-and-Stitch Loop
+### The 2D Scroll-and-Stitch Matrix Loop
 
-1. The page is unrolled: overflow is set to visible, the scroll container height is measured.
-2. The offscreen document scrolls the page by setting `scrollTop` via the content script.
-3. After each scroll, `ImageCapture.grabFrame()` captures the current frame.
+1. The page is unrolled in 2D: overflow is set to visible, both content height and width (including horizontal scrollbars when zoomed in or on wide layouts) are measured.
+2. The offscreen document navigates a 2D grid of `(x, y)` coordinate tiles across both dimensions by updating `--scroll-top` and `--scroll-left` via the content script.
+3. For each tile, after repaint, `ImageCapture.grabFrame()` captures the current frame.
 4. A `FrameDetector` class downsamples each frame to 10×10 pixels and compares it to the previous frame to confirm the browser has actually repainted. If the frame is identical, it retries.
-5. Each frame is converted to a blob and stored.
+5. Each tile is converted to a blob and stored with its 2D coordinates `(dx, dy)`.
 6. Progress is reported back to the content script, which updates the on-page progress indicator and the extension badge.
 
-### Stitching
+### Stitching & Canvas Safety
 
-After all frames are captured:
+After all tiles are captured:
 
-1. A full-height canvas is created matching the total scroll height.
-2. Each frame is drawn at its corresponding vertical offset.
-3. The final canvas is converted to a PNG blob.
-4. The blob is downloaded as a file (full-page captures are too large for clipboard in most cases).
+1. A 2D canvas is created matching the full content width and height (`rectWidth × rectHeight` in device pixels).
+2. **Safety Clamping**: Chromium limits HTML5 canvases to 16,384px per side and 268,435,456 total pixels. If an exceptionally large page exceeds these bounds, `offscreen.js` computes an exact `scaleRatio` and applies `ctx.scale(scaleRatio, scaleRatio)`, safeguarding against browser engine crashes.
+3. Each tile is drawn at its corresponding `(dx, dy)` offsets with boundary snapping on final rows and columns, and `imageSmoothingEnabled = false` for 1:1 pixel fidelity.
+4. **Lossless PNG Export**: Both Horizontal View and Full-page captures export to pristine lossless PNG (`.png`), preserving text sharpness with zero compression blur or artifacts.
+5. The blob is downloaded as a file and copied to clipboard where supported.
 
 ### Cleanup
 
 After capture (success or failure):
 
 - Sticky elements are restored to their original styles.
-- The unroll styles are removed.
+- The unroll styles are removed and scroll position is restored inside `requestAnimationFrame`.
 - The offscreen document is closed.
 - The progress UI and badge are cleared.
+
+<br>
+
+## Shortcuts & In-Session Hotkeys
+
+- **Global Shortcuts**:
+  - `Alt+X`: Activate selection mode
+  - `Alt+S`: Capture visible area & download
+  - `Alt+H`: Capture horizontal view & download
+  - `Alt+F`: Capture full page & download
+- **In-Session Hotkeys** (when toolbar overlay is open):
+  - `Alt+S` or `S` / `V`: Capture & Copy Visible Area
+  - `Alt+H` or `H`: Capture & Copy Horizontal View
+  - `Alt+F` or `F`: Capture & Save Full Page
+  - `Escape`: Cancel selection
+  - `Space`: Hold to pan selection box
+  - `Ctrl` / `Cmd`: Snapping highlight toggle
+
+<br>
+
+## Custom Floating Tooltips
+
+Hovering over an action button on the floating toolbar for ~1600ms triggers a clean, floating liquid-glass card (without obstructive triangle indicators) featuring:
+- Button title and purpose
+- Action description (clarifying horizontal panoramic capture vs visible area)
+- Keyboard shortcut pill badge
+- Liquid glass styling with specular highlights and adaptive dark mode
+
+<br>
+
+## Badge & Tab State System
+
+The extension monitors tab activation and navigation in `background.js`:
+- **Active Capture Progress**: Displays pure white text on royal blue (`#2563EB`) during tiling, immediately swapping to `✓` on emerald green (`#10B981`) upon completion, auto-clearing after 1.5 seconds.
+- **Restricted Sites** (`chrome://`, `edge://`, `about:`, Web Store): Extension icon remains visually clean (no alarming red badge); clicking the icon opens an explanatory guidance card.
+- **File URLs** (`file://`): If "Allow access to file URLs" is disabled in Chrome settings, displays an amber `FILE` badge. Clicking the icon opens a direct "Open Settings" prompt.
+- **Normal Web Pages**: Clean icon with zero badge overhead, launching selection mode immediately upon click.

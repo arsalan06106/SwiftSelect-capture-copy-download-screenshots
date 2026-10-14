@@ -1,9 +1,11 @@
 import { toggleCursor, getSmartFilename } from "./utils.js";
 import { setLastBlob } from "./download.js";
+import { handleCaptureVisible } from "./region.js";
 
 let _unrollStyle = null;
 let _unrollScrollStyle = null;
 let _originalScrollTop = 0;
+let _originalScrollLeft = 0;
 let _hiddenStickyElements = [];
 let _innerScrollContainer = null;
 let _innerScrollOriginalStyles = null;
@@ -148,15 +150,24 @@ export function findInnerScrollContainer() {
 
     const style = window.getComputedStyle(cand);
     const overflowY = style.overflowY;
+    const overflowX = style.overflowX;
     const overflow = style.overflow;
 
-    if (
+    const hasScrollY =
       (overflowY === "auto" ||
         overflowY === "scroll" ||
         overflow === "auto" ||
         overflow === "scroll") &&
-      cand.scrollHeight > cand.clientHeight + 50
-    ) {
+      cand.scrollHeight > cand.clientHeight + 50;
+
+    const hasScrollX =
+      (overflowX === "auto" ||
+        overflowX === "scroll" ||
+        overflow === "auto" ||
+        overflow === "scroll") &&
+      cand.scrollWidth > cand.clientWidth + 50;
+
+    if (hasScrollY || hasScrollX) {
       const r = cand.getBoundingClientRect();
       const area = r.width * r.height;
 
@@ -173,16 +184,16 @@ export function findInnerScrollContainer() {
 }
 
 export function measureFullContentHeight() {
-  const docSH = document.documentElement.scrollHeight;
-  const bodySH = document.body.scrollHeight;
+  const docSH = document.documentElement?.scrollHeight || 0;
+  const bodySH = document.body?.scrollHeight || 0;
   const winH = window.innerHeight;
 
   const innerScroller = findInnerScrollContainer();
-  if (innerScroller) {
+  if (innerScroller && innerScroller !== document.body) {
     _innerScrollContainer = innerScroller;
-    innerScroller.scrollTo({ top: 0, behavior: "instant" });
+    innerScroller.scrollTo({ top: 0, left: 0, behavior: "instant" });
     const nonScrollerHeight = winH - innerScroller.clientHeight;
-    return innerScroller.scrollHeight + nonScrollerHeight;
+    return innerScroller.scrollHeight + Math.max(0, nonScrollerHeight);
   }
 
   _innerScrollContainer = null;
@@ -192,35 +203,171 @@ export function measureFullContentHeight() {
   return Math.max(docSH, bodySH, winH);
 }
 
-export function applyUnrollCSS(contentHeight) {
+export function measureFullContentWidth() {
+  const winW = window.innerWidth;
+  const doc = document.documentElement;
+  const body = document.body;
+
+  const docSW = doc?.scrollWidth || 0;
+  const bodySW = body?.scrollWidth || 0;
+
+  // Real horizontal overflow exists only if scrollWidth exceeds innerWidth
+  let width = winW;
+  if (docSW > winW + 5) width = Math.max(width, docSW);
+  if (bodySW > winW + 5) width = Math.max(width, bodySW);
+
+  // Check if an actual horizontal inner scroll container exists
+  if (_innerScrollContainer) {
+    const isHorizontalScroller =
+      _innerScrollContainer.scrollWidth >
+        _innerScrollContainer.clientWidth + 20 &&
+      (() => {
+        const style = window.getComputedStyle(_innerScrollContainer);
+        return style.overflowX === "auto" || style.overflowX === "scroll";
+      })();
+    if (isHorizontalScroller) {
+      const nonScrollerWidth = Math.max(
+        0,
+        winW - _innerScrollContainer.clientWidth,
+      );
+      width = Math.max(
+        width,
+        _innerScrollContainer.scrollWidth + nonScrollerWidth,
+      );
+    }
+  }
+
+  return Math.round(width);
+}
+
+export function applyUnrollCSS(
+  contentHeight,
+  contentWidth,
+  initialScrollTop = 0,
+  mode = "full",
+) {
   _originalScrollTop = window.scrollY || document.documentElement.scrollTop;
-  document.scrollingElement?.scrollTo({ top: 0, behavior: "instant" });
+  _originalScrollLeft = window.scrollX || document.documentElement.scrollLeft;
+
+  const isHorizontal = mode === "horizontal";
+
+  // If in horizontal mode and content width does not overflow, bypass unrolling completely!
+  if (isHorizontal && (!contentWidth || contentWidth <= window.innerWidth + 5)) {
+    _unrollStyle = document.createElement("style");
+    _unrollStyle.setAttribute("data-swiftselect-unroll", "true");
+    _unrollStyle.textContent = `
+      html, body {
+        cursor: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=), auto !important;
+      }
+      * {
+        cursor: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=), auto !important;
+        pointer-events: none !important;
+      }
+      html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar {
+        display: none !important; 
+        width: 0 !important; 
+        height: 0 !important;
+        opacity: 0 !important;
+      }
+      html, body, * { 
+        scrollbar-width: none !important; 
+        -ms-overflow-style: none !important; 
+      }
+    `;
+    document.head.appendChild(_unrollStyle);
+    return;
+  }
+
+  // When unrolling horizontally with actual overflow:
+  if (isHorizontal) {
+    document.scrollingElement?.scrollTo({ left: 0, behavior: "instant" });
+    neutralizeStickyElements();
+
+    _unrollStyle = document.createElement("style");
+    _unrollStyle.setAttribute("data-swiftselect-unroll", "true");
+    _unrollStyle.textContent = `
+      html, body {
+        cursor: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=), auto !important;
+      }
+      * {
+        transition: none !important;
+        animation-play-state: paused !important;
+        box-shadow: none !important;
+        cursor: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=), auto !important;
+        pointer-events: none !important;
+      }
+      html {
+        transform: translate3d(var(--scroll-left, 0px), 0px, 0px) !important;
+        overflow: hidden !important;
+        min-width: 100vw !important;
+        max-width: none !important;
+        width: ${contentWidth}px !important;
+      }
+      body {
+        overflow: visible !important;
+      }
+      html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar {
+        display: none !important; 
+        width: 0 !important; 
+        height: 0 !important;
+        opacity: 0 !important;
+      }
+      html, body, * { 
+        scrollbar-width: none !important; 
+        -ms-overflow-style: none !important; 
+      }
+    `;
+    document.head.appendChild(_unrollStyle);
+    setUnrollPosition(0, 0);
+    return;
+  }
+
+  // Full page mode:
+  document.scrollingElement?.scrollTo({ top: 0, left: 0, behavior: "instant" });
 
   _unrollStyle = document.createElement("style");
   _unrollStyle.setAttribute("data-swiftselect-unroll", "true");
 
-  const heightCSS = contentHeight
-    ? `height: ${contentHeight}px !important;`
-    : "";
+  const heightCSS = contentHeight ? `height: ${contentHeight}px !important;` : "";
+  const widthCSS =
+    contentWidth && contentWidth > window.innerWidth + 5
+      ? `width: ${contentWidth}px !important;`
+      : "";
   const innerScroller = _innerScrollContainer;
 
   if (innerScroller) {
     _innerScrollOriginalStyles = {
       overflow: innerScroller.style.overflow,
       overflowY: innerScroller.style.overflowY,
+      overflowX: innerScroller.style.overflowX,
       maxHeight: innerScroller.style.maxHeight,
+      maxWidth: innerScroller.style.maxWidth,
       height: innerScroller.style.height,
+      width: innerScroller.style.width,
     };
 
     innerScroller.style.setProperty("overflow", "visible", "important");
     innerScroller.style.setProperty("overflow-y", "visible", "important");
+    innerScroller.style.setProperty("overflow-x", "visible", "important");
     innerScroller.style.setProperty("max-height", "none", "important");
+    innerScroller.style.setProperty("max-width", "none", "important");
     innerScroller.style.setProperty(
       "height",
       innerScroller.scrollHeight + "px",
       "important",
     );
-    innerScroller.scrollTo({ top: 0, behavior: "instant" });
+    if (innerScroller.scrollWidth > innerScroller.clientWidth) {
+      innerScroller.style.setProperty(
+        "width",
+        innerScroller.scrollWidth + "px",
+        "important",
+      );
+    }
+    if (initialScrollTop === 0) {
+      innerScroller.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    } else {
+      innerScroller.scrollTo({ left: 0, behavior: "instant" });
+    }
   }
 
   _unrollStyle.textContent = `
@@ -235,11 +382,18 @@ export function applyUnrollCSS(contentHeight) {
       pointer-events: none !important;
     }
     html {
-      transform: translate3d(0px, var(--scroll-top, 0px), 0px) !important;
+      transform: translate3d(var(--scroll-left, 0px), var(--scroll-top, 0px), 0px) !important;
       overflow: hidden !important;
       min-height: 100vh !important;
       max-height: none !important;
+      min-width: 100vw !important;
+      max-width: none !important;
       ${heightCSS}
+      ${widthCSS}
+    }
+    body {
+      max-width: none !important;
+      overflow: visible !important;
     }
     html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar {
       display: none !important; 
@@ -253,6 +407,7 @@ export function applyUnrollCSS(contentHeight) {
     }
   `;
   document.head.appendChild(_unrollStyle);
+  setUnrollPosition(initialScrollTop, 0);
   neutralizeStickyElements();
 }
 
@@ -263,8 +418,11 @@ export function removeUnrollCSS() {
     const orig = _innerScrollOriginalStyles;
     el.style.overflow = orig.overflow;
     el.style.overflowY = orig.overflowY;
+    el.style.overflowX = orig.overflowX || "";
     el.style.maxHeight = orig.maxHeight;
+    el.style.maxWidth = orig.maxWidth || "";
     el.style.height = orig.height;
+    el.style.width = orig.width || "";
     _innerScrollContainer = null;
     _innerScrollOriginalStyles = null;
   }
@@ -276,18 +434,21 @@ export function removeUnrollCSS() {
     _unrollScrollStyle.remove();
     _unrollScrollStyle = null;
   }
-  window.scrollTo(0, _originalScrollTop);
+  requestAnimationFrame(() => {
+    window.scrollTo(_originalScrollLeft, _originalScrollTop);
+  });
 }
 
-export function setUnrollPosition(scrollTop) {
+export function setUnrollPosition(scrollTop, scrollLeft = 0) {
   if (_unrollScrollStyle) _unrollScrollStyle.remove();
   _unrollScrollStyle = document.createElement("style");
   _unrollScrollStyle.setAttribute("data-swiftselect-unroll-scroll", "true");
-  _unrollScrollStyle.textContent = `html { --scroll-top: ${-scrollTop}px !important; }`;
+  _unrollScrollStyle.textContent = `html { --scroll-top: ${-scrollTop}px !important; --scroll-left: ${-scrollLeft}px !important; }`;
   document.head.appendChild(_unrollScrollStyle);
 }
 
-export function handleUnrollPage() {
+export function handleUnrollPage(data = {}) {
+  const mode = data?.mode || "full";
   toggleCursor(true);
   document.activeElement?.blur();
   const hovered = document.querySelectorAll(":hover");
@@ -299,8 +460,17 @@ export function handleUnrollPage() {
     new MouseEvent("mouseleave", { bubbles: true, clientX: -1, clientY: -1 }),
   );
 
-  const contentHeight = measureFullContentHeight();
-  applyUnrollCSS(contentHeight);
+  const initialScrollTop =
+    window.scrollY || document.documentElement.scrollTop || 0;
+  const contentHeight =
+    mode === "horizontal" ? window.innerHeight : measureFullContentHeight();
+  const contentWidth = measureFullContentWidth();
+  applyUnrollCSS(
+    contentHeight,
+    contentWidth,
+    mode === "horizontal" ? initialScrollTop : 0,
+    mode,
+  );
 
   const rect = document.documentElement.getBoundingClientRect();
   const bodyBg = window.getComputedStyle(document.body).backgroundColor;
@@ -314,25 +484,45 @@ export function handleUnrollPage() {
         ? htmlBg
         : null;
 
+  const actualWidth =
+    mode === "horizontal" && contentWidth <= window.innerWidth + 5
+      ? window.innerWidth
+      : Math.max(contentWidth, rect.width);
+
   return {
     innerWidth: window.innerWidth,
     innerHeight: window.innerHeight,
     devicePixelRatio: window.devicePixelRatio || 1,
     scrollHeight: Math.max(contentHeight, rect.height),
-    rect: { height: rect.height, bottom: rect.bottom, width: rect.width },
+    scrollWidth: actualWidth,
+    initialScrollTop: mode === "horizontal" ? initialScrollTop : 0,
+    rect: {
+      height: rect.height,
+      bottom: rect.bottom,
+      width: actualWidth,
+      right: rect.right,
+    },
     rectBottom: rect.bottom,
+    rectRight: rect.right,
     bgColor,
     abort: _abortCapture,
   };
 }
 
-export function handleUpdateUnroll(scrollTop) {
+export function handleUpdateUnroll(scrollTop, scrollLeft = 0) {
   if (_abortCapture) return { abort: true };
-  setUnrollPosition(scrollTop);
+  setUnrollPosition(scrollTop, scrollLeft);
+  void document.documentElement.offsetHeight;
   const rect = document.documentElement.getBoundingClientRect();
   return {
     rectBottom: rect.bottom,
-    rect: { height: rect.height, bottom: rect.bottom },
+    rectRight: rect.right,
+    rect: {
+      height: rect.height,
+      bottom: rect.bottom,
+      width: rect.width,
+      right: rect.right,
+    },
   };
 }
 
@@ -341,7 +531,12 @@ export function handleRestoreUnroll() {
   removeUnrollCSS();
 }
 
-export async function handleCaptureFullPage() {
+export async function captureStream({
+  mode = "full",
+  actionName = "capture-full",
+  label = "Full Page",
+  filenameType = "fullpage",
+} = {}) {
   let originalIcon = null;
   _abortCapture = false;
 
@@ -353,7 +548,7 @@ export async function handleCaptureFullPage() {
   };
 
   const btn = window.SwiftSelect.ui.guideShadow?.querySelector(
-    '[data-action="capture-full"]',
+    `[data-action="${actionName}"]`,
   );
 
   try {
@@ -361,17 +556,9 @@ export async function handleCaptureFullPage() {
     window.SwiftSelect.ui.ensureUi();
     window.SwiftSelect.ui.removeCrosshairCursor();
     window.SwiftSelect.events.removeListeners();
-    window.SwiftSelect.ui.updateBadge("0%");
+    window.SwiftSelect.ui.updateBadge("0%", "#BA4B5C");
 
     originalIcon = btn?.cloneNode(true);
-    if (btn) {
-      btn.classList.add("qs-loading");
-      while (btn.firstChild) btn.removeChild(btn.firstChild);
-      const ps = document.createElement("span");
-      ps.className = "qs-progress-text";
-      ps.textContent = "0%";
-      btn.appendChild(ps);
-    }
 
     if (window.SwiftSelect.ui.guideHost) {
       window.SwiftSelect.ui.guideHost.style.display = "none";
@@ -391,14 +578,19 @@ export async function handleCaptureFullPage() {
     await new Promise((r) => requestAnimationFrame(r));
     document.activeElement?.blur();
 
+    const captureFormat = "image/png";
+    const captureQuality = 1.0;
+    const fileExt = "png";
+
     // Notify background
     const result = await new Promise((resolve) => {
       chrome.runtime.sendMessage(
         {
           type: "start-fullpage-capture",
-          frameInterval: 15,
-          format: "image/jpeg",
-          quality: 0.9,
+          mode,
+          frameInterval: 60,
+          format: captureFormat,
+          quality: captureQuality,
         },
         resolve,
       );
@@ -406,7 +598,7 @@ export async function handleCaptureFullPage() {
 
     if (_abortCapture || result?.abort) throw new Error("Capture Aborted");
     if (!result || !result.success)
-      throw new Error(result?.error || "Full page capture failed");
+      throw new Error(result?.error || `${label} capture failed`);
 
     const response = await fetch(result.blobUrl);
     const blob = await response.blob();
@@ -415,7 +607,7 @@ export async function handleCaptureFullPage() {
     // Revoke now that we've fetched the blob into memory (as a Blob object)
     URL.revokeObjectURL(result.blobUrl);
 
-    window.SwiftSelect.ui.updateBadge("100%");
+    window.SwiftSelect.ui.updateBadge("✓", "#10B981");
     if (btn) {
       btn.classList.remove("qs-loading");
       btn.querySelector(".qs-progress-text")?.remove();
@@ -423,11 +615,13 @@ export async function handleCaptureFullPage() {
       const tick = window.SwiftSelect.ui.createSvg("0 -960 960 960", {
         d: "M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z",
       });
-      const span = document.createElement("span");
-      span.textContent = "Full Page";
       while (btn.firstChild) btn.removeChild(btn.firstChild);
       btn.appendChild(tick);
-      btn.appendChild(span);
+      if (label && originalIcon?.querySelector("span")) {
+        const span = document.createElement("span");
+        span.textContent = label;
+        btn.appendChild(span);
+      }
 
       setTimeout(() => {
         btn.classList.remove("qs-success");
@@ -443,7 +637,7 @@ export async function handleCaptureFullPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = getSmartFilename("fullpage", "jpg");
+    a.download = getSmartFilename(filenameType, fileExt);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -456,19 +650,16 @@ export async function handleCaptureFullPage() {
     window.removeEventListener("keydown", onAbortKey, true);
 
     const statusMsg = result.clipboardSuccess
-      ? "Page Saved & Copied"
-      : "Page Saved";
-    // Now that the UI has been securely torn down (including any previous toasts),
-    // we can safely generate the new success toast without `cleanup()` immediately destroying it.
+      ? `${label} Saved & Copied`
+      : `${label} Saved`;
     window.SwiftSelect.ui.setStatus(statusMsg, 3000, "saved");
-    window.SwiftSelect.ui.updateBadge("✓", "#198754");
-    setTimeout(() => window.SwiftSelect.ui.updateBadge(""), 3000);
+    window.SwiftSelect.ui.updateBadge("✓", "#10B981");
+    setTimeout(() => window.SwiftSelect.ui.updateBadge(""), 1500);
   } catch (err) {
-    console.error("Full page capture error:", err);
+    console.error(`${label} capture error:`, err);
     handleRestoreUnroll();
-    window.SwiftSelect.ui.updateBadge("ERR", "#DC3545");
-    setTimeout(() => window.SwiftSelect.ui.updateBadge(""), 3000);
-    // Cleanup button and UI
+    window.SwiftSelect.ui.updateBadge("ERR", "#EF4444");
+    setTimeout(() => window.SwiftSelect.ui.updateBadge(""), 2000);
     if (btn) {
       btn.classList.remove("qs-loading");
       btn.classList.remove("qs-success");
@@ -487,4 +678,33 @@ export async function handleCaptureFullPage() {
       window.SwiftSelect.ui.guideHost.style.display = "flex";
     window.removeEventListener("keydown", onAbortKey, true);
   }
+}
+
+export async function handleCaptureFullPage() {
+  const contentHeight = measureFullContentHeight();
+  const contentWidth = measureFullContentWidth();
+  if (
+    contentHeight <= window.innerHeight + 5 &&
+    contentWidth <= window.innerWidth + 5
+  ) {
+    return handleCaptureVisible();
+  }
+  return captureStream({
+    mode: "full",
+    actionName: "capture-full",
+    label: "Full Page",
+    filenameType: "fullpage",
+  });
+}
+
+export async function handleCaptureHorizontal() {
+  if (measureFullContentWidth() <= window.innerWidth + 5) {
+    return handleCaptureVisible();
+  }
+  return captureStream({
+    mode: "horizontal",
+    actionName: "capture-horizontal",
+    label: "Horizontal View",
+    filenameType: "horizontal",
+  });
 }

@@ -2,7 +2,11 @@
  * Event handling for SwiftSelect
  */
 
-import { captureAndCrop } from "./capture/region.js";
+import { captureAndCrop, handleCaptureVisible } from "./capture/region.js";
+import {
+  handleCaptureFullPage,
+  handleCaptureHorizontal,
+} from "./capture/fullpage.js";
 
 export let dragging = false;
 export let isMoving = false;
@@ -345,6 +349,7 @@ export function onKeyDown(e) {
     window.SwiftSelect.ui.setStatus("Canceled", 900);
     cleanup();
     window.SwiftSelect.ui.cleanup();
+    return;
   }
   if (e.code === "Space") {
     isSpacePressed = true;
@@ -352,6 +357,42 @@ export function onKeyDown(e) {
   }
   if (!dragging && (e.key === "Control" || e.key === "Meta")) {
     updateSnapAt(snapPointer.x, snapPointer.y);
+  }
+
+  // Quick in-session hotkeys (Standard 2-button: Alt+S, Alt+H, Alt+F, Alt+X or single keys)
+  const activeEl = document.activeElement;
+  const isInput =
+    activeEl &&
+    (activeEl.tagName === "INPUT" ||
+      activeEl.tagName === "TEXTAREA" ||
+      activeEl.isContentEditable);
+
+  if (!dragging && !isInput) {
+    const key = e.key.toLowerCase();
+    const isAlt = e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+    const isPlain = !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+
+    if ((isAlt && key === "s") || (isPlain && (key === "s" || key === "v"))) {
+      e.preventDefault();
+      handleCaptureVisible();
+      return;
+    }
+    if ((isAlt && key === "h") || (isPlain && key === "h")) {
+      e.preventDefault();
+      handleCaptureHorizontal();
+      return;
+    }
+    if ((isAlt && key === "f") || (isPlain && key === "f")) {
+      e.preventDefault();
+      handleCaptureFullPage();
+      return;
+    }
+    if (isAlt && key === "x") {
+      e.preventDefault();
+      cleanup();
+      window.SwiftSelect.ui.cleanup();
+      return;
+    }
   }
 }
 
@@ -406,7 +447,9 @@ export function addListeners() {
   document.addEventListener("pointermove", boundPointerMove, true);
   document.addEventListener("pointerup", boundPointerUp, true);
   document.addEventListener("keydown", boundKeyDown, true);
+  window.addEventListener("keydown", boundKeyDown, true);
   document.addEventListener("keyup", boundKeyUp, true);
+  window.addEventListener("keyup", boundKeyUp, true);
 
   document.addEventListener("click", boundPreventAll, true);
   document.addEventListener("dblclick", boundPreventAll, true);
@@ -421,7 +464,9 @@ export function removeListeners() {
   document.removeEventListener("pointermove", boundPointerMove, true);
   document.removeEventListener("pointerup", boundPointerUp, true);
   document.removeEventListener("keydown", boundKeyDown, true);
+  window.removeEventListener("keydown", boundKeyDown, true);
   document.removeEventListener("keyup", boundKeyUp, true);
+  window.removeEventListener("keyup", boundKeyUp, true);
 
   document.removeEventListener("click", boundPreventAll, true);
   document.removeEventListener("dblclick", boundPreventAll, true);

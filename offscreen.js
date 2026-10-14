@@ -61,7 +61,14 @@ class FrameGrabber {
       if (!this.detector.detect(frame) || attempts >= 20) break;
       await new Promise((r) => setTimeout(r, 16));
     } while (true);
-    return frame;
+    // Allow Blink compositor to settle at full subpixel raster detail
+    await new Promise((r) => setTimeout(r, 20));
+    try {
+      const settled = await this.ic.grabFrame();
+      return settled;
+    } catch (e) {
+      return frame;
+    }
   }
 
   /** Convert an ImageBitmap to a Blob (zero-copy transfer). */
@@ -133,6 +140,8 @@ async function getTabStream(streamId, width, height) {
         maxWidth: width,
         minHeight: height,
         maxHeight: height,
+        minFrameRate: 30,
+        maxFrameRate: 60,
         chromeMediaSourceCursor: "never",
       },
       cursor: "never",
@@ -141,45 +150,71 @@ async function getTabStream(streamId, width, height) {
 }
 
 /**
- * Perform the full page capture using CSS unrolling.
- * Matches the reference extension's approach exactly:
- * - Uses rect.height (post-CSS) for total frame count
- * - Uses rect.bottom for loop termination
- * - No scrollHeight dependency
+ * Compute sequence of scroll offsets to cover totalSize with viewportSize.
+ * Uses overlap to prevent black seams and ensures the final offset aligns with the edge.
+ */
+function computeGridPoints(totalSize, viewportSize, overlap = 2) {
+  if (totalSize <= viewportSize + 5) {
+    return [0];
+  }
+  const points = [];
+  const step = Math.max(1, viewportSize - overlap);
+  let current = 0;
+  const maxPos = Math.max(0, Math.round(totalSize - viewportSize));
+
+  while (current < maxPos) {
+    points.push(current);
+    current += step;
+  }
+
+  if (points.length === 0 || points[points.length - 1] < maxPos) {
+    points.push(maxPos);
+  }
+
+  return points;
+}
+
+/**
+ * Perform the full page capture using 2D CSS unrolling (horizontal + vertical).
  *
  * Flow:
  * 1. Tell content script to "unroll" the page (CSS transform instead of scroll)
  * 2. Open getUserMedia stream for the tab
- * 3. Loop: update --scroll-top → wait → grab frame → store
+ * 3. Loop: update --scroll-top & --scroll-left across 2D grid → wait → grab frame → store
  * 4. Tell content script to restore
- * 5. Stitch frames on canvas → return Blob as data URL
+ * 5. Stitch frames onto 2D canvas → return Blob as data URL
  */
 async function captureFullPage(
   streamId,
   tabId,
+  mode = "full",
   frameInterval = 50,
   format = "image/png",
   quality = 1.0,
 ) {
   // 1. Unroll the page — CSS is applied first, then rect is measured
-  const meta = await sendToContent(tabId, "unroll-page");
+  const meta = await sendToContent(tabId, "unroll-page", { mode });
   if (!meta)
     throw new Error("unroll-page failed — no response from content script");
 
   const { innerWidth, innerHeight, devicePixelRatio: dpr } = meta;
 
-  // Use rect.height (measured AFTER CSS injection) for the true content height.
-  // This works because html has overflow:hidden + min-height:100vh, so
-  // getBoundingClientRect().height = full content height.
+  // Use rect (measured AFTER CSS injection) for true content dimensions.
   const rectHeight = meta.rect?.height || meta.scrollHeight || innerHeight;
+  const rectWidth = meta.rect?.width || meta.scrollWidth || innerWidth;
 
   console.log("[offscreen] meta:", {
+    mode,
     innerWidth,
     innerHeight,
     dpr,
     rectHeight,
+    rectWidth,
     scrollHeight: meta.scrollHeight,
+    scrollWidth: meta.scrollWidth,
     rectBottom: meta.rectBottom,
+    rectRight: meta.rectRight,
+    initialScrollTop: meta.initialScrollTop,
   });
 
   // Calculate stream dimensions (must be even for video codec)
@@ -188,10 +223,14 @@ async function captureFullPage(
   const streamW = rawW % 2 === 0 ? rawW : rawW + 1;
   const streamH = rawH % 2 === 0 ? rawH : rawH + 1;
 
-  // Offsets if we had to pad to even
-  const sx = streamW > rawW ? 1 : 0;
-  const sy = streamH > rawH ? 1 : 0;
-  const contentW = streamW > rawW ? rawW - 2 : rawW;
+  // Active tab content is ALWAYS rendered starting at (0, 0).
+  // Any codec padding (when stream dimension is padded to even) is located
+  // at the outer right (x = rawW) or bottom (y = rawH) border.
+  // By strictly sampling from (0, 0) for dimensions (rawW, rawH), we never
+  // pick up the codec's black padding row/column.
+  const sx = 0;
+  const sy = 0;
+  const contentW = rawW;
   const contentH = rawH;
 
   // 2. Get tab capture stream
@@ -203,138 +242,176 @@ async function captureFullPage(
     throw new Error("getUserMedia failed: " + err.message);
   }
 
-  const grabber = new FrameGrabber(stream.getVideoTracks()[0]);
+  const videoTrack = stream.getVideoTracks()[0];
+  if (videoTrack) {
+    if ("contentHint" in videoTrack) {
+      videoTrack.contentHint = "detail";
+    }
+    try {
+      await videoTrack.applyConstraints({
+        advanced: [{ degradationPreference: "maintain-resolution" }],
+      });
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  const grabber = new FrameGrabber(videoTrack);
 
   // Wait a moment for the stream to start producing frames
-  await new Promise((r) => setTimeout(r, 10));
-
-  // The viewport height in logical pixels (used as step size)
-  const C = innerHeight;
+  await new Promise((r) => setTimeout(r, 20));
 
   // Overlap consecutive frames by 2px to prevent black seam lines.
-  // CSS translate3d can create sub-pixel rendering artifacts at exact
-  // frame boundaries, so a small overlap ensures no gaps.
   const OVERLAP = 2;
-  const step = C - OVERLAP;
 
-  // Total frames estimated from rect height
-  const totalFrames = Math.ceil(rectHeight / step);
+  const isHorizontalOnly = mode === "horizontal";
 
-  // 3. Capture loop — matches reference extension logic exactly
-  // Reference: uses f (logicalY), checks v.rect.bottom <= h for termination
+  // Generate 2D grid coordinates for full width & height coverage
+  const yPoints = isHorizontalOnly
+    ? [0]
+    : computeGridPoints(rectHeight, innerHeight, OVERLAP);
+  const xPoints = computeGridPoints(rectWidth, innerWidth, OVERLAP);
+  const totalFrames = xPoints.length * yPoints.length;
+
+  // 3. Capture loop (2D Matrix: rows x columns)
   const frames = [];
-  let logicalY = 0;
   let isDone = false;
+  let frameCount = 0;
 
   try {
-    for (let frameIdx = 0; !isDone; frameIdx++) {
-      // Update CSS --scroll-top
-      const updateResult = await sendToContent(tabId, "update-unroll", {
-        scrollTop: logicalY,
-      });
+    for (let yi = 0; yi < yPoints.length && !isDone; yi++) {
+      const logicalY = yPoints[yi];
 
-      if (!updateResult || updateResult.abort) {
-        isDone = true;
-        break;
+      for (let xi = 0; xi < xPoints.length && !isDone; xi++) {
+        const logicalX = xPoints[xi];
+
+        // Update CSS scroll translation (--scroll-top and --scroll-left)
+        const updateResult = await sendToContent(tabId, "update-unroll", {
+          scrollTop: logicalY,
+          scrollLeft: logicalX,
+        });
+
+        if (!updateResult || updateResult.abort) {
+          isDone = true;
+          break;
+        }
+
+        // Wait for repaint
+        await new Promise((r) => setTimeout(r, frameInterval));
+
+        // Grab frame
+        const frame = await grabber.grabFrame();
+        // Use PNG for intermediate frames to avoid compression artifacts during stitching
+        const blob = await grabber.frameToBlob(frame, "image/png");
+
+        frames.push({
+          blob,
+          sx,
+          sy,
+          sw: contentW,
+          sh: contentH,
+          dx: Math.floor(logicalX * dpr),
+          dy: isHorizontalOnly ? 0 : Math.floor(logicalY * dpr),
+        });
+
+        frameCount++;
+        const progress = Math.min(
+          100,
+          Math.round((frameCount / totalFrames) * 100),
+        );
+        chrome.runtime.sendMessage({
+          type: "offscreen-progress",
+          tabId,
+          progress,
+          current: frameCount,
+          total: totalFrames,
+        });
       }
-
-      // Wait for repaint
-      await new Promise((r) => setTimeout(r, frameInterval));
-
-      // Grab frame
-      const frame = await grabber.grabFrame();
-      // Use PNG for intermediate frames to avoid compression artifacts during stitching
-      const blob = await grabber.frameToBlob(frame, "image/png");
-
-      frames.push({
-        blob,
-        sx,
-        sy,
-        sw: contentW,
-        sh: contentH,
-        dy: Math.floor(logicalY * dpr),
-      });
-
-      // Report progress
-      const progress = Math.min(
-        100,
-        Math.round(((logicalY + C) / rectHeight) * 100),
-      );
-      chrome.runtime.sendMessage({
-        type: "offscreen-progress",
-        tabId,
-        progress,
-        current: frames.length,
-        total: totalFrames,
-      });
-
-      // Calculate next scroll position using rect.bottom (reference approach)
-      let nextY = logicalY + step;
-      const rectBottom = updateResult.rectBottom ?? updateResult.rect?.bottom;
-
-      // Reference termination: v.rect.bottom <= h
-      // When the bottom of <html> has scrolled into viewport, we're done
-      if (rectBottom !== undefined && rectBottom <= innerHeight) {
-        isDone = true;
-        break;
-      }
-
-      // Also handle case where rectBottom tells us the remaining distance
-      if (rectBottom !== undefined && rectBottom - innerHeight < innerHeight) {
-        // Last partial frame — adjust position so bottom aligns
-        nextY = logicalY + (rectBottom - innerHeight);
-      }
-
-      if (nextY <= logicalY) {
-        isDone = true;
-        break;
-      }
-
-      // Safety: don't exceed estimated total
-      if (frameIdx >= totalFrames + 5) {
-        isDone = true;
-        break;
-      }
-
-      logicalY = nextY;
     }
   } catch (err) {
     console.error("[offscreen] Capture loop error:", err);
-    // Continue to stitching if we have some frames, or cleanup and rethrow
     if (frames.length === 0) {
       stream.getTracks().forEach((t) => t.stop());
       await sendToContent(tabId, "restore-unroll");
       throw err;
     }
   }
-  // 5. Stitch frames onto canvas
+
+  // 4. Stitch frames onto 2D canvas
   if (frames.length === 0) {
     stream.getTracks().forEach((t) => t.stop());
     await sendToContent(tabId, "restore-unroll");
     throw new Error("No frames captured");
   }
 
-  // Strictly clamp the canvas height to the actual passed rectHeight
-  // (Prevents the final overlapped frame from dragging the canvas logic downward)
-  const canvasHeight = Math.ceil(rectHeight * dpr);
+  // Chromium canvas dimension safety limit clamping
+  const MAX_CANVAS_DIM = 16384;
+  const MAX_CANVAS_AREA = 268435456; // 16384 * 16384
 
-  const canvas = document.createElement("canvas");
-  canvas.width = contentW;
-  canvas.height = canvasHeight;
-  const ctx = canvas.getContext("2d", { alpha: false });
+  const rawCanvasWidth =
+    xPoints.length === 1 ? contentW : Math.ceil(rectWidth * dpr);
+  const rawCanvasHeight = isHorizontalOnly
+    ? Math.ceil(innerHeight * dpr)
+    : Math.ceil(rectHeight * dpr);
 
-  if (meta.bgColor) {
-    ctx.fillStyle = meta.bgColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let scaleRatio = 1;
+  if (rawCanvasWidth > MAX_CANVAS_DIM) {
+    scaleRatio = Math.min(scaleRatio, MAX_CANVAS_DIM / rawCanvasWidth);
+  }
+  if (rawCanvasHeight > MAX_CANVAS_DIM) {
+    scaleRatio = Math.min(scaleRatio, MAX_CANVAS_DIM / rawCanvasHeight);
+  }
+  if (
+    rawCanvasWidth * rawCanvasHeight * scaleRatio * scaleRatio >
+    MAX_CANVAS_AREA
+  ) {
+    scaleRatio = Math.min(
+      scaleRatio,
+      Math.sqrt(MAX_CANVAS_AREA / (rawCanvasWidth * rawCanvasHeight)),
+    );
   }
 
-  for (const f of frames) {
-    const bitmap = await createImageBitmap(f.blob);
-    const drawH = Math.min(f.sh, canvasHeight - f.dy);
-    if (drawH > 0) {
-      ctx.drawImage(bitmap, f.sx, f.sy, f.sw, drawH, 0, f.dy, f.sw, drawH);
+  const canvasWidth = Math.max(1, Math.floor(rawCanvasWidth * scaleRatio));
+  const canvasHeight = Math.max(1, Math.floor(rawCanvasHeight * scaleRatio));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  const ctx = canvas.getContext("2d", { alpha: true });
+
+  if (scaleRatio === 1) {
+    ctx.imageSmoothingEnabled = false;
+  } else {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.scale(scaleRatio, scaleRatio);
+  }
+
+  // Pre-fill background so any unpainted borders match page bg or pure white (never black)
+  ctx.fillStyle = meta.bgColor || "#ffffff";
+  ctx.fillRect(0, 0, rawCanvasWidth, rawCanvasHeight);
+
+  for (let yi = 0; yi < yPoints.length; yi++) {
+    const isLastRow = yi === yPoints.length - 1;
+    for (let xi = 0; xi < xPoints.length; xi++) {
+      const isLastCol = xi === xPoints.length - 1;
+      const idx = yi * xPoints.length + xi;
+      const f = frames[idx];
+      if (!f) continue;
+
+      const bitmap = await createImageBitmap(f.blob);
+
+      // On the final row / col, snap exactly to the canvas outer boundary to eliminate 1px gaps
+      const dx = isLastCol ? rawCanvasWidth - f.sw : f.dx;
+      const dy = isLastRow ? rawCanvasHeight - f.sh : f.dy;
+      const drawW = Math.min(f.sw, rawCanvasWidth - dx);
+      const drawH = Math.min(f.sh, rawCanvasHeight - dy);
+
+      if (drawW > 0 && drawH > 0) {
+        ctx.drawImage(bitmap, f.sx, f.sy, drawW, drawH, dx, dy, drawW, drawH);
+      }
+      bitmap.close();
     }
-    bitmap.close();
   }
 
   // --- Internal Clipboard Write (Silent Attempt) ---
@@ -348,7 +425,7 @@ async function captureFullPage(
     // Silently fail
   }
 
-  // 6. Cleanup stream and page
+  // 5. Cleanup stream and page
   stream.getTracks().forEach((t) => t.stop());
   await sendToContent(tabId, "restore-unroll");
 
@@ -380,10 +457,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "start-offscreen-capture") {
-    const { streamId, tabId, frameInterval, format, quality } = msg;
+    const { streamId, tabId, mode, frameInterval, format, quality } = msg;
     captureFullPage(
       streamId,
       tabId,
+      mode || "full",
       frameInterval || 50,
       format || "image/png",
       quality || 1.0,

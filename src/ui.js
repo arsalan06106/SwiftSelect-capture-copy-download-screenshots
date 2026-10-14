@@ -6,7 +6,10 @@ import {
   handleCaptureVisible,
   handleCaptureAndDownload,
 } from "./capture/region.js";
-import { handleCaptureFullPage } from "./capture/fullpage.js";
+import {
+  handleCaptureFullPage,
+  handleCaptureHorizontal,
+} from "./capture/fullpage.js";
 import {
   handleThemeToggle,
   applyTheme,
@@ -307,7 +310,7 @@ export async function ensureUi() {
     const visibleBtn = document.createElement("button");
     visibleBtn.className = "qs-guide-btn";
     visibleBtn.dataset.action = "capture-visible";
-    visibleBtn.dataset.tooltip = "Copy Visible";
+    visibleBtn.dataset.tooltip = "Save & Copy Visible (V)";
 
     const eyeSvg = createSvg("0 0 24 24", [
       {
@@ -331,23 +334,29 @@ export async function ensureUi() {
     visibleBtn.appendChild(visibleSpan);
     segmented.appendChild(visibleBtn);
 
-    // Download
-    const downloadBtn = document.createElement("button");
-    downloadBtn.className = "qs-guide-btn";
-    downloadBtn.dataset.action = "capture-download";
-    downloadBtn.dataset.tooltip = "Save & Copy";
-    const dlSvg = createSvg("0 0 24 24", [
-      { class: "dl-arrow", d: "M19 9h-4V3H9v6H5l7 7 7-7z" },
-      { class: "dl-bar", d: "M5 18v2h14v-2H5z" },
+    // Horizontal Wide View
+    const horizontalBtn = document.createElement("button");
+    horizontalBtn.className = "qs-guide-btn";
+    horizontalBtn.dataset.action = "capture-horizontal";
+    horizontalBtn.dataset.tooltip = "Save Horizontal View (H)";
+    const hzSvg = createSvg("0 0 24 24", [
+      {
+        class: "hz-screen",
+        d: "M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm2 0v12h16V6H4z",
+      },
+      {
+        class: "hz-arrows",
+        d: "M7 12l2.5-2.5v1.5h5V9.5l2.5 2.5-2.5 2.5v-1.5h-5v1.5L7 12z",
+      },
     ]);
-    downloadBtn.appendChild(dlSvg);
-    segmented.appendChild(downloadBtn);
+    horizontalBtn.appendChild(hzSvg);
+    segmented.appendChild(horizontalBtn);
 
     // Full Page
     const fullBtn = document.createElement("button");
     fullBtn.className = "qs-guide-btn";
     fullBtn.dataset.action = "capture-full";
-    fullBtn.dataset.tooltip = "Save Full Page";
+    fullBtn.dataset.tooltip = "Save Full Page (F)";
     const fpSvg = createSvg("0 -960 960 960", [
       {
         class: "fp-corner fp-tl",
@@ -380,34 +389,36 @@ export async function ensureUi() {
     fullBtn.appendChild(fpSpan);
     buttonsSet.appendChild(fullBtn);
 
-    // Theme Toggle
-    const themeBtn = document.createElement("button");
-    themeBtn.className = "qs-guide-btn qs-theme-toggle";
-    themeBtn.dataset.action = "toggle-theme";
-    themeBtn.dataset.tooltip = "Toggle Theme";
-    const moonSvg = createSvg(
-      "0 0 24 24",
-      {
-        d: "M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-5.4-5.4 5.4 5.4 0 0 1 1.76-3.79A8.93 8.93 0 0 0 12 3Z",
-      },
-      "qs-icon-moon",
-    );
-    const sunSvg = createSvg(
-      "-2 -2 24 24",
-      {
-        d: "M10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-15a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0V1a1 1 0 0 1 1-1zm0 16a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1zM1 9h2a1 1 0 1 1 0 2H1a1 1 0 0 1 0-2zm16 0h2a1 1 0 0 1 0 2h-2a1 1 0 0 1 0-2zm.071-6.071a1 1 0 0 1 0 1.414l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 0zM5.757 14.243a1 1 0 0 1 0 1.414L4.343 17.07a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 0zM4.343 2.929l1.414 1.414a1 1 0 0 1-1.414 1.414L2.93 4.343A1 1 0 0 1 4.343 2.93zm11.314 11.314l1.414 1.414a1 1 0 0 1-1.414 1.414l-1.414-1.414a1 1 0 1 1 1.414-1.414z",
-      },
-      "qs-icon-sun",
-    );
-    themeBtn.appendChild(moonSvg);
-    themeBtn.appendChild(sunSvg);
-    buttonsSet.appendChild(themeBtn);
-
     // Listeners
     visibleBtn.onclick = () => handleCaptureVisible();
-    downloadBtn.onclick = () => handleCaptureAndDownload();
+    horizontalBtn.onclick = () => handleCaptureHorizontal();
     fullBtn.onclick = () => handleCaptureFullPage();
-    themeBtn.onclick = () => handleThemeToggle();
+
+    const isMac =
+      typeof navigator !== "undefined" &&
+      /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent);
+    const keyS = isMac ? "Ctrl+S" : "Alt+S";
+    const keyH = isMac ? "Ctrl+H" : "Alt+H";
+    const keyF = isMac ? "Ctrl+F" : "Alt+F";
+
+    attachTooltip(
+      visibleBtn,
+      "Visible Area",
+      "Saves and copies what is currently displayed on your screen.",
+      keyS,
+    );
+    attachTooltip(
+      horizontalBtn,
+      "Horizontal View",
+      "Captures the full horizontal scrollable width at your current view.",
+      keyH,
+    );
+    attachTooltip(
+      fullBtn,
+      "Full Page",
+      "Scrolls and stitches the entire webpage into one complete high-resolution image.",
+      keyF,
+    );
   }
 
   if (guideHost) {
@@ -416,6 +427,70 @@ export async function ensureUi() {
     void guideEl.offsetWidth;
     applyElementTheme(guideEl, currentUserTheme);
   }
+}
+
+export let menuTooltipEl = null;
+let tooltipTimer = null;
+
+export function hideCustomTooltip() {
+  if (tooltipTimer) {
+    clearTimeout(tooltipTimer);
+    tooltipTimer = null;
+  }
+  if (menuTooltipEl) {
+    menuTooltipEl.classList.remove("qs-tooltip-visible");
+    menuTooltipEl.style.display = "none";
+  }
+}
+
+export function showCustomTooltip(btn, title, desc, key) {
+  if (!guideShadow || !btn) return;
+  if (!menuTooltipEl) {
+    menuTooltipEl = document.createElement("div");
+    menuTooltipEl.className = "qs-custom-tooltip";
+    guideShadow.appendChild(menuTooltipEl);
+  }
+
+  menuTooltipEl.innerHTML = `
+    <div class="qs-tooltip-header">
+      <span class="qs-tooltip-title">${title}</span>
+      ${key ? `<span class="qs-tooltip-key">${key}</span>` : ""}
+    </div>
+    <div class="qs-tooltip-desc">${desc}</div>
+  `;
+
+  applyElementTheme(menuTooltipEl, currentUserTheme);
+  menuTooltipEl.style.display = "flex";
+
+  const btnRect = btn.getBoundingClientRect();
+  const actualRect = menuTooltipEl.getBoundingClientRect();
+  const tipWidth = actualRect.width || 250;
+
+  let left = btnRect.left + btnRect.width / 2;
+  const top = btnRect.bottom + 12;
+
+  const minLeft = tipWidth / 2 + 16;
+  const maxLeft = window.innerWidth - tipWidth / 2 - 16;
+  left = Math.max(minLeft, Math.min(maxLeft, left));
+
+  menuTooltipEl.style.left = `${Math.round(left)}px`;
+  menuTooltipEl.style.top = `${Math.round(top)}px`;
+
+  requestAnimationFrame(() => {
+    if (menuTooltipEl) menuTooltipEl.classList.add("qs-tooltip-visible");
+  });
+}
+
+function attachTooltip(btn, title, desc, key) {
+  btn.addEventListener("pointerenter", () => {
+    hideCustomTooltip();
+    tooltipTimer = setTimeout(() => {
+      showCustomTooltip(btn, title, desc, key);
+    }, 1600);
+  });
+  btn.addEventListener("pointerleave", hideCustomTooltip);
+  btn.addEventListener("pointerdown", hideCustomTooltip);
+  btn.addEventListener("click", hideCustomTooltip);
 }
 
 export function setSelecting(isSelecting) {
@@ -741,6 +816,7 @@ export function setButtonLoading(action, loading) {
 }
 
 export async function hideUiForCapture() {
+  hideCustomTooltip();
   if (guideHost) guideHost.style.display = "none";
   if (overlayHost) overlayHost.style.display = "none";
   if (highlighterHost) highlighterHost.style.display = "none";
@@ -759,6 +835,8 @@ export async function hideUiForCapture() {
 }
 
 export function cleanup() {
+  hideCustomTooltip();
+  menuTooltipEl = null;
   removeCrosshairCursor();
   if (updateFrameId) {
     cancelAnimationFrame(updateFrameId);
@@ -820,6 +898,6 @@ export function cleanup() {
   currentStatus = null;
 }
 
-export function updateBadge(text, color = "#ff6a61") {
+export function updateBadge(text, color = "#BA4B5C") {
   chrome.runtime.sendMessage({ type: "update-badge", text, color });
 }

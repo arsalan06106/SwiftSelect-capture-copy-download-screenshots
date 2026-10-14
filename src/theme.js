@@ -15,13 +15,25 @@ export function init() {
           glassThemeMigrated: true,
         });
       } else if (data.userTheme) {
-        if (data.userTheme === "light" || data.userTheme === "dark") {
-          currentUserTheme = "standard";
-        } else {
-          currentUserTheme = data.userTheme;
-        }
+        currentUserTheme = data.userTheme;
         applyTheme(currentUserTheme);
       } else {
+        applyTheme(currentUserTheme);
+      }
+    });
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.userTheme) {
+        currentUserTheme = changes.userTheme.newValue || "glass";
+        applyTheme(currentUserTheme);
+      }
+    });
+  }
+
+  if (chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (msg?.type === "apply-theme" && msg.theme) {
+        currentUserTheme = msg.theme;
         applyTheme(currentUserTheme);
       }
     });
@@ -109,6 +121,11 @@ export function applyTheme(theme = currentUserTheme) {
     applyElementTheme(ui.hudEl, theme);
   }
 
+  if (ui.menuTooltipEl) {
+    ui.menuTooltipEl._qsThemeState = null;
+    applyElementTheme(ui.menuTooltipEl, theme);
+  }
+
   const decorative = [ui.box, ui.overlay].filter(Boolean);
   decorative.forEach((el) => {
     el.classList.remove(
@@ -118,9 +135,10 @@ export function applyTheme(theme = currentUserTheme) {
     );
   });
 
-  const isDarkSite = isPageDark();
+  const isDarkSite =
+    theme === "dark" ? true : theme === "light" ? false : isPageDark();
 
-  if (theme === "standard") {
+  if (theme === "standard" || theme === "light" || theme === "dark") {
     _applyStandardPalette(decorative, isDarkSite);
     if (isDarkSite) {
       decorative.forEach((el) => el.classList.add("qs-theme-dark"));
@@ -153,7 +171,8 @@ export function applyElementTheme(
     }
   }
 
-  const isDark = isAreaDark(rect);
+  const isDark =
+    theme === "dark" ? true : theme === "light" ? false : isAreaDark(rect);
 
   el.classList.remove(
     "qs-theme-dark",
@@ -161,7 +180,7 @@ export function applyElementTheme(
     "qs-theme-glass-dark",
   );
 
-  if (theme === "standard") {
+  if (theme === "standard" || theme === "light" || theme === "dark") {
     _applyStandardPalette([el], isDark);
     if (isDark) {
       el.classList.add("qs-theme-dark");
