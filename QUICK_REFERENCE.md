@@ -70,9 +70,9 @@ Right-click the extension icon in Chrome's toolbar (or right-click anywhere on a
 | Capture Type    | Clipboard | File Download | Notes                                    |
 | :-------------- | :-------- | :------------ | :--------------------------------------- |
 | Region select   | ✓         | On demand ¹   | Save button appears in status bar        |
-| Visible area    | ✓         | Auto          | Copied to clipboard & saved as PNG       |
-| Horizontal view | ✓         | Auto          | Copied to clipboard & saved as PNG       |
-| Full page       | ✓ ²       | Auto          | Saved as lossless PNG (pixel-perfect)    |
+| Visible area    | ✓         | Auto          | Copied to clipboard & saved as JPG       |
+| Horizontal view | ✓         | Auto          | Copied to clipboard & saved as JPG       |
+| Full page       | ✓ ²       | Auto          | Saved as high-quality JPG (space-saving) |
 
 ¹ After a region capture, the status bar shows a save button. Clicking it downloads the captured image.  
 ² Full-page captures attempt silent clipboard copy; if image exceeds clipboard size limits, file download succeeds seamlessly.

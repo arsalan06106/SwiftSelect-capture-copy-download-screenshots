@@ -15,8 +15,8 @@ Triggered when the user draws a selection box on the page.
 3. `captureAndCrop()` sends a `capture-visible-tab` message to `background.js`.
 4. `background.js` calls `chrome.tabs.captureVisibleTab()`, which returns a full-viewport PNG as a data URL.
 5. The data URL is loaded into an `Image`, drawn onto a `<canvas>`, then cropped to the selection rectangle using `drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh)`.
-6. The cropped canvas is converted to a PNG blob.
-7. The blob is written to the clipboard via `navigator.clipboard.write()`.
+6. The cropped canvas is converted to a high-quality JPG blob (`.jpg`) for saving/downloading, and a PNG blob for clipboard writing.
+7. The PNG blob is written to the clipboard via `navigator.clipboard.write()`.
 
 ### DPR Handling
 
@@ -103,8 +103,8 @@ After all tiles are captured:
 1. A 2D canvas is created matching the full content width and height (`rectWidth × rectHeight` in device pixels).
 2. **Safety Clamping**: Chromium limits HTML5 canvases to 16,384px per side and 268,435,456 total pixels. If an exceptionally large page exceeds these bounds, `offscreen.js` computes an exact `scaleRatio` and applies `ctx.scale(scaleRatio, scaleRatio)`, safeguarding against browser engine crashes.
 3. Each tile is drawn at its corresponding `(dx, dy)` offsets with boundary snapping on final rows and columns, and `imageSmoothingEnabled = false` for 1:1 pixel fidelity.
-4. **Lossless PNG Export**: Both Horizontal View and Full-page captures export to pristine lossless PNG (`.png`), preserving text sharpness with zero compression blur or artifacts.
-5. The blob is downloaded as a file and copied to clipboard where supported.
+4. **High-Quality JPG Export**: Both Horizontal View and Full-page captures export to high-quality JPG (`.jpg`), yielding massive 80-90% file-size savings while preserving sharp text and visuals. Transparent areas are safely filled with page background or pure white to prevent black compression seams.
+5. The JPG blob is downloaded as a file, and a PNG copy is written to the clipboard where supported.
 
 ### Cleanup
 

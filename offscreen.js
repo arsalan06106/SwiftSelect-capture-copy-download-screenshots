@@ -88,7 +88,20 @@ class FrameGrabber {
  */
 async function writeToClipboardSilent(blob) {
   try {
-    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+    let clipBlob = blob;
+    if (blob.type !== "image/png") {
+      const bitmap = await createImageBitmap(blob);
+      const c = document.createElement("canvas");
+      c.width = bitmap.width;
+      c.height = bitmap.height;
+      const cx = c.getContext("2d");
+      cx.fillStyle = "#ffffff";
+      cx.fillRect(0, 0, c.width, c.height);
+      cx.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      clipBlob = await new Promise((r) => c.toBlob(r, "image/png"));
+    }
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": clipBlob })]);
     return true;
   } catch (e) {
     console.debug("offscreen: Silent clipboard write failed:", e);
@@ -189,8 +202,8 @@ async function captureFullPage(
   tabId,
   mode = "full",
   frameInterval = 50,
-  format = "image/png",
-  quality = 1.0,
+  format = "image/jpeg",
+  quality = 0.92,
 ) {
   // 1. Unroll the page — CSS is applied first, then rect is measured
   const meta = await sendToContent(tabId, "unroll-page", { mode });
@@ -388,7 +401,13 @@ async function captureFullPage(
   }
 
   // Pre-fill background so any unpainted borders match page bg or pure white (never black)
-  ctx.fillStyle = meta.bgColor || "#ffffff";
+  const safeBg =
+    meta.bgColor &&
+    meta.bgColor !== "transparent" &&
+    meta.bgColor !== "rgba(0, 0, 0, 0)"
+      ? meta.bgColor
+      : "#ffffff";
+  ctx.fillStyle = safeBg;
   ctx.fillRect(0, 0, rawCanvasWidth, rawCanvasHeight);
 
   for (let yi = 0; yi < yPoints.length; yi++) {
@@ -463,8 +482,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       tabId,
       mode || "full",
       frameInterval || 50,
-      format || "image/png",
-      quality || 1.0,
+      format || "image/jpeg",
+      quality || 0.92,
     )
       .then((result) => {
         sendResponse({ success: true, ...result });

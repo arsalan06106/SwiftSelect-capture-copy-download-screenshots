@@ -98,17 +98,29 @@ export async function handleCaptureVisible() {
     canvas.width = cropW;
     canvas.height = cropH;
     const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, cropW, cropH);
     ctx.drawImage(img, 0, 0, cropW, cropH, 0, 0, cropW, cropH);
 
-    const blob = await new Promise((res, rej) =>
+    // Save/Download Blob is high-quality JPG
+    const jpgBlob = await new Promise((res, rej) =>
+      canvas.toBlob(
+        (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
+        "image/jpeg",
+        0.92,
+      ),
+    );
+    setLastBlob(jpgBlob);
+
+    // Clipboard Blob must be PNG for native OS/application clipboard compatibility
+    const pngBlob = await new Promise((res, rej) =>
       canvas.toBlob(
         (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
         "image/png",
       ),
     );
-    setLastBlob(blob);
 
-    const clipboardSuccess = await writeImageBlobToClipboard(blob);
+    const clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
 
     const { handleSaveAction } = await import("./download.js");
     handleSaveAction();
@@ -165,17 +177,29 @@ export async function captureAndCrop(viewRect) {
     canvas.width = safeSw;
     canvas.height = safeSh;
     const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, safeSw, safeSh);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, safeSw, safeSh);
 
-    const blob = await new Promise((res, rej) =>
+    // Save/Download Blob is high-quality JPG
+    const jpgBlob = await new Promise((res, rej) =>
+      canvas.toBlob(
+        (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
+        "image/jpeg",
+        0.92,
+      ),
+    );
+    setLastBlob(jpgBlob);
+
+    // Clipboard Blob must be PNG for native OS/application clipboard compatibility
+    const pngBlob = await new Promise((res, rej) =>
       canvas.toBlob(
         (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
         "image/png",
       ),
     );
-    setLastBlob(blob);
 
-    const clipboardSuccess = await writeImageBlobToClipboard(blob);
+    const clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
     if (!clipboardSuccess) {
       // Fallback: download if copy fails during selection
       const { handleSaveAction } = await import("./download.js");

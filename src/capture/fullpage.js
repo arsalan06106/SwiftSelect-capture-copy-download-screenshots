@@ -478,9 +478,9 @@ export function handleUnrollPage(data = {}) {
     document.documentElement,
   ).backgroundColor;
   const bgColor =
-    bodyBg && bodyBg !== "rgba(0, 0, 0, 0)"
+    bodyBg && bodyBg !== "rgba(0, 0, 0, 0)" && bodyBg !== "transparent"
       ? bodyBg
-      : htmlBg && htmlBg !== "rgba(0, 0, 0, 0)"
+      : htmlBg && htmlBg !== "rgba(0, 0, 0, 0)" && htmlBg !== "transparent"
         ? htmlBg
         : null;
 
@@ -578,9 +578,9 @@ export async function captureStream({
     await new Promise((r) => requestAnimationFrame(r));
     document.activeElement?.blur();
 
-    const captureFormat = "image/png";
-    const captureQuality = 1.0;
-    const fileExt = "png";
+    const captureFormat = "image/jpeg";
+    const captureQuality = 0.92;
+    const fileExt = "jpg";
 
     // Notify background
     const result = await new Promise((resolve) => {
@@ -641,7 +641,7 @@ export async function captureStream({
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
 
     document.documentElement.style.cursor = "";
     document.body.style.cursor = "";

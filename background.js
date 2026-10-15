@@ -257,8 +257,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           tabId,
           mode: message.mode || "full",
           frameInterval: message.frameInterval || 150,
-          format: message.format,
-          quality: message.quality,
+          format: message.format || "image/jpeg",
+          quality: message.quality || 0.92,
         });
 
         sendResponse(result);

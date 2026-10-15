@@ -16,11 +16,11 @@ export function handleSaveAction() {
   const url = URL.createObjectURL(lastBlob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = getSmartFilename("screenshot");
+  a.download = getSmartFilename("screenshot", "jpg");
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 
   // Transition Logic via UI
   const statusEl = window.SwiftSelect.ui.statusEl;

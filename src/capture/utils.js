@@ -11,16 +11,17 @@ export function loadImage(src) {
   });
 }
 
-export function getSmartFilename(type, ext = "png") {
+export function getSmartFilename(type, ext = "jpg") {
   let title = document.title || "";
   title = title.replace(/[<>:"\/\\|?*\x00-\x1F]/g, " ");
   title = title.trim().replace(/\s+/g, " ");
   if (title.length > 100) title = title.substring(0, 100).trim();
 
+  const cleanExt = (ext || "jpg").replace(/^\./, "");
   const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
   return title
-    ? `${title} - ${type} - ${timestamp}.${ext}`
-    : `${type} - ${timestamp}.${ext}`;
+    ? `${title} - ${type} - ${timestamp}.${cleanExt}`
+    : `${type} - ${timestamp}.${cleanExt}`;
 }
 
 let _cursorStyleTag = null;
