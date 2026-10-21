@@ -1,9 +1,38 @@
-// background.js - Full page capture with tab capture stream + offscreen document
-
 chrome.action.onClicked.addListener((tab) => {
   if (!tab?.id) return;
+  const url = tab.url || "";
+  if (isRestrictedUrl(url)) {
+    openExtensionIconPopup("settings");
+    return;
+  }
+  chrome.action.setPopup({ tabId: tab.id, popup: "" }).catch(() => {});
   injectAndStart(tab, "start-selection");
 });
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === "popup-lifecycle") {
+    port.onDisconnect.addListener(() => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) updateTabBadge(tabs[0]);
+      });
+    });
+  }
+});
+
+async function openExtensionIconPopup(view = "settings") {
+  try {
+    await chrome.action.setPopup({ popup: `popup.html?view=${view}` });
+    // Small delay ensures Chromium closes context menu window before opening action popup
+    await new Promise((r) => setTimeout(r, 60));
+    await chrome.action.openPopup();
+  } catch (err) {
+    console.warn("SwiftSelect: Could not open popup directly:", err);
+    try {
+      await new Promise((r) => setTimeout(r, 120));
+      await chrome.action.openPopup();
+    } catch (e2) {}
+  }
+}
 
 function handleCommand(command, tab) {
   if (!tab?.id) return;
@@ -15,6 +44,8 @@ function handleCommand(command, tab) {
     injectAndStart(tab, "capture-horizontal");
   } else if (command === "capture-full-page") {
     injectAndStart(tab, "capture-full");
+  } else if (command === "capture-timer") {
+    injectAndStart(tab, "capture-timer");
   }
 }
 
@@ -48,13 +79,12 @@ function updateTabBadge(tab) {
   const url = tab.url || "";
 
   if (isRestrictedUrl(url)) {
-    // Keep badge clean (no red sign), allow popup to inform user on click
     chrome.action.setBadgeText({ tabId, text: "" });
     chrome.action.setTitle({
       tabId,
-      title: "SwiftSelect cannot run on Chrome system or Web Store pages.",
+      title: "SwiftSelect - Browser Protected Page (Click for Info & Settings)",
     });
-    chrome.action.setPopup({ tabId, popup: "popup.html" });
+    chrome.action.setPopup({ tabId, popup: "popup.html" }).catch(() => {});
     return;
   }
 
@@ -66,21 +96,21 @@ function updateTabBadge(tab) {
         chrome.action.setBadgeBackgroundColor({ tabId, color: "#FBBC04" });
         chrome.action.setTitle({
           tabId,
-          title: "File URL access required. Click icon for settings.",
+          title: "File URL access required. Enable in extension settings.",
         });
-        chrome.action.setPopup({ tabId, popup: "popup.html" });
+        chrome.action.setPopup({ tabId, popup: "popup.html" }).catch(() => {});
       } else {
         chrome.action.setBadgeText({ tabId, text: "" });
-        chrome.action.setTitle({ tabId, title: "SwiftSelect" });
-        chrome.action.setPopup({ tabId, popup: "" });
+        chrome.action.setTitle({ tabId, title: "SwiftSelect (Click to Capture)" });
+        chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
       }
     });
     return;
   }
 
   chrome.action.setBadgeText({ tabId, text: "" });
-  chrome.action.setTitle({ tabId, title: "SwiftSelect" });
-  chrome.action.setPopup({ tabId, popup: "" });
+  chrome.action.setTitle({ tabId, title: "SwiftSelect (Click to Capture)" });
+  chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
 }
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
@@ -188,26 +218,37 @@ async function closeOffscreen() {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // --- Legacy: capture-visible-tab (used for region capture) ---
   if (message?.type === "capture-visible-tab") {
-    const tab = sender.tab;
-    if (!tab) {
-      sendResponse({ success: false, error: "No tab info" });
-      return true;
-    }
-    if (!tab.active) {
-      sendResponse({ success: false, error: "Tab is no longer active" });
-      return true;
-    }
+    const tab = sender?.tab;
+    const windowId = tab?.windowId;
 
-    chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
+    const cb = (dataUrl) => {
       if (chrome.runtime.lastError) {
         sendResponse({
           success: false,
           error: chrome.runtime.lastError.message,
         });
+      } else if (!dataUrl) {
+        sendResponse({
+          success: false,
+          error: "No dataUrl returned from captureVisibleTab",
+        });
       } else {
         sendResponse({ success: true, dataUrl });
       }
-    });
+    };
+
+    try {
+      if (typeof windowId === "number") {
+        chrome.tabs.captureVisibleTab(windowId, { format: "png" }, cb);
+      } else {
+        chrome.tabs.captureVisibleTab({ format: "png" }, cb);
+      }
+    } catch (err) {
+      sendResponse({
+        success: false,
+        error: err?.message || "captureVisibleTab failed",
+      });
+    }
     return true;
   }
 
@@ -258,7 +299,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           mode: message.mode || "full",
           frameInterval: message.frameInterval || 150,
           format: message.format || "image/jpeg",
-          quality: message.quality || 0.92,
+          quality: message.quality || 0.98,
         });
 
         sendResponse(result);
@@ -336,6 +377,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     }
   }
+
+  // --- Restore normal action state when popup closes ---
+  if (message?.type === "restore-tab-action") {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) updateTabBadge(tabs[0]);
+    });
+    return false;
+  }
 });
 
 // --- Context Menus ---
@@ -357,120 +406,234 @@ function setupContextMenus() {
   if (!chrome.contextMenus || isSettingUpMenus) return;
   isSettingUpMenus = true;
 
-  chrome.storage.local.get(["userTheme"], (data) => {
-    const currentTheme = data?.userTheme || "glass";
+  chrome.storage.local.get(
+    ["userTheme", "outputFormat", "outputDestination"],
+    (data) => {
+      const currentTheme = data?.userTheme || "glass";
+      const currentFormat = data?.outputFormat || "jpg";
+      const currentDest = data?.outputDestination || "both";
 
-    chrome.contextMenus.removeAll(() => {
-      if (chrome.runtime.lastError) {
-        // ignore
-      }
+      chrome.contextMenus.removeAll(() => {
+        if (chrome.runtime.lastError) {
+          // ignore
+        }
 
-      safeCreateMenu({
-        id: "ss-select-area",
-        title: "Select Area (Alt+X)",
-        contexts: ["action", "page"],
+        safeCreateMenu({
+          id: "ss-select-area",
+          title: "Select Area (Alt+X)",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-capture-visible",
+          title: "Capture Visible Area (Alt+S)",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-capture-timer",
+          title: "3-Second Delayed Capture (Alt+T)",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-capture-horizontal",
+          title: "Capture Horizontal View (Alt+H)",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-capture-full",
+          title: "Capture Full Page (Alt+F)",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-sep-1",
+          type: "separator",
+          contexts: ["action", "page"],
+        });
+
+        // Output Format Menu
+        safeCreateMenu({
+          id: "ss-format-parent",
+          title: "Export Format",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-format-jpg",
+          parentId: "ss-format-parent",
+          title: "JPG (Small file size)",
+          type: "radio",
+          checked: currentFormat === "jpg",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-format-png",
+          parentId: "ss-format-parent",
+          title: "PNG (Lossless sharpness)",
+          type: "radio",
+          checked: currentFormat === "png",
+          contexts: ["action", "page"],
+        });
+
+        // Capture Destination Menu
+        safeCreateMenu({
+          id: "ss-dest-parent",
+          title: "Capture Destination",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-dest-both",
+          parentId: "ss-dest-parent",
+          title: "Copy & Save (Both)",
+          type: "radio",
+          checked: currentDest === "both",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-dest-clipboard",
+          parentId: "ss-dest-parent",
+          title: "Copy to Clipboard Only",
+          type: "radio",
+          checked: currentDest === "clipboard",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-dest-download",
+          parentId: "ss-dest-parent",
+          title: "Save / Download Only",
+          type: "radio",
+          checked: currentDest === "download",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-sep-theme",
+          type: "separator",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-theme-parent",
+          title: "Theme",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-theme-glass",
+          parentId: "ss-theme-parent",
+          title: "Liquid Glass (Modern)",
+          type: "radio",
+          checked: currentTheme === "glass",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-theme-standard",
+          parentId: "ss-theme-parent",
+          title: "Standard Minimal",
+          type: "radio",
+          checked: currentTheme === "standard",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-theme-light",
+          parentId: "ss-theme-parent",
+          title: "Always Light",
+          type: "radio",
+          checked: currentTheme === "light",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-theme-dark",
+          parentId: "ss-theme-parent",
+          title: "Always Dark",
+          type: "radio",
+          checked: currentTheme === "dark",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-sep-2",
+          type: "separator",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-help",
+          title: "Keyboard Shortcuts & Guide...",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-settings",
+          title: "Options & Settings...",
+          contexts: ["action", "page"],
+        });
+
+        isSettingUpMenus = false;
       });
-
-      safeCreateMenu({
-        id: "ss-capture-visible",
-        title: "Capture Visible Area (Alt+S)",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-capture-horizontal",
-        title: "Capture Horizontal View (Alt+H)",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-capture-full",
-        title: "Capture Full Page (Alt+F)",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-sep-1",
-        type: "separator",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-theme-parent",
-        title: "Theme",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-theme-glass",
-        parentId: "ss-theme-parent",
-        title: "Liquid Glass (Modern)",
-        type: "radio",
-        checked: currentTheme === "glass",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-theme-standard",
-        parentId: "ss-theme-parent",
-        title: "Standard Minimal",
-        type: "radio",
-        checked: currentTheme === "standard",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-theme-light",
-        parentId: "ss-theme-parent",
-        title: "Always Light",
-        type: "radio",
-        checked: currentTheme === "light",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-theme-dark",
-        parentId: "ss-theme-parent",
-        title: "Always Dark",
-        type: "radio",
-        checked: currentTheme === "dark",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-sep-2",
-        type: "separator",
-        contexts: ["action", "page"],
-      });
-
-      safeCreateMenu({
-        id: "ss-shortcuts",
-        title: "Keyboard Shortcuts...",
-        contexts: ["action", "page"],
-      });
-
-      isSettingUpMenus = false;
-    });
-  });
+    },
+  );
 }
 
 chrome.runtime.onInstalled.addListener(() => {
   setupContextMenus();
 });
 
+chrome.runtime.onStartup.addListener(() => {
+  setupContextMenus();
+});
+
+// Run immediately on background service worker wake-up
+setupContextMenus();
+
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes.userTheme) {
-    const newTheme = changes.userTheme.newValue;
-    const itemIds = [
-      "ss-theme-glass",
-      "ss-theme-standard",
-      "ss-theme-light",
-      "ss-theme-dark",
-    ];
-    itemIds.forEach((id) => {
-      const match = id === `ss-theme-${newTheme}`;
-      chrome.contextMenus.update(id, { checked: match }).catch(() => {});
-    });
+  if (area === "local") {
+    if (changes.userTheme) {
+      const newTheme = changes.userTheme.newValue;
+      const itemIds = [
+        "ss-theme-glass",
+        "ss-theme-standard",
+        "ss-theme-light",
+        "ss-theme-dark",
+      ];
+      itemIds.forEach((id) => {
+        const match = id === `ss-theme-${newTheme}`;
+        chrome.contextMenus.update(id, { checked: match }).catch(() => {});
+      });
+    }
+
+    if (changes.outputFormat) {
+      const newFormat = changes.outputFormat.newValue;
+      chrome.contextMenus
+        .update("ss-format-jpg", { checked: newFormat === "jpg" })
+        .catch(() => {});
+      chrome.contextMenus
+        .update("ss-format-png", { checked: newFormat === "png" })
+        .catch(() => {});
+    }
+
+    if (changes.outputDestination) {
+      const newDest = changes.outputDestination.newValue;
+      chrome.contextMenus
+        .update("ss-dest-both", { checked: newDest === "both" })
+        .catch(() => {});
+      chrome.contextMenus
+        .update("ss-dest-clipboard", { checked: newDest === "clipboard" })
+        .catch(() => {});
+      chrome.contextMenus
+        .update("ss-dest-download", { checked: newDest === "download" })
+        .catch(() => {});
+    }
   }
 });
 
@@ -482,10 +645,22 @@ function handleContextMenuClick(info, tab) {
     injectAndStart(tab, "start-selection");
   } else if (menuItemId === "ss-capture-visible") {
     injectAndStart(tab, "capture-visible");
+  } else if (menuItemId === "ss-capture-timer") {
+    injectAndStart(tab, "capture-timer");
   } else if (menuItemId === "ss-capture-horizontal") {
     injectAndStart(tab, "capture-horizontal");
   } else if (menuItemId === "ss-capture-full") {
     injectAndStart(tab, "capture-full");
+  } else if (menuItemId === "ss-format-jpg") {
+    chrome.storage.local.set({ outputFormat: "jpg" });
+  } else if (menuItemId === "ss-format-png") {
+    chrome.storage.local.set({ outputFormat: "png" });
+  } else if (menuItemId === "ss-dest-both") {
+    chrome.storage.local.set({ outputDestination: "both" });
+  } else if (menuItemId === "ss-dest-clipboard") {
+    chrome.storage.local.set({ outputDestination: "clipboard" });
+  } else if (menuItemId === "ss-dest-download") {
+    chrome.storage.local.set({ outputDestination: "download" });
   } else if (menuItemId.startsWith("ss-theme-")) {
     const themeName = menuItemId.replace("ss-theme-", "");
     chrome.storage.local.set({ userTheme: themeName }, () => {
@@ -500,8 +675,10 @@ function handleContextMenuClick(info, tab) {
         });
       });
     });
-  } else if (menuItemId === "ss-shortcuts") {
-    chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+  } else if (menuItemId === "ss-settings") {
+    openExtensionIconPopup("settings");
+  } else if (menuItemId === "ss-help" || menuItemId === "ss-shortcuts") {
+    openExtensionIconPopup("help");
   }
 }
 

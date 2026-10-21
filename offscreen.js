@@ -203,7 +203,7 @@ async function captureFullPage(
   mode = "full",
   frameInterval = 50,
   format = "image/jpeg",
-  quality = 0.92,
+  quality = 0.98,
 ) {
   // 1. Unroll the page — CSS is applied first, then rect is measured
   const meta = await sendToContent(tabId, "unroll-page", { mode });
@@ -483,7 +483,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       mode || "full",
       frameInterval || 50,
       format || "image/jpeg",
-      quality || 0.92,
+      quality || 0.98,
     )
       .then((result) => {
         sendResponse({ success: true, ...result });

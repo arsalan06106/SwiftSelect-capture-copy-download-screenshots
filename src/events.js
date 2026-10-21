@@ -11,6 +11,7 @@ import {
 export let dragging = false;
 export let isMoving = false;
 export let isSpacePressed = false;
+export let isShiftPressed = false;
 export let startX = 0;
 export let startY = 0;
 export let lastMouseX = 0;
@@ -47,16 +48,83 @@ function clearSnapState({ clearSelection = true } = {}) {
   }
 }
 
+export function isEventOnUi(e) {
+  if (!e) return false;
+  const path = typeof e.composedPath === "function" ? e.composedPath() : [];
+  for (const el of path) {
+    if (!el) continue;
+    if (
+      el === window.SwiftSelect?.ui?.guideHost ||
+      el === window.SwiftSelect?.ui?.statusHost ||
+      el === window.SwiftSelect?.ui?.keyGuideHost ||
+      el === window.SwiftSelect?.ui?.countdownHost ||
+      el === window.SwiftSelect?.ui?.shortcutsModalHost ||
+      el === window.SwiftSelect?.ui?.settingsModalHost
+    ) {
+      return true;
+    }
+    if (
+      el.id === "qs-guide-host" ||
+      el.id === "qs-status-host" ||
+      el.id === "swiftselect-annotate-root" ||
+      el.id === "qs-shortcuts-modal-root" ||
+      el.id === "qs-settings-modal-root"
+    ) {
+      return true;
+    }
+    if (typeof el.className === "string") {
+      if (
+        el.className.includes("qs-guide") ||
+        el.className.includes("qs-status") ||
+        el.className.includes("qs-modal") ||
+        el.className.includes("qs-tooltip") ||
+        el.className.includes("qs-key") ||
+        el.className.includes("qs-countdown") ||
+        el.className.includes("qs-save-btn") ||
+        el.className.includes("qs-theme-toggle") ||
+        el.className.includes("qs-annotate")
+      ) {
+        return true;
+      }
+    } else if (el.classList) {
+      if (
+        el.classList.contains("qs-guide") ||
+        el.classList.contains("qs-guide-btn") ||
+        el.classList.contains("qs-guide-host") ||
+        el.classList.contains("qs-status") ||
+        el.classList.contains("qs-modal") ||
+        el.classList.contains("qs-key-pill") ||
+        el.classList.contains("qs-save-btn") ||
+        el.classList.contains("qs-annotate-root")
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function isExtensionUi(candidate) {
+  if (!candidate) return false;
   return (
-    candidate === window.SwiftSelect.ui.guideHost ||
-    candidate === window.SwiftSelect.ui.statusHost ||
-    candidate === window.SwiftSelect.ui.overlayHost ||
-    candidate === window.SwiftSelect.ui.highlighterHost ||
+    candidate === window.SwiftSelect?.ui?.guideHost ||
+    candidate === window.SwiftSelect?.ui?.statusHost ||
+    candidate === window.SwiftSelect?.ui?.overlayHost ||
+    candidate === window.SwiftSelect?.ui?.highlighterHost ||
+    candidate === window.SwiftSelect?.ui?.keyGuideHost ||
+    candidate === window.SwiftSelect?.ui?.countdownHost ||
+    candidate.id === "qs-guide-host" ||
+    candidate.id === "qs-status-host" ||
+    candidate.id === "swiftselect-annotate-root" ||
     candidate.closest?.(".qs-guide") ||
     candidate.closest?.(".qs-status") ||
+    candidate.closest?.("#swiftselect-annotate-root") ||
+    candidate.closest?.(".qs-annotate-root") ||
+    candidate.closest?.("#qs-shortcuts-modal-root") ||
+    candidate.closest?.("#qs-settings-modal-root") ||
     candidate.classList?.contains("qs-ovl") ||
-    candidate.classList?.contains("qs-highlighter")
+    candidate.classList?.contains("qs-highlighter") ||
+    candidate.classList?.contains("qs-guide-host")
   );
 }
 
@@ -202,14 +270,15 @@ export function init() {
 export function onPointerDown(e) {
   if (e.button !== 0) return;
 
-  const path = e.composedPath();
-  const isOnGuide = path.some(
-    (el) =>
-      el === window.SwiftSelect.ui.guideHost ||
-      (el.classList && el.classList.contains("qs-guide-btn")),
-  );
+  if (
+    document.getElementById("swiftselect-annotate-root") ||
+    document.getElementById("qs-shortcuts-modal-root") ||
+    document.getElementById("qs-settings-modal-root")
+  ) {
+    return;
+  }
 
-  if (isOnGuide) return;
+  if (isEventOnUi(e)) return;
 
   e.preventDefault();
   e.stopPropagation();
@@ -233,6 +302,20 @@ export function onPointerDown(e) {
 }
 
 export function onPointerMove(e) {
+  if (
+    document.getElementById("swiftselect-annotate-root") ||
+    document.getElementById("qs-shortcuts-modal-root") ||
+    document.getElementById("qs-settings-modal-root")
+  ) {
+    dragging = false;
+    return;
+  }
+
+  if (!dragging && isEventOnUi(e)) {
+    clearSnapState();
+    return;
+  }
+
   const x = e.clientX;
   const y = e.clientY;
   snapPointer = { x, y };
@@ -299,6 +382,14 @@ export function onPointerMove(e) {
 
 export function onPointerUp(e) {
   if (e.button !== 0) return;
+  if (
+    document.getElementById("swiftselect-annotate-root") ||
+    document.getElementById("qs-shortcuts-modal-root") ||
+    document.getElementById("qs-settings-modal-root")
+  ) {
+    dragging = false;
+    return;
+  }
   if (!dragging) return;
 
   e.preventDefault();
@@ -312,12 +403,19 @@ export function onPointerUp(e) {
   if (rect.width < 5 || rect.height < 5) {
     if (highlightedRect) {
       const snapRect = highlightedRect;
-      captureAndCrop(snapRect).finally(() => {
-        cleanup();
-        window.SwiftSelect.ui.cleanup();
-        window.SwiftSelect.ui.triggerFlash(snapRect);
-        window.SwiftSelect.ui.setStatus("Copied to clipboard", 5000, "success");
-      });
+      captureAndCrop(snapRect)
+        .then(() => {
+          cleanup();
+          window.SwiftSelect.ui.cleanup();
+          window.SwiftSelect.ui.triggerFlash(snapRect);
+          window.SwiftSelect.ui.setStatus("Copied to clipboard", 5000, "success");
+        })
+        .catch((err) => {
+          console.warn("captureAndCrop snap failed:", err);
+          cleanup();
+          window.SwiftSelect.ui.cleanup();
+          window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
+        });
       return;
     }
 
@@ -336,11 +434,18 @@ export function onPointerUp(e) {
     return;
   }
 
-  captureAndCrop(rect).finally(() => {
-    cleanup();
-    window.SwiftSelect.ui.cleanup();
-    window.SwiftSelect.ui.setStatus("Copied to clipboard", 5000, "success");
-  });
+  captureAndCrop(rect)
+    .then(() => {
+      cleanup();
+      window.SwiftSelect.ui.cleanup();
+      window.SwiftSelect.ui.setStatus("Copied to clipboard", 5000, "success");
+    })
+    .catch((err) => {
+      console.warn("captureAndCrop failed:", err);
+      cleanup();
+      window.SwiftSelect.ui.cleanup();
+      window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
+    });
 }
 
 export function onKeyDown(e) {
@@ -355,9 +460,16 @@ export function onKeyDown(e) {
     isSpacePressed = true;
     if (dragging) e.preventDefault();
   }
+  if (e.key === "Shift") {
+    isShiftPressed = true;
+  }
   if (!dragging && (e.key === "Control" || e.key === "Meta")) {
     updateSnapAt(snapPointer.x, snapPointer.y);
   }
+
+  // Update on-screen key guide highlight
+  const guideKey = e.code === "Space" ? "space" : e.key;
+  window.SwiftSelect?.ui?.updateKeyGuideKey?.(guideKey, true);
 
   // Quick in-session hotkeys (Standard 2-button: Alt+S, Alt+H, Alt+F, Alt+X or single keys)
   const activeEl = document.activeElement;
@@ -375,6 +487,26 @@ export function onKeyDown(e) {
     if ((isAlt && key === "s") || (isPlain && (key === "s" || key === "v"))) {
       e.preventDefault();
       handleCaptureVisible();
+      return;
+    }
+    if ((isAlt && key === "t") || (isPlain && (key === "t" || key === "3"))) {
+      e.preventDefault();
+      import("./capture/region.js").then((m) => m.handleTimedCapture(3));
+      return;
+    }
+    if (isPlain && key === "a") {
+      e.preventDefault();
+      import("./capture/annotate.js").then((m) => m.openAnnotationEditor());
+      return;
+    }
+    if (isPlain && (key === "," || key === "o")) {
+      e.preventDefault();
+      window.SwiftSelect?.ui?.showSettingsModal?.();
+      return;
+    }
+    if (isPlain && key === "c") {
+      e.preventDefault();
+      copyColorAtCursor();
       return;
     }
     if ((isAlt && key === "h") || (isPlain && key === "h")) {
@@ -401,23 +533,65 @@ export function onKeyUp(e) {
     isSpacePressed = false;
     isMoving = false;
   }
+  if (e.key === "Shift") {
+    isShiftPressed = false;
+  }
   if (e.key === "Control" || e.key === "Meta") {
     clearSnapState({ clearSelection: !dragging });
+  }
+
+  // Release on-screen key guide highlight
+  const guideKey = e.code === "Space" ? "space" : e.key;
+  window.SwiftSelect?.ui?.updateKeyGuideKey?.(guideKey, false);
+}
+
+async function copyColorAtCursor() {
+  try {
+    const x = lastMouseX || snapPointer.x;
+    const y = lastMouseY || snapPointer.y;
+    const dpr = window.devicePixelRatio || 1;
+
+    let dataUrl = window.SwiftSelect?.ui?.getFreezeFrameDataUrl?.();
+    if (!dataUrl) {
+      dataUrl = await window.SwiftSelect?.ui?.getFreezeFramePromise?.();
+    }
+    if (!dataUrl) return;
+
+    const img = new Image();
+    await new Promise((res, rej) => {
+      img.onload = res;
+      img.onerror = rej;
+      img.src = dataUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext("2d");
+    const sx = Math.round(x * dpr);
+    const sy = Math.round(y * dpr);
+    ctx.drawImage(img, sx, sy, 1, 1, 0, 0, 1, 1);
+    const pixel = ctx.getImageData(0, 0, 1, 1).data;
+    const r = pixel[0];
+    const g = pixel[1];
+    const b = pixel[2];
+    const hex =
+      "#" +
+      ((1 << 24) + (r << 16) + (g << 8) + b)
+        .toString(16)
+        .slice(1)
+        .toUpperCase();
+
+    await navigator.clipboard.writeText(hex);
+    window.SwiftSelect?.ui?.showColorPickerLoupe?.(x, y, hex);
+    window.SwiftSelect?.ui?.setStatus?.(`Copied Color ${hex}`, 2500, "saved");
+  } catch (err) {
+    console.debug("copyColorAtCursor error:", err);
   }
 }
 
 export function preventAll(e) {
-  const path = e.composedPath();
-  if (
-    window.SwiftSelect.ui.guideHost &&
-    path.includes(window.SwiftSelect.ui.guideHost)
-  )
-    return;
-  if (
-    window.SwiftSelect.ui.statusHost &&
-    path.includes(window.SwiftSelect.ui.statusHost)
-  )
-    return;
+  if (isEventOnUi(e)) return;
   e.preventDefault();
   e.stopPropagation();
   e.stopImmediatePropagation();
@@ -441,7 +615,13 @@ const boundKeyUp = onKeyUp;
 const boundPreventAll = preventAll;
 const boundScroll = onScroll;
 
+let listenersActive = false;
+
 export function addListeners() {
+  if (listenersActive) {
+    removeListeners();
+  }
+  listenersActive = true;
   init();
   document.addEventListener("pointerdown", boundPointerDown, true);
   document.addEventListener("pointermove", boundPointerMove, true);
@@ -460,6 +640,7 @@ export function addListeners() {
 }
 
 export function removeListeners() {
+  listenersActive = false;
   document.removeEventListener("pointerdown", boundPointerDown, true);
   document.removeEventListener("pointermove", boundPointerMove, true);
   document.removeEventListener("pointerup", boundPointerUp, true);

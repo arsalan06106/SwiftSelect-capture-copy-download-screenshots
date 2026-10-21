@@ -44,3 +44,18 @@ export function toggleCursor(hide) {
     }
   }
 }
+
+export async function getOutputSettings() {
+  return new Promise((resolve) => {
+    try {
+      chrome.storage.local.get(["outputFormat", "outputDestination"], (data) => {
+        resolve({
+          format: data?.outputFormat === "png" ? "png" : "jpg",
+          destination: data?.outputDestination || "both",
+        });
+      });
+    } catch {
+      resolve({ format: "jpg", destination: "both" });
+    }
+  });
+}

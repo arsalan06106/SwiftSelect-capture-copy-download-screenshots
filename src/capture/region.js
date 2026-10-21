@@ -1,4 +1,4 @@
-import { loadImage, toggleCursor } from "./utils.js";
+import { loadImage, toggleCursor, getOutputSettings } from "./utils.js";
 import { setLastBlob } from "./download.js";
 
 async function blobToDataUrl(blob) {
@@ -69,6 +69,18 @@ export async function captureFrame(retries = 3) {
   }
 }
 
+export async function handleTimedCapture(seconds = 3) {
+  if (window.SwiftSelect?.ui?.startTimedCountdown) {
+    window.SwiftSelect.ui.startTimedCountdown(seconds, () => {
+      handleCaptureVisible();
+    });
+  } else {
+    setTimeout(() => {
+      handleCaptureVisible();
+    }, seconds * 1000);
+  }
+}
+
 export async function handleCaptureVisible() {
   try {
     await window.SwiftSelect.ui.hideUiForCapture();
@@ -76,7 +88,20 @@ export async function handleCaptureVisible() {
     window.SwiftSelect.events.removeListeners();
 
     const resp = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: "capture-visible-tab" }, resolve);
+      const timer = setTimeout(() => resolve({ success: false, error: "Capture timed out" }), 4000);
+      try {
+        chrome.runtime.sendMessage({ type: "capture-visible-tab" }, (r) => {
+          clearTimeout(timer);
+          if (chrome.runtime.lastError) {
+            resolve({ success: false, error: chrome.runtime.lastError.message });
+            return;
+          }
+          resolve(r || { success: false, error: "No response from background" });
+        });
+      } catch (err) {
+        clearTimeout(timer);
+        resolve({ success: false, error: err?.message || "Failed to send message" });
+      }
     });
     if (!resp?.success) throw new Error(resp?.error || "Capture failed");
     window.SwiftSelect?.theme?.setTabScreenshot?.(resp.dataUrl);
@@ -102,33 +127,56 @@ export async function handleCaptureVisible() {
     ctx.fillRect(0, 0, cropW, cropH);
     ctx.drawImage(img, 0, 0, cropW, cropH, 0, 0, cropW, cropH);
 
-    // Save/Download Blob is high-quality JPG
-    const jpgBlob = await new Promise((res, rej) =>
+    const { format, destination } = await getOutputSettings();
+    const ext = format === "png" ? "png" : "jpg";
+    const mime = format === "png" ? "image/png" : "image/jpeg";
+
+    const exportBlob = await new Promise((res, rej) =>
       canvas.toBlob(
         (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-        "image/jpeg",
-        0.92,
+        mime,
+        0.98,
       ),
     );
-    setLastBlob(jpgBlob);
+    setLastBlob(exportBlob, ext);
 
-    // Clipboard Blob must be PNG for native OS/application clipboard compatibility
-    const pngBlob = await new Promise((res, rej) =>
-      canvas.toBlob(
-        (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-        "image/png",
-      ),
-    );
+    let clipboardSuccess = false;
+    if (destination === "both" || destination === "clipboard") {
+      let pngBlob = exportBlob;
+      if (format !== "png") {
+        pngBlob = await new Promise((res, rej) =>
+          canvas.toBlob(
+            (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
+            "image/png",
+          ),
+        );
+      }
+      clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
+    }
 
-    const clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
-
-    const { handleSaveAction } = await import("./download.js");
-    handleSaveAction();
+    if (destination === "both" || destination === "download") {
+      const { handleSaveAction } = await import("./download.js");
+      handleSaveAction(ext);
+    }
 
     window.SwiftSelect.ui.triggerFlash();
 
-    const statusMsg = clipboardSuccess ? "Copied & Saved" : "Page Saved";
-    window.SwiftSelect.ui.setStatus(statusMsg, 5000, "saved");
+    let statusMsg = "Page Captured";
+    let statusType = "saved";
+    if (destination === "both") {
+      statusMsg = clipboardSuccess ? "Copied & Saved" : "Image Saved";
+      statusType = "saved";
+    } else if (destination === "clipboard") {
+      statusMsg = clipboardSuccess ? "Copied to Clipboard" : "Copy Failed";
+      statusType = clipboardSuccess ? "success" : "error";
+    } else if (destination === "download") {
+      statusMsg = "Image Saved";
+      statusType = "saved";
+    }
+
+    window.SwiftSelect.ui.setStatus(statusMsg, 5000, statusType, false, {
+      sourceBlob: exportBlob,
+    });
   } catch (err) {
     console.error("handleCaptureVisible error:", err);
     window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
@@ -156,7 +204,20 @@ export async function captureAndCrop(viewRect) {
       await new Promise((r) => requestAnimationFrame(r));
 
       const resp = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "capture-visible-tab" }, resolve);
+        const timer = setTimeout(() => resolve({ success: false, error: "Capture timed out" }), 4000);
+        try {
+          chrome.runtime.sendMessage({ type: "capture-visible-tab" }, (r) => {
+            clearTimeout(timer);
+            if (chrome.runtime.lastError) {
+              resolve({ success: false, error: chrome.runtime.lastError.message });
+              return;
+            }
+            resolve(r || { success: false, error: "No response from background" });
+          });
+        } catch (err) {
+          clearTimeout(timer);
+          resolve({ success: false, error: err?.message || "Failed to send message" });
+        }
       });
       if (!resp?.success) throw new Error(resp?.error || "Capture failed");
       dataUrl = resp.dataUrl;
@@ -181,35 +242,64 @@ export async function captureAndCrop(viewRect) {
     ctx.fillRect(0, 0, safeSw, safeSh);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, safeSw, safeSh);
 
-    // Save/Download Blob is high-quality JPG
-    const jpgBlob = await new Promise((res, rej) =>
+    const { format, destination } = await getOutputSettings();
+    const ext = format === "png" ? "png" : "jpg";
+    const mime = format === "png" ? "image/png" : "image/jpeg";
+
+    const exportBlob = await new Promise((res, rej) =>
       canvas.toBlob(
         (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-        "image/jpeg",
-        0.92,
+        mime,
+        0.98,
       ),
     );
-    setLastBlob(jpgBlob);
+    setLastBlob(exportBlob, ext);
 
-    // Clipboard Blob must be PNG for native OS/application clipboard compatibility
-    const pngBlob = await new Promise((res, rej) =>
-      canvas.toBlob(
-        (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-        "image/png",
-      ),
-    );
+    let clipboardSuccess = false;
+    if (destination === "both" || destination === "clipboard") {
+      let pngBlob = exportBlob;
+      if (format !== "png") {
+        pngBlob = await new Promise((res, rej) =>
+          canvas.toBlob(
+            (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
+            "image/png",
+          ),
+        );
+      }
+      clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
+    }
 
-    const clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
-    if (!clipboardSuccess) {
+    if (destination === "both" || destination === "download") {
+      const { handleSaveAction } = await import("./download.js");
+      handleSaveAction(ext);
+    } else if (destination === "clipboard" && !clipboardSuccess) {
       // Fallback: download if copy fails during selection
       const { handleSaveAction } = await import("./download.js");
-      handleSaveAction();
+      handleSaveAction(ext);
       window.SwiftSelect.ui.setStatus(
         "Saved (Clipboard Blocked)",
         5000,
         "saved",
       );
+      return;
     }
+
+    let statusMsg = "Selection Captured";
+    let statusType = "saved";
+    if (destination === "both") {
+      statusMsg = clipboardSuccess ? "Copied & Saved" : "Image Saved";
+      statusType = "saved";
+    } else if (destination === "clipboard") {
+      statusMsg = clipboardSuccess ? "Copied to Clipboard" : "Copy Failed";
+      statusType = clipboardSuccess ? "success" : "error";
+    } else if (destination === "download") {
+      statusMsg = "Image Saved";
+      statusType = "saved";
+    }
+
+    window.SwiftSelect.ui.setStatus(statusMsg, 5000, statusType, false, {
+      sourceBlob: exportBlob,
+    });
   } catch (err) {
     console.error("captureAndCrop error:", err);
     window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
@@ -218,3 +308,4 @@ export async function captureAndCrop(viewRect) {
     toggleCursor(false);
   }
 }
+

@@ -1,22 +1,29 @@
 import { getSmartFilename } from "./utils.js";
 
 let lastBlob = null;
+let lastExt = "jpg";
 
-export function setLastBlob(blob) {
+export function setLastBlob(blob, ext = "jpg") {
   lastBlob = blob;
+  lastExt = ext || "jpg";
 }
 
 export function getLastBlob() {
   return lastBlob;
 }
 
-export function handleSaveAction() {
+export function getLastExt() {
+  return lastExt;
+}
+
+export function handleSaveAction(customExt = null) {
   if (!lastBlob) return;
 
+  const ext = customExt || lastExt || "jpg";
   const url = URL.createObjectURL(lastBlob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = getSmartFilename("screenshot", "jpg");
+  a.download = getSmartFilename("screenshot", ext);
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

@@ -21,7 +21,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "SwiftSelect",
+    "default_title": "SwiftSelect (Click to Capture)",
     "default_icon": {
       "16": "icons/icon48.png",
       "32": "icons/icon128.png"
@@ -59,6 +59,9 @@
         "mac": "MacCtrl+F"
       },
       "description": "Capture full page & download"
+    },
+    "capture-timer": {
+      "description": "3-second delayed capture"
     }
   },
   "web_accessible_resources": [

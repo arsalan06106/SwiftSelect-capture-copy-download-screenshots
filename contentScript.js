@@ -37,6 +37,10 @@ if (!window.__swiftSelectInjected_v2) {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     getModules().then(({ theme, ui, events, region, fullpage }) => {
       if (message.type === "start-selection") {
+        if (document.getElementById("swiftselect-annotate-root")) {
+          sendResponse({ success: true });
+          return;
+        }
         ui.ensureUi();
         events.addListeners();
         sendResponse({ success: true });
@@ -46,11 +50,20 @@ if (!window.__swiftSelectInjected_v2) {
       ) {
         region.handleCaptureVisible();
         sendResponse({ success: true });
+      } else if (message.type === "capture-timer") {
+        region.handleTimedCapture(3);
+        sendResponse({ success: true });
       } else if (message.type === "capture-horizontal") {
         fullpage.handleCaptureHorizontal();
         sendResponse({ success: true });
       } else if (message.type === "capture-full") {
         fullpage.handleCaptureFullPage();
+        sendResponse({ success: true });
+      } else if (message.type === "show-help-modal") {
+        ui.showShortcutsHelpModal();
+        sendResponse({ success: true });
+      } else if (message.type === "show-settings-modal") {
+        ui.showSettingsModal();
         sendResponse({ success: true });
       } else if (message.type === "fullpage-progress") {
         const ps = ui.guideShadow?.querySelector(".qs-progress-text");
@@ -74,6 +87,8 @@ if (!window.__swiftSelectInjected_v2) {
           sendResponse({ success: true });
         }
       }
+    }).catch((err) => {
+      sendResponse({ success: false, error: err?.message });
     });
 
     return true; // Keep channel open for async response

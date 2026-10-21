@@ -25,6 +25,11 @@ export let overlayHost = null;
 export let statusHost = null;
 export let guideHost = null;
 export let highlighterHost = null;
+export let keyGuideHost = null;
+export let keyGuideEl = null;
+export let countdownHost = null;
+export let countdownEl = null;
+let countdownInterval = null;
 export let overlay = null;
 export let box = null;
 export let statusEl = null;
@@ -41,10 +46,6 @@ export let freezeFramePromise = null;
 export let freezeFrameVersion = 0;
 
 export function releaseFreeze() {
-  if (freezeBg && freezeBg.style.opacity !== "0") {
-    freezeBg.style.opacity = "0";
-    freezeBg.style.pointerEvents = "none";
-  }
   freezeFrameVersion++;
   freezeFrameDataUrl = null;
   freezeFramePromise = null;
@@ -52,6 +53,7 @@ export function releaseFreeze() {
 
 // Track timers
 export let hideStatusTimer = null;
+export let hideGuideTimer = null;
 export let currentStatus = null;
 
 export function setHideStatusTimer(timer) {
@@ -74,6 +76,7 @@ export function getFreezeFramePromise() {
 export let qsSheet = null;
 export let stylePromise = null;
 export let safetyListenersAdded = false;
+export let cachedCssText = "";
 
 export async function loadStyles() {
   if (stylePromise) return stylePromise;
@@ -81,9 +84,9 @@ export async function loadStyles() {
     try {
       const url = chrome.runtime.getURL("styles.css");
       const response = await fetch(url);
-      const cssText = await response.text();
+      cachedCssText = await response.text();
       qsSheet = new CSSStyleSheet();
-      await qsSheet.replace(cssText);
+      await qsSheet.replace(cachedCssText);
     } catch (err) {
       console.error("SwiftSelect: Failed to load styles.css", err);
     }
@@ -91,13 +94,23 @@ export async function loadStyles() {
   return stylePromise;
 }
 
+export function getCachedCssText() {
+  return cachedCssText;
+}
+
 export function addSafetyListeners() {
   if (safetyListenersAdded) return;
   safetyListenersAdded = true;
-  const cleanup = () => removeCrosshairCursor();
+  const cleanup = () => {
+    try {
+      removeCrosshairCursor();
+    } catch {}
+  };
   window.addEventListener("beforeunload", cleanup);
   window.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") cleanup();
+    try {
+      if (document.visibilityState === "hidden") cleanup();
+    } catch {}
   });
 }
 
@@ -118,8 +131,15 @@ export function makeShadowOverlay(
   host.style.zIndex = "2147483647";
   host.style.pointerEvents = "none";
   host.style.inset = "0";
+  host.style.setProperty("background", "transparent", "important");
+  host.style.setProperty("background-color", "transparent", "important");
+  host.style.setProperty("border", "none", "important");
+  host.style.setProperty("box-shadow", "none", "important");
   host.style.display = "none"; // Start hidden to prevent flash
-  document.body.appendChild(host);
+  const targetParent = document.body || document.documentElement;
+  if (targetParent) {
+    targetParent.appendChild(host);
+  }
 
   const shadow = host.attachShadow({ mode: "open" });
   const el = document.createElement(tag);
@@ -163,31 +183,57 @@ export function createSvg(viewBox, pathData, className = "") {
 }
 
 export function setCrosshairCursor() {
-  document.body.style.setProperty("cursor", "crosshair", "important");
-  document.documentElement.style.setProperty(
-    "cursor",
-    "crosshair",
-    "important",
-  );
-  if (!document.getElementById("qs-cursor-style")) {
-    const style = document.createElement("style");
-    style.id = "qs-cursor-style";
-    style.textContent = "body *, html * { cursor: crosshair !important; }";
-    document.head.appendChild(style);
-  }
+  try {
+    if (document?.body?.style) {
+      document.body.style.setProperty("cursor", "crosshair", "important");
+    }
+    if (document?.documentElement?.style) {
+      document.documentElement.style.setProperty(
+        "cursor",
+        "crosshair",
+        "important",
+      );
+    }
+    const parent = document?.head || document?.documentElement;
+    if (document && parent && !document.getElementById("qs-cursor-style")) {
+      const style = document.createElement("style");
+      style.id = "qs-cursor-style";
+      style.textContent = "body *, html * { cursor: crosshair !important; }";
+      parent.appendChild(style);
+    }
+  } catch {}
 }
 
 export function removeCrosshairCursor() {
-  document.body.style.removeProperty("cursor");
-  document.documentElement.style.removeProperty("cursor");
-  const style = document.getElementById("qs-cursor-style");
-  if (style) style.remove();
+  try {
+    if (document?.body?.style) {
+      document.body.style.removeProperty("cursor");
+    }
+    if (document?.documentElement?.style) {
+      document.documentElement.style.removeProperty("cursor");
+    }
+    const style = document?.getElementById("qs-cursor-style");
+    if (style && style.parentNode) {
+      style.parentNode.removeChild(style);
+    }
+  } catch {}
 }
 
 export async function ensureUi() {
+  if (document.getElementById("swiftselect-annotate-root")) {
+    return;
+  }
   setCrosshairCursor();
 
-  if (!overlayHost) {
+  if (hideGuideTimer) {
+    clearTimeout(hideGuideTimer);
+    hideGuideTimer = null;
+  }
+
+  if (!overlayHost || !overlayHost.isConnected) {
+    if (overlayHost && overlayHost.parentNode) {
+      overlayHost.parentNode.removeChild(overlayHost);
+    }
     const frameVersion = ++freezeFrameVersion;
     freezeFrameDataUrl = null;
     freezeFramePromise = null;
@@ -198,49 +244,28 @@ export async function ensureUi() {
     overlayShadow = shadow;
     overlayHost.style.pointerEvents = "none";
 
-    freezeBg = document.createElement("div");
-    freezeBg.className = "qs-freeze-bg";
-    freezeBg.style.position = "absolute";
-    freezeBg.style.inset = "0";
-    freezeBg.style.zIndex = "1";
-    freezeBg.style.backgroundSize = `${window.innerWidth}px ${window.innerHeight}px`;
-    freezeBg.style.backgroundPosition = "top left";
-    freezeBg.style.backgroundRepeat = "no-repeat";
-    freezeBg.style.pointerEvents = "none";
-    freezeBg.style.opacity = "0";
-    freezeBg.style.transition = "opacity 0.15s ease-out";
-    overlay.appendChild(freezeBg);
-
-    // clear any lingering artifacts entirely before snapshotting
-    if (statusHost) {
-      if (hideStatusTimer) clearTimeout(hideStatusTimer);
-      if (statusHost.parentNode) statusHost.parentNode.removeChild(statusHost);
-      statusHost = null;
-      statusEl = null;
-      currentStatus = null;
-    }
-
-    // Yield main thread twice to aggressively force the browser to visually
-    // repaint the DOM, confirming the toast deletion is physically rendered
-    // before the background camera snatches the freezeBg snapshot.
-    await new Promise((r) => requestAnimationFrame(r));
-    await new Promise((r) => requestAnimationFrame(r));
-
+    // Start background frame capture into memory for region crops (never overlaying on DOM)
     freezeFramePromise = new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: "capture-visible-tab" }, (resp) => {
-        if (resp && resp.success && frameVersion === freezeFrameVersion) {
-          freezeFrameDataUrl = resp.dataUrl;
-          if (freezeBg) {
-            freezeBg.style.backgroundImage = `url(${resp.dataUrl})`;
-            freezeBg.style.opacity = "1";
+      const timer = setTimeout(() => resolve(null), 1500);
+      try {
+        chrome.runtime.sendMessage({ type: "capture-visible-tab" }, (resp) => {
+          clearTimeout(timer);
+          if (chrome.runtime.lastError) {
+            resolve(null);
+            return;
           }
-          setTabScreenshot(resp.dataUrl);
-          resolve(resp.dataUrl);
-          return;
-        }
-
+          if (resp && resp.success && frameVersion === freezeFrameVersion) {
+            freezeFrameDataUrl = resp.dataUrl;
+            setTabScreenshot(resp.dataUrl);
+            resolve(resp.dataUrl);
+            return;
+          }
+          resolve(null);
+        });
+      } catch {
+        clearTimeout(timer);
         resolve(null);
-      });
+      }
     });
 
     curtains = [];
@@ -270,14 +295,20 @@ export async function ensureUi() {
     overlay.appendChild(hudEl);
   }
 
-  if (!statusHost) {
+  if (!statusHost || !statusHost.isConnected) {
+    if (statusHost && statusHost.parentNode) {
+      statusHost.parentNode.removeChild(statusHost);
+    }
     const { host, el } = makeShadowOverlay("div", "qs-status", "", false);
     statusHost = host;
     statusEl = el;
     statusHost.style.display = "none";
   }
 
-  if (!highlighterHost) {
+  if (!highlighterHost || !highlighterHost.isConnected) {
+    if (highlighterHost && highlighterHost.parentNode) {
+      highlighterHost.parentNode.removeChild(highlighterHost);
+    }
     const { host, el } = makeShadowOverlay("div", "qs-highlighter", "", false);
     highlighterHost = host;
     highlighterEl = el;
@@ -288,8 +319,13 @@ export async function ensureUi() {
     applyElementTheme(hudEl, currentUserTheme);
   }
 
-  if (!guideHost) {
+  if (!guideHost || !guideHost.isConnected) {
+    if (guideHost && guideHost.parentNode) {
+      guideHost.parentNode.removeChild(guideHost);
+    }
     const { host, el, shadow } = makeShadowOverlay("div", "qs-guide");
+    host.id = "qs-guide-host";
+    host.className = "qs-guide-host";
     guideHost = host;
     guideEl = el;
     guideShadow = shadow;
@@ -389,10 +425,53 @@ export async function ensureUi() {
     fullBtn.appendChild(fpSpan);
     buttonsSet.appendChild(fullBtn);
 
+    // Annotate Button
+    const annotateBtn = document.createElement("button");
+    annotateBtn.className = "qs-guide-btn";
+    annotateBtn.dataset.action = "annotate";
+    annotateBtn.dataset.tooltip = "Annotate (A)";
+    const annSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    annSvg.setAttribute("viewBox", "0 0 24 24");
+    annSvg.setAttribute("class", "ann-icon-svg");
+    annSvg.setAttribute("fill", "none");
+    annSvg.setAttribute("stroke", "currentColor");
+    annSvg.setAttribute("stroke-width", "2");
+    annSvg.setAttribute("stroke-linecap", "round");
+    annSvg.setAttribute("stroke-linejoin", "round");
+    annSvg.innerHTML = `
+      <path class="ann-line" d="M12 20h9"/>
+      <path class="ann-pen" d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+    `;
+    const annSpan = document.createElement("span");
+    annSpan.textContent = "Annotate";
+    annotateBtn.appendChild(annSvg);
+    annotateBtn.appendChild(annSpan);
+    buttonsSet.appendChild(annotateBtn);
+
     // Listeners
-    visibleBtn.onclick = () => handleCaptureVisible();
-    horizontalBtn.onclick = () => handleCaptureHorizontal();
-    fullBtn.onclick = () => handleCaptureFullPage();
+    visibleBtn.onclick = (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      handleCaptureVisible();
+    };
+    horizontalBtn.onclick = (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      handleCaptureHorizontal();
+    };
+    fullBtn.onclick = (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      handleCaptureFullPage();
+    };
+    annotateBtn.onclick = async (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      window.SwiftSelect?.events?.cleanup?.();
+      hideGuide(true);
+      const { openAnnotationEditor } = await import("./capture/annotate.js");
+      openAnnotationEditor();
+    };
 
     const isMac =
       typeof navigator !== "undefined" &&
@@ -400,6 +479,7 @@ export async function ensureUi() {
     const keyS = isMac ? "Ctrl+S" : "Alt+S";
     const keyH = isMac ? "Ctrl+H" : "Alt+H";
     const keyF = isMac ? "Ctrl+F" : "Alt+F";
+    const keyA = isMac ? "Ctrl+A" : "Alt+A";
 
     attachTooltip(
       visibleBtn,
@@ -419,9 +499,20 @@ export async function ensureUi() {
       "Scrolls and stitches the entire webpage into one complete high-resolution image.",
       keyF,
     );
+    attachTooltip(
+      annotateBtn,
+      "Annotate Editor",
+      "Draw arrows, boxes, step counters, and blur sensitive text.",
+      keyA,
+    );
   }
 
   if (guideHost) {
+    if (document.getElementById("swiftselect-annotate-root")) {
+      guideHost.style.display = "none";
+      hideCustomTooltip();
+      return;
+    }
     guideHost.style.display = "flex";
     guideEl.classList.remove("qs-hiding");
     void guideEl.offsetWidth;
@@ -493,6 +584,143 @@ function attachTooltip(btn, title, desc, key) {
   btn.addEventListener("click", hideCustomTooltip);
 }
 
+export function ensureKeyGuide() {
+  if (keyGuideHost && keyGuideEl) {
+    keyGuideHost.style.display = "flex";
+    return;
+  }
+
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent);
+  const snapKey = isMac ? "⌘" : "Ctrl";
+
+  const { host, el } = makeShadowOverlay("div", "qs-key-guide");
+  keyGuideHost = host;
+  keyGuideEl = el;
+
+  keyGuideEl.innerHTML = `
+    <div class="qs-key-pill" data-key="control"><kbd>${snapKey}</kbd><span>Snap</span></div>
+    <div class="qs-key-pill" data-key="space"><kbd>Space</kbd><span>Pan</span></div>
+    <div class="qs-key-pill" data-key="shift"><kbd>Shift</kbd><span>1:1</span></div>
+    <div class="qs-key-pill" data-key="t"><kbd>T</kbd><span>Timer</span></div>
+    <div class="qs-key-pill" data-key="c"><kbd>C</kbd><span>Color</span></div>
+    <div class="qs-key-pill" data-key="a"><kbd>A</kbd><span>Annotate</span></div>
+    <div class="qs-key-pill" data-key="escape"><kbd>Esc</kbd><span>Cancel</span></div>
+  `;
+
+  keyGuideEl.querySelectorAll(".qs-key-pill").forEach((pill) => {
+    pill.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const k = pill.dataset.key;
+      if (k === "t") {
+        const { handleTimedCapture } = await import("./capture/region.js");
+        handleTimedCapture(3);
+      } else if (k === "a") {
+        const { openAnnotationEditor } = await import("./capture/annotate.js");
+        openAnnotationEditor();
+      } else if (k === "escape") {
+        cleanup();
+        setStatus("Canceled", 1200);
+      }
+    });
+  });
+
+  applyElementTheme(keyGuideEl, currentUserTheme);
+}
+
+export function updateKeyGuideKey(key, isPressed) {
+  if (!keyGuideEl) return;
+  const k = key.toLowerCase();
+  let selector = `[data-key="${k}"]`;
+  if (k === "meta" || k === "control") selector = '[data-key="control"]';
+  const pill = keyGuideEl.querySelector(selector);
+  if (pill) {
+    pill.classList.toggle("active", isPressed);
+  }
+}
+
+export function hideKeyGuide() {
+  if (keyGuideHost) keyGuideHost.style.display = "none";
+}
+
+export function startTimedCountdown(seconds = 3, onComplete) {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+
+  hideKeyGuide();
+  if (guideHost) guideHost.style.display = "none";
+  if (overlayHost) overlayHost.style.display = "none";
+
+  if (!countdownHost) {
+    const { host, el } = makeShadowOverlay("div", "qs-countdown-card");
+    countdownHost = host;
+    countdownEl = el;
+  }
+  countdownHost.style.display = "flex";
+
+  let remaining = seconds;
+
+  function updateDisplay() {
+    if (!countdownEl) return;
+    countdownEl.innerHTML = `
+      <div class="qs-countdown-ring-box">
+        <svg class="qs-countdown-svg" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="30" class="qs-ring-bg"/>
+          <circle cx="36" cy="36" r="30" class="qs-ring-prog" style="stroke-dashoffset: ${(1 - remaining / seconds) * 188.5};"/>
+        </svg>
+        <span class="qs-countdown-num">${remaining}</span>
+      </div>
+      <div class="qs-countdown-text">
+        <span class="qs-countdown-title">Timed Capture</span>
+        <span class="qs-countdown-subtitle">Hover menus or tooltips now...</span>
+      </div>
+      <button class="qs-countdown-cancel" title="Cancel (Esc)">✕</button>
+    `;
+
+    applyElementTheme(countdownEl, currentUserTheme);
+
+    const cancelBtn = countdownEl.querySelector(".qs-countdown-cancel");
+    if (cancelBtn) {
+      cancelBtn.onclick = () => cancelTimedCountdown();
+    }
+  }
+
+  updateDisplay();
+
+  const onKey = (e) => {
+    if (e.key === "Escape") {
+      cancelTimedCountdown();
+      window.removeEventListener("keydown", onKey, true);
+    }
+  };
+  window.addEventListener("keydown", onKey, true);
+
+  countdownInterval = setInterval(() => {
+    remaining--;
+    if (remaining > 0) {
+      updateDisplay();
+    } else {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      if (countdownHost) countdownHost.style.display = "none";
+      window.removeEventListener("keydown", onKey, true);
+      if (onComplete) onComplete();
+    }
+  }, 1000);
+}
+
+export function cancelTimedCountdown() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  if (countdownHost) countdownHost.style.display = "none";
+  setStatus("Timer Canceled", 1200);
+}
+
 export function setSelecting(isSelecting) {
   if (!overlay) return;
   if (isSelecting) {
@@ -519,7 +747,7 @@ export function setSelecting(isSelecting) {
   }
 }
 
-export function setStatus(msg, timeout = 1500, type = "info", noAnim = false) {
+export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, options = {}) {
   if (!msg || !msg.trim()) return;
 
   if (!statusHost || !statusEl) {
@@ -595,6 +823,8 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false) {
     statusEl.classList.add("qs-success");
     const saveBtn = document.createElement("button");
     saveBtn.className = "qs-save-btn";
+    saveBtn.title = "Save Screenshot";
+    saveBtn.style.marginLeft = "8px";
     const dlIcon = createSvg("0 0 24 24", [
       { class: "dl-arrow", d: "M19 9h-4V3H9v6H5l7 7 7-7z" },
       { class: "dl-bar", d: "M5 18v2h14v-2H5z" },
@@ -612,11 +842,52 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false) {
     timeout = 5000;
   } else if (type === "saved") {
     statusEl.classList.add("qs-saved");
-    timeout = 2500;
+    timeout = 3500;
   } else if (type === "error") {
     statusEl.classList.add("qs-error");
     timeout = 2500;
   }
+
+  // Annotate Icon Button (Only for normal page captures, not when already inside annotate)
+  const isAnnotateActive =
+    options?.showAnnotate === false ||
+    (typeof document !== "undefined" &&
+      !!document.getElementById("swiftselect-annotate-root"));
+
+  if ((type === "success" || type === "saved") && !isAnnotateActive) {
+    const annotateBtn = document.createElement("button");
+    annotateBtn.className = "qs-save-btn qs-status-annotate-btn";
+    annotateBtn.title = "Annotate Screenshot (A)";
+    annotateBtn.style.marginLeft = "6px";
+    const annSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    annSvg.setAttribute("viewBox", "0 0 24 24");
+    annSvg.setAttribute("class", "ann-icon-svg");
+    annSvg.setAttribute("fill", "none");
+    annSvg.setAttribute("stroke", "currentColor");
+    annSvg.setAttribute("stroke-width", "2");
+    annSvg.setAttribute("stroke-linecap", "round");
+    annSvg.setAttribute("stroke-linejoin", "round");
+    annSvg.style.width = "18px";
+    annSvg.style.height = "18px";
+    annSvg.innerHTML = `
+      <path class="ann-line" d="M12 20h9"/>
+      <path class="ann-pen" d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+    `;
+    annotateBtn.appendChild(annSvg);
+
+    annotateBtn.onclick = async () => {
+      const { openAnnotationEditor } = await import("./capture/annotate.js");
+      const { getLastBlob } = await import("./capture/download.js");
+      const source = options?.sourceBlob || getLastBlob?.();
+      if (source) {
+        openAnnotationEditor(source);
+      } else {
+        openAnnotationEditor();
+      }
+    };
+    statusEl.appendChild(annotateBtn);
+  }
+
 
   statusHost.style.display = "";
   statusEl.style.display = "flex";
@@ -728,7 +999,13 @@ export function updateSelection(rect) {
     const dpr = window.devicePixelRatio || 1;
     const w = Math.round(r.width * dpr);
     const h = Math.round(r.height * dpr);
-    const hudText = `${w} x ${h}`;
+    let hudText = `${w} × ${h}`;
+    if (window.SwiftSelect?.events?.isShiftPressed || (w === h && w > 0)) {
+      hudText += " • 1:1";
+    }
+    if (window.SwiftSelect?.events?.isSpacePressed) {
+      hudText += " • Move";
+    }
     if (lastHudText !== hudText) {
       hudEl.textContent = hudText;
       lastHudText = hudText;
@@ -817,9 +1094,11 @@ export function setButtonLoading(action, loading) {
 
 export async function hideUiForCapture() {
   hideCustomTooltip();
+  hideKeyGuide();
   if (guideHost) guideHost.style.display = "none";
   if (overlayHost) overlayHost.style.display = "none";
   if (highlighterHost) highlighterHost.style.display = "none";
+  if (countdownHost) countdownHost.style.display = "none";
 
   if (statusHost && statusHost.style.display !== "none") {
     if (hideStatusTimer) clearTimeout(hideStatusTimer);
@@ -834,7 +1113,7 @@ export async function hideUiForCapture() {
   await new Promise((r) => setTimeout(r, 100));
 }
 
-export function cleanup() {
+export function cleanup(preserveStatus = false) {
   hideCustomTooltip();
   menuTooltipEl = null;
   removeCrosshairCursor();
@@ -845,6 +1124,22 @@ export function cleanup() {
   isUpdating = false;
   pendingRect = null;
   addSafetyListeners();
+
+  if (keyGuideHost && keyGuideHost.parentNode) {
+    keyGuideHost.parentNode.removeChild(keyGuideHost);
+  }
+  keyGuideHost = null;
+  keyGuideEl = null;
+
+  if (countdownHost && countdownHost.parentNode) {
+    countdownHost.parentNode.removeChild(countdownHost);
+  }
+  countdownHost = null;
+  countdownEl = null;
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
 
   if (overlay) {
     overlay.classList.remove("qs-selecting");
@@ -869,35 +1164,469 @@ export function cleanup() {
   highlighterHost = null;
   highlighterEl = null;
 
-  if (guideEl && guideHost) {
+  hideGuide(true);
+
+  if (!preserveStatus) {
+    if (hideStatusTimer) {
+      clearTimeout(hideStatusTimer);
+      hideStatusTimer = null;
+    }
+    if (statusHost && statusHost.parentNode) {
+      statusHost.parentNode.removeChild(statusHost);
+    }
+    statusHost = null;
+    statusEl = null;
+    currentStatus = null;
+  }
+}
+
+export function hideGuide(immediately = false) {
+  hideCustomTooltip();
+  if (hideGuideTimer) {
+    clearTimeout(hideGuideTimer);
+    hideGuideTimer = null;
+  }
+  if (guideEl) {
     guideEl.classList.add("qs-hiding");
-    setTimeout(() => {
-      if (guideHost && guideHost.parentNode)
-        guideHost.parentNode.removeChild(guideHost);
-      guideHost = null;
-      guideEl = null;
-      guideShadow = null;
-    }, 200);
-  } else {
-    if (guideHost && guideHost.parentNode)
+  }
+  const remove = () => {
+    hideCustomTooltip();
+    hideGuideTimer = null;
+    if (guideHost && guideHost.parentNode) {
       guideHost.parentNode.removeChild(guideHost);
+    }
     guideHost = null;
     guideEl = null;
+    guideShadow = null;
+  };
+  if (immediately) {
+    remove();
+  } else {
+    hideGuideTimer = setTimeout(remove, 180);
   }
-
-  // Forcefully remove statusHost immediately on cleanup to avoid freeze ghosting
-  if (hideStatusTimer) {
-    clearTimeout(hideStatusTimer);
-    hideStatusTimer = null;
-  }
-  if (statusHost && statusHost.parentNode) {
-    statusHost.parentNode.removeChild(statusHost);
-  }
-  statusHost = null;
-  statusEl = null;
-  currentStatus = null;
 }
 
 export function updateBadge(text, color = "#BA4B5C") {
   chrome.runtime.sendMessage({ type: "update-badge", text, color });
+}
+
+export let shortcutsModalHost = null;
+
+export function showShortcutsHelpModal() {
+  if (shortcutsModalHost) {
+    shortcutsModalHost.remove();
+    shortcutsModalHost = null;
+  }
+
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent);
+  const metaKey = isMac ? "⌘" : "Ctrl";
+  const altKey = isMac ? "Ctrl" : "Alt";
+
+  const host = document.createElement("div");
+  host.id = "qs-shortcuts-modal-root";
+  host.style.cssText = `
+    all: initial;
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 10, 14, 0.65);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    user-select: none;
+    font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #f4f4f5;
+    opacity: 0;
+    transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+
+  const card = document.createElement("div");
+  card.style.cssText = `
+    width: 460px;
+    max-width: 92vw;
+    background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 12%, rgba(27, 27, 29, 0.94));
+    border: none;
+    border-radius: 20px;
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, #fff calc(0.3 * 10%), transparent),
+      inset 1.8px 3px 0px -2px color-mix(in srgb, #fff calc(0.3 * 90%), transparent),
+      inset -2px -2px 0px -2px color-mix(in srgb, #fff calc(0.3 * 80%), transparent),
+      inset -3px -8px 1px -6px color-mix(in srgb, #fff calc(0.3 * 60%), transparent),
+      inset -0.3px -1px 4px 0px color-mix(in srgb, #000 calc(2 * 12%), transparent),
+      inset -1.5px 2.5px 0px -2px color-mix(in srgb, #000 calc(2 * 20%), transparent),
+      inset 0px 3px 4px -2px color-mix(in srgb, #000 calc(2 * 20%), transparent),
+      inset 2px -6.5px 1px -4px color-mix(in srgb, #000 calc(2 * 10%), transparent),
+      0px 1px 5px 0px color-mix(in srgb, #000 calc(2 * 10%), transparent),
+      0px 20px 48px 0px rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(16px) url(#glass-blur) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    padding: 24px 26px;
+    box-sizing: border-box;
+    transform: translate3d(0, 16px, 0) scale(0.92);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  `;
+
+  card.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 34px; height: 34px; border-radius: 10px; background: #BA4B5C; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(186,75,92,0.45);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </div>
+        <div>
+          <div style="font-size: 16px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">SwiftSelect Shortcuts</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.55);">Quick reference guide</div>
+        </div>
+      </div>
+      <button class="qs-modal-close" style="all: initial; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.06); transition: all 0.15s ease;" title="Close (Esc)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 18px; font-size: 13px;">
+      <div>
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.42); letter-spacing: 0.8px; margin-bottom: 9px;">Capture Commands</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">Area Selection</span>
+            <kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">${altKey}+X</kbd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">Capture Visible Screen</span>
+            <kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">${altKey}+S</kbd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">Horizontal Scroll View</span>
+            <kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">${altKey}+H</kbd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">Full Webpage Stitching</span>
+            <kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">${altKey}+F</kbd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">3-Second Delayed Capture</span>
+            <kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">${altKey}+T</kbd>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.42); letter-spacing: 0.8px; margin-bottom: 9px;">Selection Helpers & Canvas</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">Smart Element Snapping</span>
+            <div style="display: flex; align-items: center; gap: 6px;"><kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">${metaKey}</kbd><span style="font-size: 11px; color: rgba(255,255,255,0.5);">Hold</span></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">Pan / Move Selection Box</span>
+            <div style="display: flex; align-items: center; gap: 6px;"><kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">Space</kbd><span style="font-size: 11px; color: rgba(255,255,255,0.5);">Hold</span></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">1:1 Square Aspect Ratio</span>
+            <div style="display: flex; align-items: center; gap: 6px;"><kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">Shift</kbd><span style="font-size: 11px; color: rgba(255,255,255,0.5);">Hold</span></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">Eyedropper Color Picker</span>
+            <kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">C</kbd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">Open Annotation Editor</span>
+            <kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">A</kbd>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgba(255,255,255,0.85);">Dismiss / Cancel</span>
+            <kbd style="background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 11.5px; border: 1px solid rgba(255,255,255,0.15); color: #ffffff;">Esc</kbd>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  host.appendChild(card);
+  document.body.appendChild(host);
+  shortcutsModalHost = host;
+
+  requestAnimationFrame(() => {
+    host.style.opacity = "1";
+    card.style.transform = "translate3d(0, 0, 0) scale(1)";
+  });
+
+  const closeBtn = card.querySelector(".qs-modal-close");
+  if (closeBtn) {
+    closeBtn.onmouseenter = () => {
+      closeBtn.style.color = "#ffffff";
+      closeBtn.style.background = "rgba(255,255,255,0.15)";
+    };
+    closeBtn.onmouseleave = () => {
+      closeBtn.style.color = "rgba(255,255,255,0.6)";
+      closeBtn.style.background = "rgba(255,255,255,0.06)";
+    };
+  }
+
+  function closeModal() {
+    card.style.transform = "translate3d(0, -12px, 0) scale(0.94)";
+    card.style.opacity = "0";
+    host.style.opacity = "0";
+    window.removeEventListener("keydown", onModalKey, true);
+    setTimeout(() => {
+      if (host.parentNode) host.parentNode.removeChild(host);
+      if (shortcutsModalHost === host) shortcutsModalHost = null;
+    }, 220);
+  }
+
+  function onModalKey(e) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    }
+  }
+
+  window.addEventListener("keydown", onModalKey, true);
+  if (closeBtn) closeBtn.onclick = closeModal;
+  host.onclick = (e) => {
+    if (e.target === host) closeModal();
+  };
+}
+
+export function showColorPickerLoupe(x, y, hex) {
+  const prev = document.getElementById("qs-color-loupe-root");
+  if (prev) prev.remove();
+
+  const host = document.createElement("div");
+  host.id = "qs-color-loupe-root";
+  host.style.cssText = `
+    all: initial;
+    position: fixed;
+    left: ${x}px;
+    top: ${y}px;
+    z-index: 2147483648;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  `;
+
+  host.innerHTML = `
+    <style>
+      @keyframes qsLoupeSpringIn {
+        0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+        18% { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+        32% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        78% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(0.85); opacity: 0; }
+      }
+      @keyframes qsLoupeRipple {
+        0% { transform: scale(0.85); opacity: 0.9; }
+        100% { transform: scale(1.6); opacity: 0; }
+      }
+    </style>
+    <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+      <div style="position: absolute; inset: -6px; border-radius: 50%; border: 2px solid ${hex}; animation: qsLoupeRipple 1.2s ease-out infinite;"></div>
+      <div style="width: 44px; height: 44px; border-radius: 50%; background: ${hex}; border: 3px solid #ffffff; box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center;">
+        <div style="width: 4px; height: 4px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 2px rgba(0,0,0,0.8);"></div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: rgba(22,22,28,0.88); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 8px 20px rgba(0,0,0,0.45); color: #ffffff; font-size: 11.5px; font-weight: 700; letter-spacing: 0.4px;">
+      <span style="font-family: monospace; font-size: 12px;">${hex}</span>
+      <span style="font-size: 10px; opacity: 0.8; font-weight: 600; color: #10B981;">Copied!</span>
+    </div>
+  `;
+
+  host.style.animation = "qsLoupeSpringIn 1900ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards";
+  document.body.appendChild(host);
+
+  setTimeout(() => {
+    if (host && host.parentNode) host.parentNode.removeChild(host);
+  }, 1950);
+}
+
+export let settingsModalHost = null;
+
+export async function showSettingsModal() {
+  if (settingsModalHost) {
+    settingsModalHost.remove();
+    settingsModalHost = null;
+  }
+
+  const { outputFormat = "jpg", outputDestination = "both", userTheme = "glass" } =
+    await new Promise((res) => {
+      chrome.storage.local.get(
+        ["outputFormat", "outputDestination", "userTheme"],
+        res,
+      );
+    });
+
+  const host = document.createElement("div");
+  host.id = "qs-settings-modal-root";
+  host.style.cssText = `
+    all: initial;
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 10, 14, 0.65);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    user-select: none;
+    font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #f4f4f5;
+    opacity: 0;
+    transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+
+  const card = document.createElement("div");
+  card.style.cssText = `
+    width: 440px;
+    max-width: 92vw;
+    background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 12%, rgba(27, 27, 29, 0.94));
+    border: none;
+    border-radius: 20px;
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, #fff calc(0.3 * 10%), transparent),
+      inset 1.8px 3px 0px -2px color-mix(in srgb, #fff calc(0.3 * 90%), transparent),
+      inset -2px -2px 0px -2px color-mix(in srgb, #fff calc(0.3 * 80%), transparent),
+      inset -3px -8px 1px -6px color-mix(in srgb, #fff calc(0.3 * 60%), transparent),
+      inset -0.3px -1px 4px 0px color-mix(in srgb, #000 calc(2 * 12%), transparent),
+      inset -1.5px 2.5px 0px -2px color-mix(in srgb, #000 calc(2 * 20%), transparent),
+      inset 0px 3px 4px -2px color-mix(in srgb, #000 calc(2 * 20%), transparent),
+      inset 2px -6.5px 1px -4px color-mix(in srgb, #000 calc(2 * 10%), transparent),
+      0px 1px 5px 0px color-mix(in srgb, #000 calc(2 * 10%), transparent),
+      0px 20px 48px 0px rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    padding: 24px 26px;
+    box-sizing: border-box;
+    transform: translate3d(0, 16px, 0) scale(0.92);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  `;
+
+  card.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.14);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 36px; height: 36px; border-radius: 12px; background: #BA4B5C; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(186,75,92,0.45);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size: 16px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">SwiftSelect Settings</div>
+          <div style="font-size: 12px; color: rgba(255,255,255,0.65);">Capture format, destination & appearance</div>
+        </div>
+      </div>
+      <button class="qs-modal-close" style="all: initial; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,0.7); background: color-mix(in srgb, var(--c-glass, #bbbbbc) 28%, transparent); transition: all 0.15s ease;" title="Close (Esc)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+      <!-- Export Format -->
+      <div>
+        <div style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px;">Export Format</div>
+        <div class="qs-settings-segmented" data-key="outputFormat" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.08);">
+          <button data-val="jpg" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputFormat === "jpg" ? "700" : "600"}; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputFormat === "jpg" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">JPG (Small)</button>
+          <button data-val="png" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputFormat === "png" ? "700" : "600"}; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputFormat === "png" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">PNG (Lossless)</button>
+        </div>
+      </div>
+
+      <!-- Destination -->
+      <div>
+        <div style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px;">Capture Destination</div>
+        <div class="qs-settings-segmented" data-key="outputDestination" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.08);">
+          <button data-val="both" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputDestination === "both" ? "700" : "600"}; padding: 7px 10px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputDestination === "both" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Both</button>
+          <button data-val="clipboard" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputDestination === "clipboard" ? "700" : "600"}; padding: 7px 10px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputDestination === "clipboard" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Copy Only</button>
+          <button data-val="download" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputDestination === "download" ? "700" : "600"}; padding: 7px 10px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputDestination === "download" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Save Only</button>
+        </div>
+      </div>
+
+      <!-- Theme -->
+      <div>
+        <div style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px;">Appearance Theme</div>
+        <div class="qs-settings-segmented" data-key="userTheme" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.08);">
+          <button data-val="glass" style="all: initial; flex: 1; text-align: center; font-size: 11.5px; font-weight: ${userTheme === "glass" ? "700" : "600"}; padding: 7px 8px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${userTheme === "glass" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Liquid Glass</button>
+          <button data-val="standard" style="all: initial; flex: 1; text-align: center; font-size: 11.5px; font-weight: ${userTheme === "standard" ? "700" : "600"}; padding: 7px 8px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${userTheme === "standard" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Standard</button>
+          <button data-val="dark" style="all: initial; flex: 1; text-align: center; font-size: 11.5px; font-weight: ${userTheme === "dark" ? "700" : "600"}; padding: 7px 8px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${userTheme === "dark" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Dark</button>
+          <button data-val="light" style="all: initial; flex: 1; text-align: center; font-size: 11.5px; font-weight: ${userTheme === "light" ? "700" : "600"}; padding: 7px 8px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${userTheme === "light" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Light</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  card.querySelectorAll(".qs-settings-segmented").forEach((group) => {
+    const key = group.dataset.key;
+    group.querySelectorAll("button").forEach((btn) => {
+      btn.onclick = () => {
+        const val = btn.dataset.val;
+        group.querySelectorAll("button").forEach((b) => {
+          const act = b === btn;
+          b.style.background = act ? "#ffffff" : "transparent";
+          b.style.color = act ? "#18181b" : "rgba(255,255,255,0.75)";
+          b.style.boxShadow = act ? "0 3px 10px rgba(0,0,0,0.3)" : "none";
+          b.style.fontWeight = act ? "700" : "600";
+        });
+        chrome.storage.local.set({ [key]: val });
+        if (key === "userTheme") {
+          const themeModule = window.SwiftSelect?.theme;
+          if (themeModule?.applyTheme) {
+            themeModule.applyTheme(val);
+          }
+        }
+      };
+    });
+  });
+
+  host.appendChild(card);
+  document.body.appendChild(host);
+  settingsModalHost = host;
+
+  requestAnimationFrame(() => {
+    host.style.opacity = "1";
+    card.style.transform = "translate3d(0, 0, 0) scale(1)";
+  });
+
+  const closeBtn = card.querySelector(".qs-modal-close");
+  if (closeBtn) {
+    closeBtn.onmouseenter = () => {
+      closeBtn.style.color = "#ffffff";
+      closeBtn.style.background = "rgba(255,255,255,0.15)";
+    };
+    closeBtn.onmouseleave = () => {
+      closeBtn.style.color = "rgba(255,255,255,0.6)";
+      closeBtn.style.background = "rgba(255,255,255,0.06)";
+    };
+  }
+
+  function closeModal() {
+    card.style.transform = "translate3d(0, -12px, 0) scale(0.94)";
+    card.style.opacity = "0";
+    host.style.opacity = "0";
+    window.removeEventListener("keydown", onSettingsModalKey, true);
+    setTimeout(() => {
+      if (host.parentNode) host.parentNode.removeChild(host);
+      if (settingsModalHost === host) settingsModalHost = null;
+    }, 220);
+  }
+
+  function onSettingsModalKey(e) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    }
+  }
+
+  window.addEventListener("keydown", onSettingsModalKey, true);
+  if (closeBtn) closeBtn.onclick = closeModal;
+  host.onclick = (e) => {
+    if (e.target === host) closeModal();
+  };
 }

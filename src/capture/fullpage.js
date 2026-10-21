@@ -1,4 +1,4 @@
-import { toggleCursor, getSmartFilename } from "./utils.js";
+import { toggleCursor, getSmartFilename, getOutputSettings } from "./utils.js";
 import { setLastBlob } from "./download.js";
 import { handleCaptureVisible } from "./region.js";
 
@@ -578,9 +578,10 @@ export async function captureStream({
     await new Promise((r) => requestAnimationFrame(r));
     document.activeElement?.blur();
 
-    const captureFormat = "image/jpeg";
-    const captureQuality = 0.92;
-    const fileExt = "jpg";
+    const { format, destination } = await getOutputSettings();
+    const captureFormat = format === "png" ? "image/png" : "image/jpeg";
+    const captureQuality = 0.98;
+    const fileExt = format;
 
     // Notify background
     const result = await new Promise((resolve) => {
@@ -602,7 +603,7 @@ export async function captureStream({
 
     const response = await fetch(result.blobUrl);
     const blob = await response.blob();
-    setLastBlob(blob);
+    setLastBlob(blob, fileExt);
 
     // Revoke now that we've fetched the blob into memory (as a Blob object)
     URL.revokeObjectURL(result.blobUrl);
@@ -634,14 +635,30 @@ export async function captureStream({
       }, 2000);
     }
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = getSmartFilename(filenameType, fileExt);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    if (destination === "both" || destination === "download") {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = getSmartFilename(filenameType, fileExt);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    const clipOk = result.clipboardSuccess;
+    let statusMsg = "Page Captured";
+    let statusType = "saved";
+    if (destination === "both") {
+      statusMsg = clipOk ? "Copied & Saved" : "Page Saved";
+      statusType = "saved";
+    } else if (destination === "clipboard") {
+      statusMsg = clipOk ? "Copied to Clipboard" : "Page Captured";
+      statusType = clipOk ? "success" : "saved";
+    } else if (destination === "download") {
+      statusMsg = "Page Saved";
+      statusType = "saved";
+    }
 
     document.documentElement.style.cursor = "";
     document.body.style.cursor = "";
@@ -649,10 +666,8 @@ export async function captureStream({
     window.SwiftSelect.events.removeListeners();
     window.removeEventListener("keydown", onAbortKey, true);
 
-    const statusMsg = result.clipboardSuccess
-      ? `${label} Saved & Copied`
-      : `${label} Saved`;
-    window.SwiftSelect.ui.setStatus(statusMsg, 3000, "saved");
+    window.SwiftSelect.ui.setStatus(statusMsg, 5000, statusType);
+
     window.SwiftSelect.ui.updateBadge("✓", "#10B981");
     setTimeout(() => window.SwiftSelect.ui.updateBadge(""), 1500);
   } catch (err) {

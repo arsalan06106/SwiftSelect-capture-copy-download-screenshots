@@ -1,46 +1,193 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const btnVisible = document.getElementById("btn-visible");
-  const btnHorizontal =
-    document.getElementById("btn-horizontal") ||
-    document.getElementById("btn-download");
-  const btnFull = document.getElementById("btn-full");
-  const toolbarView = document.getElementById("toolbar-view");
   const noticeView = document.getElementById("notice-view");
+  const noticeGlow = document.getElementById("notice-glow");
   const noticeIcon = document.getElementById("notice-icon");
   const noticeTitle = document.getElementById("notice-title");
   const noticeDesc = document.getElementById("notice-desc");
   const noticeBadge = document.getElementById("notice-badge");
   const noticeTip = document.getElementById("notice-tip");
+  const noticeTipText = document.getElementById("notice-tip-text");
   const noticeActionBtn = document.getElementById("notice-action-btn");
   const noticeActionText = document.getElementById("notice-action-text");
+  const noticeCloseBtn = document.getElementById("notice-close-btn");
+  const noticeFooterText = document.getElementById("notice-footer-text");
+  const noticePrefs = document.getElementById("notice-prefs");
+  const noticeShortcuts = document.getElementById("notice-shortcuts");
+  const noticeQuickActions = document.getElementById("notice-quick-actions");
+  const btnQuickVisible = document.getElementById("btn-quick-visible");
+  const btnQuickFull = document.getElementById("btn-quick-full");
+
+  // Sync theme preference from storage
+  chrome.storage.local.get(["userTheme", "outputFormat", "outputDestination"], (data) => {
+    const theme = data?.userTheme || "glass";
+    document.documentElement.setAttribute("data-theme", theme);
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = theme === "dark" || (theme === "glass" && prefersDark);
+    if (isDark) {
+      document.body.classList.add("dark-theme");
+    } else {
+      document.body.classList.remove("dark-theme");
+    }
+
+    // Set active states on preference toggles
+    const activeFormat = data?.outputFormat || "jpg";
+    const activeDest = data?.outputDestination || "both";
+    const activeTheme = theme;
+
+    document.querySelectorAll("#pref-format-toggle .qs-toggle-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.format === activeFormat);
+    });
+
+    document.querySelectorAll("#pref-dest-toggle .qs-toggle-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.dest === activeDest);
+    });
+
+    document.querySelectorAll("#pref-theme-toggle .qs-toggle-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.theme === activeTheme);
+    });
+  });
+
+  // Preference Toggle Handlers
+  const formatToggle = document.getElementById("pref-format-toggle");
+  if (formatToggle) {
+    formatToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".qs-toggle-btn");
+      if (!btn) return;
+      const format = btn.dataset.format;
+      formatToggle.querySelectorAll(".qs-toggle-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      chrome.storage.local.set({ outputFormat: format });
+    });
+  }
+
+  const destToggle = document.getElementById("pref-dest-toggle");
+  if (destToggle) {
+    destToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".qs-toggle-btn");
+      if (!btn) return;
+      const dest = btn.dataset.dest;
+      destToggle.querySelectorAll(".qs-toggle-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      chrome.storage.local.set({ outputDestination: dest });
+    });
+  }
+
+  const themeToggle = document.getElementById("pref-theme-toggle");
+  if (themeToggle) {
+    themeToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest(".qs-toggle-btn");
+      if (!btn) return;
+      const theme = btn.dataset.theme;
+      themeToggle.querySelectorAll(".qs-toggle-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      document.documentElement.setAttribute("data-theme", theme);
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const isDark = theme === "dark" || (theme === "glass" && prefersDark);
+      if (isDark) {
+        document.body.classList.add("dark-theme");
+      } else {
+        document.body.classList.remove("dark-theme");
+      }
+      if (theme === "light") {
+        document.body.classList.add("light-theme");
+      } else {
+        document.body.classList.remove("light-theme");
+      }
+
+      chrome.storage.local.set({ userTheme: theme });
+    });
+  }
+
+  // OS detection for keyboard shortcuts hint
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent);
+  const modKey = isMac ? "Ctrl" : "Alt";
+
+  if (noticeFooterText) {
+    noticeFooterText.innerHTML = `Press <kbd>${modKey}</kbd>+<kbd>X</kbd> on any webpage`;
+  }
+
+  // Set shortcuts table text if element exists
+  const scSelect = document.getElementById("sc-select");
+  const scVisible = document.getElementById("sc-visible");
+  const scTimer = document.getElementById("sc-timer");
+  const scHorizontal = document.getElementById("sc-horizontal");
+  const scFull = document.getElementById("sc-full");
+  if (scSelect) scSelect.textContent = `${modKey} + X`;
+  if (scVisible) scVisible.textContent = `${modKey} + S`;
+  if (scTimer) scTimer.textContent = `${modKey} + T`;
+  if (scHorizontal) scHorizontal.textContent = `${modKey} + H`;
+  if (scFull) scFull.textContent = `${modKey} + F`;
+
+  // Dismiss listeners
+  if (noticeCloseBtn) {
+    noticeCloseBtn.onclick = () => window.close();
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") window.close();
+  });
+
+  // Restore normal popup action on close/hide
+  try {
+    chrome.runtime.connect({ name: "popup-lifecycle" });
+  } catch {}
+
+  window.addEventListener("pagehide", () => {
+    chrome.runtime.sendMessage({ type: "restore-tab-action" }).catch(() => {});
+  });
 
   function showNotice({
-    badge = "System Notice",
-    iconType,
+    badge = "Preferences",
+    iconType = "settings",
     iconSvg,
     title,
     desc,
     tip,
+    showPrefs = false,
+    showShortcuts = false,
+    showQuickActions = false,
     actionText,
     onAction,
   }) {
-    if (toolbarView) toolbarView.style.display = "none";
     if (noticeView) noticeView.style.display = "flex";
     if (noticeBadge) noticeBadge.textContent = badge;
+
+    if (noticeGlow) {
+      noticeGlow.className = `qs-notice-glow ${iconType}`;
+    }
+
     if (noticeIcon) {
-      noticeIcon.className = `qs-notice-icon ${iconType}`;
+      noticeIcon.className = `qs-notice-icon-wrapper ${iconType}`;
       noticeIcon.innerHTML = iconSvg;
     }
+
     if (noticeTitle) noticeTitle.textContent = title;
     if (noticeDesc) noticeDesc.textContent = desc;
+
     if (noticeTip) {
       if (tip) {
-        noticeTip.textContent = tip;
-        noticeTip.style.display = "block";
+        if (noticeTipText) noticeTipText.textContent = tip;
+        else noticeTip.textContent = tip;
+        noticeTip.style.display = "flex";
       } else {
         noticeTip.style.display = "none";
       }
     }
+
+    if (noticePrefs) {
+      noticePrefs.style.display = showPrefs ? "flex" : "none";
+    }
+
+    if (noticeShortcuts) {
+      noticeShortcuts.style.display = showShortcuts ? "flex" : "none";
+    }
+
+    if (noticeQuickActions) {
+      noticeQuickActions.style.display = showQuickActions ? "flex" : "none";
+    }
+
     if (noticeActionBtn) {
       if (actionText && onAction) {
         if (noticeActionText) noticeActionText.textContent = actionText;
@@ -99,6 +246,49 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const viewParam = urlParams.get("view");
+
+  if (viewParam === "settings") {
+    showNotice({
+      badge: "Preferences",
+      iconType: "settings",
+      iconSvg:
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+      title: "SwiftSelect Settings",
+      desc: "Customize default export format, destination and appearance.",
+      tip: "Changes save automatically and sync across your browser sessions.",
+      showPrefs: true,
+      showShortcuts: false,
+      actionText: "Configure Chrome Shortcuts",
+      onAction: () => {
+        chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+        window.close();
+      },
+    });
+    return;
+  }
+
+  if (viewParam === "help") {
+    showNotice({
+      badge: "Shortcuts",
+      iconType: "help",
+      iconSvg:
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+      title: "Keyboard Shortcuts & Guide",
+      desc: "Use quick hotkeys on any webpage to snap and save instantly.",
+      tip: null,
+      showPrefs: false,
+      showShortcuts: true,
+      actionText: "Customize Shortcuts in Chrome",
+      onAction: () => {
+        chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+        window.close();
+      },
+    });
+    return;
+  }
+
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tab = tabs[0];
     if (!tab || !tab.url) return;
@@ -108,10 +298,17 @@ document.addEventListener("DOMContentLoaded", () => {
         badge: "Chrome Policy",
         iconType: "warning",
         iconSvg:
-          '<svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.4 0 2.5 1.1 2.5 2.5V11h.5c.55 0 1 .45 1 1v5c0 .55-.45 1-1 1H9c-.55 0-1-.45-1-1v-5c0-.55.45-1 1-1h.5V9.5C9.5 8.1 10.6 7 12 7zm0 1.5c-.55 0-1 .45-1 1V11h2V9.5c0-.55-.45-1-1-1z"/></svg>',
-        title: "Protected Page",
-        desc: "Chrome prevents extensions from running on system pages (chrome://) and the Web Store.",
-        tip: "💡 SwiftSelect is fully ready on any normal website or web app.",
+          '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="10" width="6" height="5" rx="1"/><path d="M10 10V8a2 2 0 1 1 4 0v2"/></svg>',
+        title: "Browser Protected Page",
+        desc: "Chrome security policies prevent extensions from running on system pages, internal settings, and the Web Store.",
+        tip: "SwiftSelect is fully available on all regular websites and web applications.",
+        showPrefs: true,
+        showShortcuts: false,
+        actionText: "Configure Shortcuts",
+        onAction: () => {
+          chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+          window.close();
+        },
       });
       return;
     }
@@ -123,10 +320,12 @@ document.addEventListener("DOMContentLoaded", () => {
             badge: "File Permission",
             iconType: "file",
             iconSvg:
-              '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-8-6h4v2h-4v-2zm0-4h8v2h-8v-2z"/></svg>',
+              '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><rect x="9" y="13" width="6" height="5" rx="1"/><path d="M10 13v-1.5a2 2 0 1 1 4 0V13"/></svg>',
             title: "Local File Access",
-            desc: "To capture locally opened HTML files, Chrome requires explicit permission.",
-            tip: "Enable 'Allow access to file URLs' in extension settings.",
+            desc: "To capture locally opened HTML or PDF files, Chrome requires explicit permission enabled in extension settings.",
+            tip: "Turn on \"Allow access to file URLs\" in the extension settings tab.",
+            showPrefs: true,
+            showShortcuts: false,
             actionText: "Open Extension Settings",
             onAction: () => {
               chrome.tabs.create({
@@ -147,23 +346,37 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function initSupportedTab(tabId) {
-    if (toolbarView) toolbarView.style.display = "flex";
-    if (noticeView) noticeView.style.display = "none";
+    const isMacPlatform =
+      typeof navigator !== "undefined" &&
+      /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent);
+    const shortcut = isMacPlatform ? "Ctrl+X" : "Alt+X";
 
-    // Auto-activate selection mode on popup open
-    sendMessageToTab(tabId, "start-selection", false);
+    showNotice({
+      badge: "Preferences",
+      iconType: "settings",
+      iconSvg:
+        '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+      title: "SwiftSelect Settings",
+      desc: "Configure export format, destination and appearance",
+      tip: null,
+      showPrefs: true,
+      showShortcuts: false,
+      showQuickActions: true,
+      actionText: `Start Area Capture (${shortcut})`,
+      onAction: () => {
+        sendMessageToTab(tabId, "start-selection", true);
+      },
+    });
 
-    if (btnVisible)
-      btnVisible.addEventListener("click", () =>
-        sendMessageToTab(tabId, "capture-visible"),
-      );
-    if (btnHorizontal)
-      btnHorizontal.addEventListener("click", () =>
-        sendMessageToTab(tabId, "capture-horizontal"),
-      );
-    if (btnFull)
-      btnFull.addEventListener("click", () =>
-        sendMessageToTab(tabId, "capture-full"),
-      );
+    if (btnQuickVisible) {
+      btnQuickVisible.onclick = () => {
+        sendMessageToTab(tabId, "capture-visible", true);
+      };
+    }
+    if (btnQuickFull) {
+      btnQuickFull.onclick = () => {
+        sendMessageToTab(tabId, "capture-full", true);
+      };
+    }
   }
 });
