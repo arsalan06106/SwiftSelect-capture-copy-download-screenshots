@@ -45,14 +45,45 @@ export function toggleCursor(hide) {
   }
 }
 
+let _cachedSettings = null;
+
+try {
+  if (typeof chrome !== "undefined" && chrome?.storage?.local) {
+    chrome.storage.local.get(["outputFormat", "outputDestination"], (data) => {
+      _cachedSettings = {
+        format: data?.outputFormat === "png" ? "png" : "jpg",
+        destination: data?.outputDestination || "both",
+      };
+    });
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local") {
+        if (!_cachedSettings) _cachedSettings = { format: "jpg", destination: "both" };
+        if (changes.outputFormat) {
+          _cachedSettings.format = changes.outputFormat.newValue === "png" ? "png" : "jpg";
+        }
+        if (changes.outputDestination) {
+          _cachedSettings.destination = changes.outputDestination.newValue || "both";
+        }
+      }
+    });
+  }
+} catch {}
+
+export function getOutputSettingsSync() {
+  return _cachedSettings || { format: "jpg", destination: "both" };
+}
+
 export async function getOutputSettings() {
+  if (_cachedSettings) return _cachedSettings;
   return new Promise((resolve) => {
     try {
       chrome.storage.local.get(["outputFormat", "outputDestination"], (data) => {
-        resolve({
+        _cachedSettings = {
           format: data?.outputFormat === "png" ? "png" : "jpg",
           destination: data?.outputDestination || "both",
-        });
+        };
+        resolve(_cachedSettings);
       });
     } catch {
       resolve({ format: "jpg", destination: "both" });

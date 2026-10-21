@@ -28,8 +28,7 @@ async function openExtensionIconPopup(view = "settings") {
   } catch (err) {
     console.warn("SwiftSelect: Could not open popup directly:", err);
     try {
-      await new Promise((r) => setTimeout(r, 120));
-      await chrome.action.openPopup();
+      chrome.runtime.openOptionsPage();
     } catch (e2) {}
   }
 }
@@ -202,7 +201,21 @@ async function ensureOffscreen() {
   offscreenCreating = null;
 }
 
+let offscreenIdleTimer = null;
+
+function scheduleCloseOffscreen(delayMs = 30000) {
+  if (offscreenIdleTimer) clearTimeout(offscreenIdleTimer);
+  offscreenIdleTimer = setTimeout(() => {
+    closeOffscreen();
+    offscreenIdleTimer = null;
+  }, delayMs);
+}
+
 async function closeOffscreen() {
+  if (offscreenIdleTimer) {
+    clearTimeout(offscreenIdleTimer);
+    offscreenIdleTimer = null;
+  }
   try {
     const existing = await chrome.offscreen.hasDocument();
     if (existing) {
@@ -256,6 +269,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "write-image-to-clipboard") {
     (async () => {
       try {
+        if (offscreenIdleTimer) clearTimeout(offscreenIdleTimer);
         await ensureOffscreen();
         const result = await chrome.runtime.sendMessage({
           type: "write-image-clipboard",
@@ -266,7 +280,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.error("write-image-to-clipboard error:", err);
         sendResponse({ success: false, error: err.message });
       } finally {
-        await closeOffscreen();
+        scheduleCloseOffscreen(30000);
       }
     })();
 
@@ -574,8 +588,8 @@ function setupContextMenus() {
         });
 
         safeCreateMenu({
-          id: "ss-settings",
-          title: "Options & Settings...",
+          id: "ss-options",
+          title: "Options",
           contexts: ["action", "page"],
         });
 
@@ -675,7 +689,7 @@ function handleContextMenuClick(info, tab) {
         });
       });
     });
-  } else if (menuItemId === "ss-settings") {
+  } else if (menuItemId === "ss-options" || menuItemId === "ss-settings") {
     openExtensionIconPopup("settings");
   } else if (menuItemId === "ss-help" || menuItemId === "ss-shortcuts") {
     openExtensionIconPopup("help");

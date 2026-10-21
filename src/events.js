@@ -403,19 +403,13 @@ export function onPointerUp(e) {
   if (rect.width < 5 || rect.height < 5) {
     if (highlightedRect) {
       const snapRect = highlightedRect;
-      captureAndCrop(snapRect)
-        .then(() => {
-          cleanup();
-          window.SwiftSelect.ui.cleanup();
-          window.SwiftSelect.ui.triggerFlash(snapRect);
-          window.SwiftSelect.ui.setStatus("Copied to clipboard", 5000, "success");
-        })
-        .catch((err) => {
-          console.warn("captureAndCrop snap failed:", err);
-          cleanup();
-          window.SwiftSelect.ui.cleanup();
-          window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
-        });
+      cleanup();
+      window.SwiftSelect.ui.cleanup(true);
+      window.SwiftSelect.ui.triggerFlash(snapRect);
+      captureAndCrop(snapRect).catch((err) => {
+        console.warn("captureAndCrop snap failed:", err);
+        window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
+      });
       return;
     }
 
@@ -434,18 +428,14 @@ export function onPointerUp(e) {
     return;
   }
 
-  captureAndCrop(rect)
-    .then(() => {
-      cleanup();
-      window.SwiftSelect.ui.cleanup();
-      window.SwiftSelect.ui.setStatus("Copied to clipboard", 5000, "success");
-    })
-    .catch((err) => {
-      console.warn("captureAndCrop failed:", err);
-      cleanup();
-      window.SwiftSelect.ui.cleanup();
-      window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
-    });
+  const finalRect = { ...rect };
+  cleanup();
+  window.SwiftSelect.ui.cleanup(true);
+  window.SwiftSelect.ui.triggerFlash(finalRect);
+  captureAndCrop(finalRect).catch((err) => {
+    console.warn("captureAndCrop failed:", err);
+    window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
+  });
 }
 
 export function onKeyDown(e) {

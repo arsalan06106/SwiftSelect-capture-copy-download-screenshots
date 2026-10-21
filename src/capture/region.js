@@ -1,5 +1,5 @@
 import { loadImage, toggleCursor, getOutputSettings } from "./utils.js";
-import { setLastBlob } from "./download.js";
+import { setLastBlob, handleSaveAction } from "./download.js";
 
 async function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
@@ -129,34 +129,47 @@ export async function handleCaptureVisible() {
 
     const { format, destination } = await getOutputSettings();
     const ext = format === "png" ? "png" : "jpg";
-    const mime = format === "png" ? "image/png" : "image/jpeg";
 
-    const exportBlob = await new Promise((res, rej) =>
-      canvas.toBlob(
-        (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-        mime,
-        0.98,
-      ),
-    );
-    setLastBlob(exportBlob, ext);
-
+    let exportBlob = null;
     let clipboardSuccess = false;
-    if (destination === "both" || destination === "clipboard") {
-      let pngBlob = exportBlob;
-      if (format !== "png") {
-        pngBlob = await new Promise((res, rej) =>
-          canvas.toBlob(
-            (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-            "image/png",
-          ),
-        );
-      }
-      clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
-    }
 
-    if (destination === "both" || destination === "download") {
-      const { handleSaveAction } = await import("./download.js");
+    if (destination === "clipboard") {
+      exportBlob = await new Promise((res, rej) =>
+        canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
+      );
+      setLastBlob(exportBlob, "png");
+      clipboardSuccess = await writeImageBlobToClipboard(exportBlob);
+    } else if (destination === "download") {
+      exportBlob = await new Promise((res, rej) =>
+        canvas.toBlob(
+          (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
+          format === "png" ? "image/png" : "image/jpeg",
+          0.92,
+        ),
+      );
+      setLastBlob(exportBlob, ext);
       handleSaveAction(ext);
+    } else {
+      // destination === "both"
+      if (format === "png") {
+        exportBlob = await new Promise((res, rej) =>
+          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
+        );
+        setLastBlob(exportBlob, "png");
+        clipboardSuccess = await writeImageBlobToClipboard(exportBlob);
+        handleSaveAction("png");
+      } else {
+        const pngBlob = await new Promise((res, rej) =>
+          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
+        );
+        clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
+
+        exportBlob = await new Promise((res, rej) =>
+          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/jpeg", 0.92),
+        );
+        setLastBlob(exportBlob, "jpg");
+        handleSaveAction("jpg");
+      }
     }
 
     window.SwiftSelect.ui.triggerFlash();
@@ -244,44 +257,60 @@ export async function captureAndCrop(viewRect) {
 
     const { format, destination } = await getOutputSettings();
     const ext = format === "png" ? "png" : "jpg";
-    const mime = format === "png" ? "image/png" : "image/jpeg";
 
-    const exportBlob = await new Promise((res, rej) =>
-      canvas.toBlob(
-        (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-        mime,
-        0.98,
-      ),
-    );
-    setLastBlob(exportBlob, ext);
-
+    let exportBlob = null;
     let clipboardSuccess = false;
-    if (destination === "both" || destination === "clipboard") {
-      let pngBlob = exportBlob;
-      if (format !== "png") {
-        pngBlob = await new Promise((res, rej) =>
-          canvas.toBlob(
-            (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-            "image/png",
-          ),
-        );
-      }
-      clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
-    }
 
-    if (destination === "both" || destination === "download") {
-      const { handleSaveAction } = await import("./download.js");
-      handleSaveAction(ext);
-    } else if (destination === "clipboard" && !clipboardSuccess) {
-      // Fallback: download if copy fails during selection
-      const { handleSaveAction } = await import("./download.js");
-      handleSaveAction(ext);
-      window.SwiftSelect.ui.setStatus(
-        "Saved (Clipboard Blocked)",
-        5000,
-        "saved",
+    if (destination === "clipboard") {
+      exportBlob = await new Promise((res, rej) =>
+        canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
       );
-      return;
+      setLastBlob(exportBlob, "png");
+      clipboardSuccess = await writeImageBlobToClipboard(exportBlob);
+
+      if (!clipboardSuccess) {
+        // Fallback: download if copy fails during selection
+        handleSaveAction("png");
+        window.SwiftSelect.ui.setStatus(
+          "Saved (Clipboard Blocked)",
+          5000,
+          "saved",
+          false,
+          { sourceBlob: exportBlob },
+        );
+        return;
+      }
+    } else if (destination === "download") {
+      exportBlob = await new Promise((res, rej) =>
+        canvas.toBlob(
+          (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
+          format === "png" ? "image/png" : "image/jpeg",
+          0.92,
+        ),
+      );
+      setLastBlob(exportBlob, ext);
+      handleSaveAction(ext);
+    } else {
+      // destination === "both"
+      if (format === "png") {
+        exportBlob = await new Promise((res, rej) =>
+          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
+        );
+        setLastBlob(exportBlob, "png");
+        clipboardSuccess = await writeImageBlobToClipboard(exportBlob);
+        handleSaveAction("png");
+      } else {
+        const pngBlob = await new Promise((res, rej) =>
+          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
+        );
+        clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
+
+        exportBlob = await new Promise((res, rej) =>
+          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/jpeg", 0.92),
+        );
+        setLastBlob(exportBlob, "jpg");
+        handleSaveAction("jpg");
+      }
     }
 
     let statusMsg = "Selection Captured";

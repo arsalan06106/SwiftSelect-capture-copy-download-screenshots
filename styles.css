@@ -720,7 +720,9 @@
 .qs-theme-glass.qs-status,
 .qs-theme-glass.qs-hud,
 .qs-theme-glass.qs-annotate-toolbar,
-.qs-theme-glass .qs-annotate-toolbar {
+.qs-theme-glass .qs-annotate-toolbar,
+.qs-theme-glass.qs-crop-controls,
+.qs-theme-glass .qs-crop-controls {
   border-radius: 99em !important;
   z-index: 2147483648 !important;
 
@@ -1207,6 +1209,35 @@
   display: flex;
   opacity: 1;
   transform: translate3d(-50%, 0, 0) scale(1);
+}
+
+.qs-custom-tooltip.qs-tooltip-compact {
+  min-width: auto !important;
+  max-width: 260px !important;
+  padding: 7px 12px !important;
+  border-radius: 12px !important;
+  gap: 0 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 8px 24px -2px rgba(0, 0, 0, 0.28),
+    0 2px 8px -1px rgba(0, 0, 0, 0.16) !important;
+}
+
+.qs-custom-tooltip.qs-tooltip-compact .qs-tooltip-header {
+  gap: 8px !important;
+}
+
+.qs-custom-tooltip.qs-tooltip-compact .qs-tooltip-title {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.qs-custom-tooltip.qs-tooltip-compact .qs-tooltip-key {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  padding: 2px 7px !important;
+  border-radius: 6px !important;
 }
 
 .qs-tooltip-header {
@@ -1810,9 +1841,42 @@
   animation: dlBounce 0.6s ease-in-out;
 }
 
-/* Full Page Icon is rock-solid and clean */
-.qs-guide-btn:hover .fp-corner {
-  transition: transform 0.2s ease;
+/* Full Page Icon Micro-Animation */
+@keyframes fpCornerTL {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-90px, -90px); }
+}
+@keyframes fpCornerTR {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(90px, -90px); }
+}
+@keyframes fpCornerBR {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(90px, 90px); }
+}
+@keyframes fpCornerBL {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-90px, 90px); }
+}
+@keyframes fpLinesScroll {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(100px); }
+}
+
+.qs-guide-btn:hover .fp-tl {
+  animation: fpCornerTL 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.qs-guide-btn:hover .fp-tr {
+  animation: fpCornerTR 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.qs-guide-btn:hover .fp-br {
+  animation: fpCornerBR 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.qs-guide-btn:hover .fp-bl {
+  animation: fpCornerBL 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.qs-guide-btn:hover .fp-inner-lines {
+  animation: fpLinesScroll 0.5s ease-in-out;
 }
 
 @keyframes hzPulse {
@@ -1900,51 +1964,67 @@
   transform-origin: 3px 21px;
 }
 
+@keyframes brushSweep {
+  0%, 100% {
+    transform: rotate(0deg) translate(0, 0);
+  }
+  30% {
+    transform: rotate(-14deg) translate(-1.2px, 0.8px);
+  }
+  65% {
+    transform: rotate(10deg) translate(0.8px, -0.6px);
+  }
+}
+.qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-brush {
+  animation: brushSweep 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: 5px 19px;
+}
+
 
 @keyframes cropBracketSnap {
   0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(1.5px, 1.5px); }
+  50% { transform: translate(1px, 1px); }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .crop-bracket-1 {
-  animation: cropBracketSnap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cropBracketSnap 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .crop-bracket-2 {
-  animation: cropBracketSnap 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) reverse;
+  animation: cropBracketSnap 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) reverse;
 }
 
-@keyframes undoRotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(-360deg); }
+@keyframes undoNudge {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-12deg); }
 }
-.qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-undo {
-  animation: undoRotate 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+.qs-annotate-toolbar .qs-guide-btn:not(:disabled):hover .tool-icon-undo {
+  animation: undoNudge 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   transform-origin: center;
 }
 
-@keyframes redoRotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes redoNudge {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(12deg); }
 }
-.qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-redo {
-  animation: redoRotate 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+.qs-annotate-toolbar .qs-guide-btn:not(:disabled):hover .tool-icon-redo {
+  animation: redoNudge 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   transform-origin: center;
 }
 
 @keyframes trashLidLift {
   0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-2.5px) rotate(-10deg); }
+  50% { transform: translateY(-2px) rotate(-8deg); }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .trash-lid {
-  animation: trashLidLift 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: trashLidLift 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   transform-origin: 4px 6px;
 }
 
 @keyframes copyCardShift {
   0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(2px, -2px); }
+  50% { transform: translate(1.5px, -1.5px); }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .copy-card-1 {
-  animation: copyCardShift 0.45s ease-in-out;
+  animation: copyCardShift 0.35s ease-in-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1980,7 +2060,9 @@
 .qs-status.qs-theme-glass-dark,
 .qs-hud.qs-theme-glass-dark,
 .qs-annotate-toolbar.qs-theme-glass-dark,
-.qs-theme-glass-dark .qs-annotate-toolbar {
+.qs-theme-glass-dark .qs-annotate-toolbar,
+.qs-crop-controls.qs-theme-glass-dark,
+.qs-theme-glass-dark .qs-crop-controls {
   --c-glass: #bbbbbc !important;
   --c-light: #fff !important;
   --c-dark: #000 !important;
@@ -2001,7 +2083,8 @@
 .qs-guide.qs-theme-glass-dark::before,
 .qs-status.qs-theme-glass-dark::before,
 .qs-hud.qs-theme-glass-dark::before,
-.qs-annotate-toolbar.qs-theme-glass-dark::before {
+.qs-annotate-toolbar.qs-theme-glass-dark::before,
+.qs-crop-controls.qs-theme-glass-dark::before {
   display: none !important;
 }
 
@@ -2015,8 +2098,10 @@
 .qs-guide.qs-theme-glass-dark svg,
 .qs-status.qs-theme-glass-dark svg,
 .qs-annotate-toolbar.qs-theme-glass-dark svg,
+.qs-crop-controls.qs-theme-glass-dark svg,
 .qs-guide.qs-theme-glass-dark .qs-guide-btn svg,
-.qs-annotate-toolbar.qs-theme-glass-dark .qs-guide-btn svg {
+.qs-annotate-toolbar.qs-theme-glass-dark .qs-guide-btn svg,
+.qs-crop-controls.qs-theme-glass-dark .qs-guide-btn svg {
   color: var(--c-content) !important;
 }
 
@@ -2315,12 +2400,12 @@
   --c-glass: #bbbbbc;
   --c-light: #fff;
   --c-dark: #000;
-  --c-content: #e1e1e1;
+  --c-content: #f0f0f2;
   --glass-reflex-light: 1;
   --glass-reflex-dark: 1;
-  --saturation: 150%;
+  --saturation: 160%;
   position: fixed !important;
-  top: 24px !important;
+  top: 20px !important;
   left: 50% !important;
   right: auto !important;
   bottom: auto !important;
@@ -2330,43 +2415,41 @@
   align-items: center !important;
   justify-content: center !important;
   flex-direction: row !important;
-  padding: 8px 16px !important;
-  gap: 6px !important;
+  padding: 7px 8px !important;
+  gap: 10px !important;
   border-radius: 99em !important;
   white-space: nowrap !important;
   user-select: none !important;
   width: auto !important;
   min-width: auto !important;
   max-width: 96vw !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
   box-sizing: border-box !important;
   font-family: "Google Sans", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif !important;
   animation: qsAnnotateToolbarIn 260ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
 
-  /* Identical Liquid Glass Capsule as Main Menu */
+  /* Authentic Liquid Glass Capsule */
   background-color: color-mix(
     in srgb,
-    var(--c-glass, #bbbbbc) 12%,
-    transparent
+    var(--c-glass, #bbbbbc) 14%,
+    rgba(18, 18, 24, 0.88)
   ) !important;
-  backdrop-filter: blur(14px) saturate(var(--saturation, 150%)) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(var(--saturation, 150%)) !important;
-  border: none !important;
-  color: var(--c-content, #e1e1e1) !important;
+  backdrop-filter: blur(16px) saturate(var(--saturation, 160%)) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(var(--saturation, 160%)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: var(--c-content, #f0f0f2) !important;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--c-light, #fff) calc(var(--glass-reflex-light, 1) * 10%), transparent),
-    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light, #fff) calc(var(--glass-reflex-light, 1) * 90%), transparent),
-    inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light, #fff) calc(var(--glass-reflex-light, 1) * 80%), transparent),
-    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light, #fff) calc(var(--glass-reflex-light, 1) * 60%), transparent),
-    inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark, #000) calc(var(--glass-reflex-dark, 1) * 12%), transparent),
-    inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--c-dark, #000) calc(var(--glass-reflex-dark, 1) * 20%), transparent),
-    inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark, #000) calc(var(--glass-reflex-dark, 1) * 20%), transparent),
-    inset 2px -6.5px 1px -4px color-mix(in srgb, var(--c-dark, #000) calc(var(--glass-reflex-dark, 1) * 10%), transparent),
-    0px 1px 5px 0px color-mix(in srgb, var(--c-dark, #000) calc(var(--glass-reflex-dark, 1) * 10%), transparent),
-    0px 6px 16px 0px color-mix(in srgb, var(--c-dark, #000) calc(var(--glass-reflex-dark, 1) * 8%), transparent) !important;
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.4),
+    0 8px 32px 0 rgba(0, 0, 0, 0.45),
+    0 2px 8px 0 rgba(0, 0, 0, 0.25) !important;
 }
 
 .qs-annotate-tools,
-.qs-annotate-history {
+.qs-annotate-history,
+.qs-annotate-actions {
   display: inline-flex !important;
   align-items: center !important;
   gap: 5px !important;
@@ -2375,57 +2458,49 @@
   margin: 0 !important;
 }
 
+/* Base button inside annotation toolbar & crop controls */
 .qs-annotate-toolbar .qs-guide-btn,
 .qs-crop-controls .qs-guide-btn {
-  background-color: color-mix(
-    in srgb,
-    var(--c-glass, #bbbbbc) 36%,
-    transparent
-  ) !important;
-  color: var(--c-content, #e1e1e1) !important;
-  border: none !important;
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--c-light, #fff) calc(var(--glass-reflex-light, 1) * 10%), transparent),
-    inset 2px 1px 0px -1px color-mix(in srgb, var(--c-light, #fff) calc(var(--glass-reflex-light, 1) * 90%), transparent),
-    inset -1.5px -1px 0px -1px color-mix(in srgb, var(--c-light, #fff) calc(var(--glass-reflex-light, 1) * 80%), transparent),
-    inset -2px -6px 1px -5px color-mix(in srgb, var(--c-light, #fff) calc(var(--glass-reflex-light, 1) * 60%), transparent),
-    inset -1px 2px 3px -1px color-mix(in srgb, var(--c-dark, #000) calc(var(--glass-reflex-dark, 1) * 20%), transparent),
-    inset 0px -4px 1px -2px color-mix(in srgb, var(--c-dark, #000) calc(var(--glass-reflex-dark, 1) * 10%), transparent),
-    0px 3px 6px 0px color-mix(in srgb, var(--c-dark, #000) calc(var(--glass-reflex-dark, 1) * 8%), transparent) !important;
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.2),
+    0 1px 3px 0 rgba(0, 0, 0, 0.2) !important;
   transition:
     transform 140ms cubic-bezier(0.2, 0, 0, 1),
     background-color 160ms ease,
     color 160ms ease,
+    border-color 160ms ease,
     box-shadow 160ms ease !important;
   will-change: transform;
 }
 
 .qs-annotate-toolbar .qs-guide-btn:hover,
 .qs-crop-controls .qs-guide-btn:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--c-glass, #bbbbbc) 48%,
-    transparent
-  ) !important;
-  transform: translate3d(0, -1px, 0) scale(1.02) !important;
+  background-color: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
+    0 3px 8px 0 rgba(0, 0, 0, 0.3) !important;
 }
 
 .qs-annotate-toolbar .qs-guide-btn:active,
 .qs-crop-controls .qs-guide-btn:active {
-  background-color: color-mix(
-    in srgb,
-    var(--c-glass, #bbbbbc) 52%,
-    transparent
-  ) !important;
-  transform: scale(0.96) translateY(1px) !important;
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  transform: translateY(1px) scale(0.97) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
 
 .qs-annotate-toolbar .qs-guide-btn.circle,
 .qs-crop-controls .qs-guide-btn.circle {
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-  max-width: 38px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
   padding: 0 !important;
   border-radius: 50% !important;
   display: inline-flex !important;
@@ -2442,10 +2517,32 @@
   display: block !important;
 }
 
+/* Ensure stroke icons never inherit fill: currentColor from base .qs-guide-btn */
+.qs-annotate-toolbar .qs-guide-btn svg:not(.is-filled),
+.qs-crop-controls .qs-guide-btn svg:not(.is-filled) {
+  fill: none;
+}
+
+.qs-annotate-toolbar .qs-guide-btn svg.is-filled,
+.qs-crop-controls .qs-guide-btn svg.is-filled,
+.qs-annotate-toolbar .qs-guide-btn svg [fill="currentColor"] {
+  fill: currentColor !important;
+}
+
+.qs-annotate-toolbar .tool-icon-undo,
+.qs-annotate-toolbar .tool-icon-redo,
+.qs-annotate-toolbar .tool-icon-brush,
+.qs-annotate-toolbar .tool-icon-undo path,
+.qs-annotate-toolbar .tool-icon-redo path,
+.qs-annotate-toolbar .tool-icon-brush path {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
 .qs-annotate-toolbar .qs-guide-btn.pill,
 .qs-crop-controls .qs-guide-btn.pill {
-  height: 38px !important;
-  padding: 0 16px !important;
+  height: 34px !important;
+  padding: 0 14px !important;
   border-radius: 99em !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -2459,84 +2556,101 @@
 
 .qs-annotate-toolbar .qs-guide-btn.pill svg,
 .qs-crop-controls .qs-guide-btn.pill svg {
-  width: 15px !important;
-  height: 15px !important;
+  width: 14px !important;
+  height: 14px !important;
   display: block !important;
 }
 
+/* Active State for Drawing / Selected Tool — Pure Liquid Glass Specular Elevation */
 .qs-annotate-toolbar .qs-guide-btn.active,
 .qs-crop-controls .qs-guide-btn.active {
-  background: linear-gradient(135deg, rgba(3, 213, 255, 0.32), rgba(3, 213, 255, 0.12)) !important;
+  background: rgba(255, 255, 255, 0.22) !important;
   color: #ffffff !important;
-  border: 1px solid rgba(3, 213, 255, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.42) !important;
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.8),
-    inset 0 -1.5px 2px rgba(0, 0, 0, 0.3),
-    0 0 16px rgba(3, 213, 255, 0.45),
-    0 3px 8px rgba(0, 0, 0, 0.35) !important;
-  transform: scale(1.06) !important;
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.2),
+    0 3px 10px rgba(0, 0, 0, 0.35) !important;
+  transform: translateY(-0.5px) scale(1.02) !important;
   position: relative !important;
 }
 
-.qs-annotate-toolbar .qs-guide-btn.active::after {
-  content: "" !important;
-  position: absolute !important;
-  bottom: -3px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  width: 4px !important;
-  height: 4px !important;
-  border-radius: 50% !important;
-  background: #03d5ff !important;
-  box-shadow: 0 0 6px #03d5ff, 0 0 10px #03d5ff !important;
-  pointer-events: none !important;
+.qs-annotate-toolbar .qs-guide-btn.active::after,
+.qs-crop-controls .qs-guide-btn.active::after {
+  display: none !important;
 }
 
 .qs-annotate-toolbar .qs-guide-btn.active svg,
 .qs-crop-controls .qs-guide-btn.active svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
-  filter: drop-shadow(0 0 3px rgba(3, 213, 255, 0.6)) !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)) !important;
 }
 
+.qs-annotate-toolbar .qs-guide-btn.active svg.is-filled {
+  fill: #ffffff !important;
+  stroke: none !important;
+}
+
+/* Disabled State — Clear muted glass circle, readable muted white icon */
+.qs-annotate-toolbar .qs-guide-btn:disabled,
+.qs-annotate-toolbar .qs-guide-btn[disabled],
+.qs-annotate-toolbar .qs-guide-btn.is-disabled {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.1) !important;
+  cursor: default !important;
+  pointer-events: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn:disabled svg,
+.qs-annotate-toolbar .qs-guide-btn[disabled] svg,
+.qs-annotate-toolbar .qs-guide-btn.is-disabled svg {
+  opacity: 0.45 !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+/* Stroke Thickness Capsule */
 .qs-annotate-toolbar .qs-stroke-capsule {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 5px !important;
-  padding: 3px 10px !important;
-  height: 38px !important;
+  gap: 3px !important;
+  padding: 0 4px !important;
+  height: 36px !important;
   border-radius: 99em !important;
   box-sizing: border-box !important;
-  background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 24%, transparent) !important;
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--c-light, #fff) 16%, transparent),
-    inset 1px 1.5px 0px -1px color-mix(in srgb, var(--c-light, #fff) 60%, transparent) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
   flex-shrink: 0 !important;
 }
 
+/* Palette Row */
 .qs-annotate-toolbar .qs-palette-row {
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
   padding: 0 4px !important;
-  height: 38px !important;
+  height: 36px !important;
   flex-shrink: 0 !important;
 }
 
+/* Tool Separator - Hidden for Clean Breathing Spaces */
 .qs-annotate-toolbar .qs-tool-sep,
 .qs-crop-controls .qs-tool-sep {
-  width: 1px !important;
-  height: 20px !important;
-  background-color: rgba(255, 255, 255, 0.2) !important;
-  margin: 0 4px !important;
-  flex-shrink: 0 !important;
+  display: none !important;
 }
 
-/* Liquid Glass Crop Controls Pill at Bottom */
+/* Floating Crop Controls Pill */
 @keyframes qsCropControlsIn {
   0% {
     opacity: 0;
-    transform: translate3d(-50%, 14px, 0) scale(0.94);
+    transform: translate3d(-50%, 14px, 0) scale(0.95);
   }
   100% {
     opacity: 1;
@@ -2545,10 +2659,6 @@
 }
 
 .qs-crop-controls {
-  --c-glass: #bbbbbc !important;
-  --c-light: #fff !important;
-  --c-dark: #000 !important;
-  --c-content: #ffffff !important;
   position: fixed !important;
   bottom: 24px !important;
   top: auto !important;
@@ -2560,8 +2670,8 @@
   align-items: center !important;
   justify-content: center !important;
   flex-direction: row !important;
-  padding: 5px 8px 5px 14px !important;
-  gap: 10px !important;
+  padding: 7px 10px !important;
+  gap: 12px !important;
   border-radius: 99em !important;
   white-space: nowrap !important;
   user-select: none !important;
@@ -2569,115 +2679,200 @@
   width: auto !important;
   min-width: auto !important;
   max-width: 92vw !important;
-  height: 44px !important;
-  min-height: 44px !important;
-  max-height: 44px !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  max-height: 50px !important;
   font-family: "Google Sans", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif !important;
   animation: qsCropControlsIn 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
 
-  /* Identical Liquid Glass Capsule as Main Menu */
+  /* Authentic Liquid Glass — Identical to .qs-guide and .qs-annotate-toolbar */
   background-color: color-mix(
     in srgb,
-    var(--c-glass, #bbbbbc) 18%,
-    rgba(18, 18, 24, 0.92)
+    var(--c-glass, #bbbbbc) 14%,
+    rgba(18, 18, 24, 0.88)
   ) !important;
-  backdrop-filter: blur(18px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
-  border: none !important;
+  backdrop-filter: blur(16px) saturate(var(--saturation, 160%)) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(var(--saturation, 160%)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
   color: #ffffff !important;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-    inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9),
-    inset -2px -2px 0px -2px rgba(255, 255, 255, 0.6),
-    inset 0 2px 5px rgba(0, 0, 0, 0.35),
-    0 14px 40px rgba(0, 0, 0, 0.6) !important;
+    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.4),
+    0 8px 32px 0 rgba(0, 0, 0, 0.45),
+    0 2px 8px 0 rgba(0, 0, 0, 0.25) !important;
 }
 
 .qs-crop-meta {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.qs-crop-controls .qs-crop-dim {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 999px !important;
+  background: color-mix(
+    in srgb,
+    var(--c-glass, #bbbbbc) 18%,
+    transparent
+  ) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  letter-spacing: 0.3px !important;
+  line-height: 1 !important;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+    0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  font-variant-numeric: tabular-nums !important;
+  box-sizing: border-box !important;
+}
+
+.qs-crop-meta-icon {
+  color: #ffffff !important;
+  opacity: 0.8 !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+
+.qs-crop-controls .qs-crop-dim-val,
+.qs-crop-controls .qs-crop-unit {
+  color: #ffffff !important;
+}
+
+.qs-crop-controls .qs-crop-unit {
+  font-size: 9.5px !important;
+  opacity: 0.65 !important;
+  font-weight: 700 !important;
+  margin-left: 2px !important;
+  letter-spacing: 0.5px !important;
+}
+
+.qs-crop-actions {
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
   flex-shrink: 0 !important;
 }
 
-.qs-crop-meta-icon {
-  color: #03d5ff !important;
-  display: block !important;
-  flex-shrink: 0 !important;
-}
-
-.qs-crop-controls .qs-crop-dim {
-  font-family: "Google Sans", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-  font-size: 13.5px !important;
-  font-weight: 700 !important;
-  font-variant-numeric: tabular-nums !important;
-  color: #ffffff !important;
-  letter-spacing: 0.3px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  line-height: 1 !important;
-}
-
-.qs-crop-controls .qs-crop-dim small {
-  font-size: 11px !important;
-  opacity: 0.65 !important;
-  font-weight: 500 !important;
-  margin-left: 3px !important;
-}
-
-.qs-crop-controls .qs-crop-apply-btn {
-  background: linear-gradient(135deg, rgba(3, 213, 255, 0.9), rgba(0, 180, 225, 0.9)) !important;
-  color: #080a0f !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 2px 10px rgba(3, 213, 255, 0.4) !important;
-  font-weight: 700 !important;
-  height: 34px !important;
-  padding: 0 14px !important;
-  border-radius: 99em !important;
-  gap: 6px !important;
-}
-
-.qs-crop-controls .qs-crop-apply-btn:hover {
-  background: linear-gradient(135deg, rgba(3, 213, 255, 1), rgba(0, 195, 240, 1)) !important;
-  transform: translate3d(0, -1px, 0) scale(1.03) !important;
-  box-shadow: inset 0 1px 0 #ffffff, 0 4px 16px rgba(3, 213, 255, 0.6) !important;
-}
-
+/* Default Liquid Glass Buttons for Crop Controls */
+.qs-crop-controls .qs-crop-apply-btn,
 .qs-crop-controls .qs-crop-cancel-btn {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  color: rgba(255, 255, 255, 0.85) !important;
-  font-weight: 600 !important;
-  height: 34px !important;
-  padding: 0 12px !important;
+  height: 36px !important;
+  padding: 0 16px !important;
   border-radius: 99em !important;
-  gap: 5px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  gap: 6px !important;
+  background-color: color-mix(
+    in srgb,
+    var(--c-glass, #bbbbbc) 36%,
+    transparent
+  ) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c-light, #fff) 12%, transparent),
+    inset 2px 1px 0px -1px color-mix(in srgb, var(--c-light, #fff) 85%, transparent),
+    inset -1.5px -1px 0px -1px color-mix(in srgb, var(--c-light, #fff) 70%, transparent),
+    inset -2px -6px 1px -5px color-mix(in srgb, var(--c-light, #fff) 50%, transparent),
+    inset -1px 2px 3px -1px color-mix(in srgb, var(--c-dark, #000) 25%, transparent),
+    0px 3px 6px 0px rgba(0, 0, 0, 0.3) !important;
+  transition:
+    transform 140ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 160ms ease,
+    box-shadow 160ms ease !important;
+  will-change: transform;
 }
 
+.qs-crop-controls .qs-crop-apply-btn:hover,
 .qs-crop-controls .qs-crop-cancel-btn:hover {
-  background-color: rgba(255, 255, 255, 0.18) !important;
-  color: #ffffff !important;
-  transform: translate3d(0, -1px, 0) scale(1.02) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--c-glass, #bbbbbc) 48%,
+    transparent
+  ) !important;
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+    inset 2px 1.5px 0px -1px rgba(255, 255, 255, 0.95),
+    0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.qs-crop-controls .qs-crop-apply-btn:active,
+.qs-crop-controls .qs-crop-cancel-btn:active {
+  transform: translateY(1px) scale(0.97) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--c-glass, #bbbbbc) 52%,
+    transparent
+  ) !important;
 }
 
 @media (max-width: 900px) {
   .qs-annotate-toolbar {
-    padding: 6px 10px !important;
-    gap: 4px !important;
+    padding: 5px 8px !important;
+    gap: 3px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
   }
   .qs-annotate-toolbar .qs-guide-btn.circle,
   .qs-crop-controls .qs-guide-btn.circle {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
   }
   .qs-annotate-toolbar .qs-guide-btn.pill,
   .qs-crop-controls .qs-guide-btn.pill {
-    height: 34px !important;
-    padding: 0 12px !important;
+    height: 32px !important;
+    padding: 0 10px !important;
     font-size: 12px !important;
   }
   .qs-annotate-toolbar .qs-stroke-capsule {
-    height: 34px !important;
+    height: 30px !important;
   }
+}
+
+/* Tooltip inside SwiftSelect Annotation overlay: ensure high-contrast crisp white text */
+#swiftselect-annotate-root .qs-custom-tooltip,
+.qs-annotate-root .qs-custom-tooltip {
+  color: #ffffff !important;
+  background: rgba(22, 22, 28, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 16px 36px rgba(0, 0, 0, 0.6) !important;
+}
+
+#swiftselect-annotate-root .qs-custom-tooltip *,
+.qs-annotate-root .qs-custom-tooltip * {
+  color: #ffffff !important;
+}
+
+#swiftselect-annotate-root .qs-tooltip-title,
+.qs-annotate-root .qs-tooltip-title,
+#swiftselect-annotate-root .qs-tooltip-desc,
+.qs-annotate-root .qs-tooltip-desc {
+  color: #ffffff !important;
+}
+
+#swiftselect-annotate-root .qs-tooltip-key,
+.qs-annotate-root .qs-tooltip-key {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
 }
 
 

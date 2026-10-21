@@ -8,7 +8,7 @@
 
 import { getSmartFilename, getOutputSettings } from "./utils.js";
 import { setLastBlob } from "./download.js";
-import { loadStyles, getCachedCssText } from "../ui.js";
+import { loadStyles, getCachedCssText, attachTooltip, hideCustomTooltip } from "../ui.js";
 
 let _annotateHost = null;
 let _toolbarEl = null;
@@ -21,9 +21,9 @@ let _redoStack = [];
 let _scratchBlurCanvas = null;
 let _scratchBlurCtx = null;
 let _textInputOverlay = null;
-let _currentTool = "select"; // 'select' | 'arrow' | 'rect' | 'counter' | 'blur' | 'pen' | 'text' | 'crop'
-let _currentColor = "#BA4B5C"; // SwiftSelect Coral
-let _currentLineWidth = 4.5;
+let _currentTool = "pen"; // 'pen' (Brush) is default active tool | 'select' | 'arrow' | 'rect' | 'counter' | 'blur' | 'text' | 'crop'
+let _currentColor = "#FF3333"; // Vivid High-Visibility Red
+let _currentLineWidth = 7.5; // 3rd size is default
 let _stepCounter = 1;
 
 let _isDrawing = false;
@@ -31,7 +31,7 @@ let _activeShape = null;
 
 // Selection & Move State
 let _selectedShapeIndex = -1;
-let _dragAction = null; // 'move' | 'arrow-start' | 'arrow-end' | 'rect-tl' | 'rect-tr' | 'rect-br' | 'rect-bl' | 'crop-handle' | 'crop-move'
+let _dragAction = null; // 'move' | 'arrow-start' | 'arrow-end' | 'rect-tl' | ... | 'crop-...'
 let _dragStartPos = { x: 0, y: 0 };
 let _shapeStartSnapshot = null;
 
@@ -45,19 +45,30 @@ let _toolsGroup = null;
 let _cropBtn = null;
 
 const PALETTE = [
-  "#BA4B5C", // Swift Coral
-  "#EF4444", // Flame Red
-  "#F59E0B", // Amber Gold
+  "#FF3333", // Vivid Red
+  "#FF9500", // Bright Orange
+  "#FFCC00", // Vivid Amber Yellow
   "#10B981", // Emerald Green
-  "#3B82F6", // Royal Blue
+  "#007AFF", // Vivid Electric Blue
   "#8B5CF6", // Purple
   "#FFFFFF", // Pure White
 ];
 
+const COLOR_NAMES = {
+  "#FF3333": "Vivid Red",
+  "#FF9500": "Bright Orange",
+  "#FFCC00": "Vivid Yellow",
+  "#10B981": "Emerald Green",
+  "#007AFF": "Electric Blue",
+  "#8B5CF6": "Purple",
+  "#FFFFFF": "Pure White",
+};
+
 const STROKE_WIDTHS = [
-  { label: "Fine", width: 2.5, dotSize: 4 },
-  { label: "Medium", width: 4.5, dotSize: 7 },
-  { label: "Bold", width: 7.5, dotSize: 10 },
+  { label: "Fine", width: 2, dotSize: 3.5 },
+  { label: "Medium", width: 4.5, dotSize: 6 },
+  { label: "Thick", width: 7.5, dotSize: 8.5 },
+  { label: "Heavy", width: 12, dotSize: 11 },
 ];
 
 export function isAnnotationOpen() {
@@ -156,6 +167,33 @@ export async function openAnnotationEditor(source) {
     return;
   }
 
+  // Mathematically crop out native browser scrollbar if present in full-screen capture
+  if (img) {
+    const dpr = window.devicePixelRatio || 1;
+    const docW = Math.round(document.documentElement.clientWidth * dpr);
+    const docH = Math.round(document.documentElement.clientHeight * dpr);
+
+    if (docW > 100 && img.width > docW && (img.width - docW) <= Math.round(45 * dpr)) {
+      const cropW = docW;
+      const cropH = (docH > 100 && img.height > docH && (img.height - docH) <= Math.round(45 * dpr))
+        ? docH
+        : img.height;
+
+      const c = document.createElement("canvas");
+      c.width = cropW;
+      c.height = cropH;
+      const cctx = c.getContext("2d");
+      cctx.drawImage(img, 0, 0, cropW, cropH, 0, 0, cropW, cropH);
+
+      const croppedImg = new Image();
+      await new Promise((res) => {
+        croppedImg.onload = res;
+        croppedImg.src = c.toDataURL("image/png");
+      });
+      img = croppedImg;
+    }
+  }
+
   _baseImage = img;
   _shapes = [];
   _undoStack = [];
@@ -163,6 +201,8 @@ export async function openAnnotationEditor(source) {
   _stepCounter = 1;
   _selectedShapeIndex = -1;
   _cropRect = null;
+  _currentTool = "pen";
+  _currentLineWidth = 7.5;
   if (_textInputOverlay) {
     try {
       if (_textInputOverlay.parentNode) {
@@ -281,200 +321,273 @@ function buildAnnotationUI() {
   const tools = [
     {
       id: "select",
-      title: "Select & Move (V)",
-      svg: '<svg class="tool-icon-select" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="cursor-arrow" d="M3.5 3.5l7 17 2.8-7.2L20.5 10.5z"/><path class="cursor-cross" d="M13.3 13.3l6.2 6.2"/></svg>',
-    },
-    {
-      id: "arrow",
-      title: "Arrow (A)",
-      svg: '<svg class="tool-icon-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line class="arrow-shaft" x1="5" y1="19" x2="19" y2="5"/><polyline class="arrow-head" points="11 5 19 5 19 13"/></svg>',
-    },
-    {
-      id: "rect",
-      title: "Rectangle Box (R)",
-      svg: '<svg class="tool-icon-rect" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect class="rect-box" x="3.5" y="3.5" width="17" height="17" rx="3.5"/></svg>',
-    },
-    {
-      id: "counter",
-      title: "Step Badge 1,2,3 (S)",
-      svg: '<svg class="tool-icon-counter" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle class="counter-ring" cx="12" cy="12" r="8.5"/><text class="counter-num" x="12" y="15.5" text-anchor="middle" font-size="10" font-weight="700" fill="currentColor" stroke="none" font-family="system-ui, -apple-system, sans-serif">1</text></svg>',
-    },
-    {
-      id: "blur",
-      title: "Blur / Redact (B)",
-      svg: '<svg class="tool-icon-blur" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect class="blur-b1" x="3" y="3" width="8" height="8" rx="1.5"/><rect class="blur-b2" x="13" y="3" width="8" height="8" rx="1.5"/><rect class="blur-b3" x="3" y="13" width="8" height="8" rx="1.5"/><rect class="blur-b4" x="13" y="13" width="8" height="8" rx="1.5"/></svg>',
+      name: "Select & Move",
+      key: "V",
+      svg: '<svg class="tool-icon-select" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="cursor-arrow" d="M4 4l7.07 17 2.51-7.39L21 11.1 4 4z"/></svg>',
     },
     {
       id: "pen",
-      title: "Freehand Pen (P)",
-      svg: '<svg class="tool-icon-pen" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="pen-body" d="M12 20h9"/><path class="pen-tip" d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+      name: "Brush",
+      key: "P",
+      svg: '<svg class="tool-icon-brush" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/></svg>',
+    },
+    {
+      id: "arrow",
+      name: "Arrow",
+      key: "A",
+      svg: '<svg class="tool-icon-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line class="arrow-shaft" x1="5" y1="19" x2="19" y2="5"/><polyline class="arrow-head" points="9 5 19 5 19 15"/></svg>',
+    },
+    {
+      id: "rect",
+      name: "Rectangle Box",
+      key: "R",
+      svg: '<svg class="tool-icon-rect" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect class="rect-box" x="3" y="4" width="18" height="16" rx="4"/></svg>',
+    },
+    {
+      id: "counter",
+      name: "Step Badge",
+      key: "S",
+      svg: '<svg class="tool-icon-counter" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle class="counter-ring" cx="12" cy="12" r="9"/><text class="counter-num" x="12" y="16" text-anchor="middle" font-size="11" font-weight="800" font-family="-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif" fill="currentColor" stroke="none">1</text></svg>',
+    },
+    {
+      id: "blur",
+      name: "Blur / Redact",
+      key: "B",
+      svg: '<svg class="tool-icon-blur" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect class="blur-b1" x="3" y="3" width="5.5" height="5.5" rx="1.5" fill="currentColor"/><rect x="9.25" y="3" width="5.5" height="5.5" rx="1.5" fill="currentColor" opacity="0.4"/><rect class="blur-b2" x="15.5" y="3" width="5.5" height="5.5" rx="1.5" fill="currentColor"/><rect x="3" y="9.25" width="5.5" height="5.5" rx="1.5" fill="currentColor" opacity="0.4"/><rect class="blur-b3" x="9.25" y="9.25" width="5.5" height="5.5" rx="1.5" fill="currentColor"/><rect x="15.5" y="9.25" width="5.5" height="5.5" rx="1.5" fill="currentColor" opacity="0.4"/><rect class="blur-b4" x="3" y="15.5" width="5.5" height="5.5" rx="1.5" fill="currentColor"/><rect x="9.25" y="15.5" width="5.5" height="5.5" rx="1.5" fill="currentColor" opacity="0.4"/><rect class="blur-b5" x="15.5" y="15.5" width="5.5" height="5.5" rx="1.5" fill="currentColor"/></svg>',
     },
     {
       id: "text",
-      title: "Text Caption (T)",
-      svg: '<svg class="tool-icon-text" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline class="text-cap" points="4 7 4 4 20 4 20 7"/><line class="text-stem" x1="12" y1="4" x2="12" y2="20"/><line class="text-caret" x1="9" y1="20" x2="15" y2="20"/></svg>',
+      name: "Text Caption",
+      key: "T",
+      svg: '<svg class="tool-icon-text" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="text-cap" d="M4 6V4h16v2"/><line class="text-stem" x1="12" y1="4" x2="12" y2="20"/><line class="text-base" x1="8" y1="20" x2="16" y2="20"/></svg>',
     },
   ];
 
   _toolsGroup = document.createElement("div");
   _toolsGroup.className = "qs-annotate-tools";
-  _toolsGroup.style.cssText = "display: flex; gap: 4px; align-items: center;";
 
   tools.forEach((t) => {
     const btn = document.createElement("button");
     btn.dataset.tool = t.id;
-    btn.title = t.title;
     btn.innerHTML = t.svg;
     const isActive = t.id === _currentTool;
     btn.className = `qs-guide-btn circle ${isActive ? "active" : ""}`;
+    attachTooltip(btn, t.name, "", t.key, 200, _annotateHost);
     btn.onclick = (e) => {
       e?.stopPropagation?.();
+      hideCustomTooltip();
       selectTool(t.id);
     };
     _toolsGroup.appendChild(btn);
   });
   toolbar.appendChild(_toolsGroup);
 
-  // Dedicated Separate Crop Button
-  const cropSep = document.createElement("div");
-  cropSep.className = "qs-tool-sep";
-  toolbar.appendChild(cropSep);
-
+  // Dedicated Separate Crop Button (No divider)
   _cropBtn = document.createElement("button");
   _cropBtn.className = `qs-guide-btn circle ${_currentTool === "crop" ? "active" : ""}`;
   _cropBtn.dataset.tool = "crop";
-  _cropBtn.title = "Crop Image (X)";
   _cropBtn.innerHTML =
-    '<svg class="tool-icon-crop" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="crop-bracket-1" d="M6 2v14a2 2 0 0 0 2 2h14"/><path class="crop-bracket-2" d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>';
+    '<svg class="tool-icon-crop" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="crop-bracket-1" d="M6.5 2v14a1.5 1.5 0 0 0 1.5 1.5H22"/><path class="crop-bracket-2" d="M17.5 22V8a1.5 1.5 0 0 0-1.5-1.5H2"/></svg>';
+  attachTooltip(_cropBtn, "Crop Image", "", "C, X", 200, _annotateHost);
   _cropBtn.onclick = (e) => {
     e?.stopPropagation?.();
+    hideCustomTooltip();
     selectTool(_currentTool === "crop" ? "select" : "crop");
   };
   toolbar.appendChild(_cropBtn);
 
-  // Separator
-  const sep1 = document.createElement("div");
-  sep1.className = "qs-tool-sep";
-  toolbar.appendChild(sep1);
-
-  // Stroke Width Selector Capsule
+  // Stroke Width Selector Capsule (4 sizes, 3rd default)
   const strokeGroup = document.createElement("div");
   strokeGroup.className = "qs-stroke-capsule";
-  strokeGroup.title = "Stroke Thickness";
+
+  const fontMap = { 2: 18, 4.5: 28, 7.5: 40, 12: 56 };
 
   STROKE_WIDTHS.forEach((sw) => {
     const sBtn = document.createElement("button");
-    sBtn.title = `${sw.label} (${sw.width}px)`;
     sBtn.dataset.stroke = sw.width;
     const isAct = sw.width === _currentLineWidth;
     sBtn.style.cssText = `
       all: initial;
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      background: ${isAct ? "rgba(255,255,255,0.35)" : "transparent"};
+      background: ${isAct ? "rgba(255,255,255,0.24)" : "transparent"};
+      border: ${isAct ? "1px solid rgba(255,255,255,0.45)" : "1px solid transparent"};
+      box-shadow: ${isAct ? "0 0 0 1.5px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.4)" : "none"};
+      box-sizing: border-box;
       transition: all 0.15s ease;
+      flex-shrink: 0;
     `;
     const dot = document.createElement("div");
     dot.style.cssText = `
       width: ${sw.dotSize}px;
       height: ${sw.dotSize}px;
       border-radius: 50%;
-      background: currentColor;
+      background: #ffffff;
       opacity: ${isAct ? "1" : "0.55"};
+      transition: opacity 0.15s ease, transform 0.15s ease;
     `;
     sBtn.appendChild(dot);
+    attachTooltip(sBtn, `Stroke: ${sw.label}`, "", `${sw.width}px`, 200, _annotateHost);
     sBtn.onclick = (e) => {
       e?.stopPropagation?.();
+      hideCustomTooltip();
       _currentLineWidth = sw.width;
       if (_selectedShapeIndex !== -1 && _shapes[_selectedShapeIndex]) {
         _shapes[_selectedShapeIndex].lineWidth = sw.width;
         if (_shapes[_selectedShapeIndex].type === "text") {
-          const fontMap = { 2.5: 18, 4.5: 28, 7.5: 42 };
           _shapes[_selectedShapeIndex].fontSize = fontMap[sw.width] || 28;
         }
         renderCanvas();
       }
       strokeGroup.querySelectorAll("button").forEach((b) => {
         const act = Number(b.dataset.stroke) === _currentLineWidth;
-        b.style.background = act ? "rgba(255,255,255,0.35)" : "transparent";
-        b.querySelector("div").style.opacity = act ? "1" : "0.55";
+        b.style.background = act ? "rgba(255,255,255,0.24)" : "transparent";
+        b.style.borderColor = act ? "rgba(255,255,255,0.45)" : "transparent";
+        b.style.boxShadow = act ? "0 0 0 1.5px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.4)" : "none";
+        const d = b.querySelector("div");
+        if (d) d.style.opacity = act ? "1" : "0.55";
       });
     };
     strokeGroup.appendChild(sBtn);
   });
   toolbar.appendChild(strokeGroup);
 
-  // Separator
-  const sep2 = document.createElement("div");
-  sep2.className = "qs-tool-sep";
-  toolbar.appendChild(sep2);
-
-  // Palette Swatches
+  // Palette Swatches & Custom Color Picker (No divider)
   const paletteGroup = document.createElement("div");
   paletteGroup.className = "qs-palette-row";
+
+  function getActiveSwatchStyle(color, isActive, isWhite) {
+    if (isActive) {
+      return `0 0 0 2.5px #ffffff, 0 2px 6px rgba(0,0,0,0.35)`;
+    }
+    return isWhite
+      ? `inset 0 0 0 1px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.25)`
+      : `inset 0 0 0 1px rgba(255,255,255,0.25), 0 1px 3px rgba(0,0,0,0.25)`;
+  }
+
+  function updatePaletteUI() {
+    const isCustom = !PALETTE.some((c) => c.toLowerCase() === _currentColor.toLowerCase());
+    paletteGroup.querySelectorAll("button[data-color]").forEach((s) => {
+      const col = s.dataset.color;
+      const act = col.toLowerCase() === _currentColor.toLowerCase();
+      const isWhite = col.toLowerCase() === "#ffffff";
+      s.style.boxShadow = getActiveSwatchStyle(col, act, isWhite);
+      s.style.transform = act ? "scale(1.12)" : "scale(1)";
+    });
+    const pickerBtn = paletteGroup.querySelector(".qs-palette-color-picker");
+    if (pickerBtn) {
+      pickerBtn.style.boxShadow = isCustom
+        ? `0 0 0 2.5px #ffffff, 0 2px 6px rgba(0,0,0,0.35)`
+        : `inset 0 0 0 1px rgba(255,255,255,0.35), 0 1px 3px rgba(0,0,0,0.2)`;
+      pickerBtn.style.transform = isCustom ? "scale(1.12)" : "scale(1)";
+    }
+  }
+
   PALETTE.forEach((color) => {
     const swatch = document.createElement("button");
     swatch.dataset.color = color;
-    swatch.title = `Color ${color}`;
-    const isActive = color === _currentColor;
+    const isActive = color.toLowerCase() === _currentColor.toLowerCase();
+    const isWhite = color.toLowerCase() === "#ffffff";
     swatch.style.cssText = `
       all: initial;
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: ${color};
       cursor: pointer;
-      box-shadow: ${
-        isActive
-          ? `0 0 0 2px #ffffff, 0 0 0 4.5px ${color}, 0 4px 10px rgba(0,0,0,0.45)`
-          : "0 0 0 1px rgba(255,255,255,0.25), 0 2px 4px rgba(0,0,0,0.3)"
-      };
-      transform: ${isActive ? "scale(1.15)" : "scale(1)"};
+      box-sizing: border-box;
+      box-shadow: ${getActiveSwatchStyle(color, isActive, isWhite)};
+      transform: ${isActive ? "scale(1.12)" : "scale(1)"};
       transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s ease;
       flex-shrink: 0;
     `;
+    attachTooltip(swatch, COLOR_NAMES[color] || "Color", "", "", 200, _annotateHost);
     swatch.onclick = (e) => {
       e?.stopPropagation?.();
+      hideCustomTooltip();
       _currentColor = color;
       if (_selectedShapeIndex !== -1 && _shapes[_selectedShapeIndex]) {
         _shapes[_selectedShapeIndex].color = color;
         renderCanvas();
       }
-      paletteGroup.querySelectorAll("button").forEach((s) => {
-        const act = s.dataset.color === _currentColor;
-        s.style.boxShadow = act
-          ? `0 0 0 2px #ffffff, 0 0 0 4.5px ${s.dataset.color}, 0 4px 10px rgba(0,0,0,0.45)`
-          : "0 0 0 1px rgba(255,255,255,0.25), 0 2px 4px rgba(0,0,0,0.3)";
-        s.style.transform = act ? "scale(1.15)" : "scale(1)";
-      });
+      updatePaletteUI();
     };
     paletteGroup.appendChild(swatch);
   });
+
+  // Color Picker Button (Conic Rainbow Swatch)
+  const pickerBtn = document.createElement("button");
+  pickerBtn.className = "qs-palette-color-picker";
+  const isCustomColor = !PALETTE.some((c) => c.toLowerCase() === _currentColor.toLowerCase());
+  pickerBtn.style.cssText = `
+    all: initial;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: conic-gradient(from 180deg at 50% 50%, #ff0000, #ff8000, #ffff00, #00ff00, #00ffff, #007aff, #8000ff, #ff0080, #ff0000);
+    cursor: pointer;
+    box-sizing: border-box;
+    box-shadow: ${
+      isCustomColor
+        ? "0 0 0 2.5px #ffffff, 0 2px 6px rgba(0,0,0,0.35)"
+        : "inset 0 0 0 1px rgba(255,255,255,0.35), 0 1px 3px rgba(0,0,0,0.2)"
+    };
+    transform: ${isCustomColor ? "scale(1.12)" : "scale(1)"};
+    transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s ease;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  `;
+  attachTooltip(pickerBtn, "Color Picker", "", "Custom Hex", 200, _annotateHost);
+
+  const nativeColorInput = document.createElement("input");
+  nativeColorInput.type = "color";
+  nativeColorInput.value = _currentColor;
+  nativeColorInput.style.cssText = `
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    width: 32px;
+    height: 32px;
+    opacity: 0;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    border: none;
+  `;
+  const handleColorChange = (newColor) => {
+    _currentColor = newColor;
+    if (_selectedShapeIndex !== -1 && _shapes[_selectedShapeIndex]) {
+      _shapes[_selectedShapeIndex].color = newColor;
+      renderCanvas();
+    }
+    updatePaletteUI();
+  };
+  nativeColorInput.addEventListener("input", (e) => handleColorChange(e.target.value));
+  nativeColorInput.addEventListener("change", (e) => handleColorChange(e.target.value));
+  pickerBtn.appendChild(nativeColorInput);
+  paletteGroup.appendChild(pickerBtn);
+
   toolbar.appendChild(paletteGroup);
 
-  // Separator
-  const sep3 = document.createElement("div");
-  sep3.className = "qs-tool-sep";
-  toolbar.appendChild(sep3);
-
-  // History Group: Undo & Redo & Clear
+  // History Group: Undo & Redo & Clear (No divider)
   const historyGroup = document.createElement("div");
   historyGroup.className = "qs-annotate-history";
-  historyGroup.style.cssText = "display: flex; gap: 4px; align-items: center;";
 
   // Undo Button
   _undoBtn = document.createElement("button");
   _undoBtn.className = "qs-guide-btn circle";
-  _undoBtn.title = "Undo (Ctrl+Z)";
   _undoBtn.innerHTML =
-    '<svg class="tool-icon-undo" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="undo-arrow" d="M3 7v6h6"/><path class="undo-arc" d="M3 13a9 9 0 1 0 2.5-6.3L3 9"/></svg>';
+    '<svg class="tool-icon-undo" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>';
+  attachTooltip(_undoBtn, "Undo", "", "Ctrl+Z", 200, _annotateHost);
   _undoBtn.onclick = (e) => {
     e?.stopPropagation?.();
+    hideCustomTooltip();
     handleUndo();
   };
   historyGroup.appendChild(_undoBtn);
@@ -482,11 +595,12 @@ function buildAnnotationUI() {
   // Redo Button
   _redoBtn = document.createElement("button");
   _redoBtn.className = "qs-guide-btn circle";
-  _redoBtn.title = "Redo (Ctrl+Y / Ctrl+Shift+Z)";
   _redoBtn.innerHTML =
-    '<svg class="tool-icon-redo" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="redo-arrow" d="M21 7v6h-6"/><path class="redo-arc" d="M21 13a9 9 0 1 1-2.5-6.3L21 9"/></svg>';
+    '<svg class="tool-icon-redo" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>';
+  attachTooltip(_redoBtn, "Redo", "", "Ctrl+Y", 200, _annotateHost);
   _redoBtn.onclick = (e) => {
     e?.stopPropagation?.();
+    hideCustomTooltip();
     handleRedo();
   };
   historyGroup.appendChild(_redoBtn);
@@ -494,62 +608,68 @@ function buildAnnotationUI() {
   // Clear Canvas Button
   const clearBtn = document.createElement("button");
   clearBtn.className = "qs-guide-btn circle";
-  clearBtn.title = "Clear All Annotations";
   clearBtn.innerHTML =
-    '<svg class="tool-icon-clear" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="trash-lid" d="M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path class="trash-body" d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+    '<svg class="tool-icon-clear" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="trash-lid" d="M3 6h18M8 6V4a1.5 1.5 0 0 1 1.5-1.5h5A1.5 1.5 0 0 1 16 4v2"/><path class="trash-body" d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+  attachTooltip(clearBtn, "Clear All Annotations", "", "", 200, _annotateHost);
   clearBtn.onclick = (e) => {
     e?.stopPropagation?.();
+    hideCustomTooltip();
     handleClearAll();
   };
   historyGroup.appendChild(clearBtn);
 
   toolbar.appendChild(historyGroup);
 
-  // Separator
-  const sep4 = document.createElement("div");
-  sep4.className = "qs-tool-sep";
-  toolbar.appendChild(sep4);
+  // Action Buttons Group: Copy, Save, Close (No divider)
+  const actionsGroup = document.createElement("div");
+  actionsGroup.className = "qs-annotate-actions";
 
-  // Copy Button
+  // Copy Button (Circle, icon-only)
   const copyBtn = document.createElement("button");
-  copyBtn.className = "qs-guide-btn pill";
-  copyBtn.title = "Copy Annotated Image (Ctrl+C)";
+  copyBtn.className = "qs-guide-btn circle";
   copyBtn.innerHTML =
-    '<svg class="tool-icon-copy" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect class="copy-card-1" x="9" y="9" width="13" height="13" rx="2.5"/><path class="copy-card-2" d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span>';
+    '<svg class="tool-icon-copy is-filled" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+  attachTooltip(copyBtn, "Copy Image", "", "Ctrl+C", 200, _annotateHost);
   copyBtn.onclick = async (e) => {
     e?.stopPropagation?.();
+    hideCustomTooltip();
     await handleCopyAnnotated();
-    const sp = copyBtn.querySelector("span");
-    if (sp) sp.textContent = "Copied!";
+    copyBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     setTimeout(() => {
-      if (sp) sp.textContent = "Copy";
+      copyBtn.innerHTML =
+        '<svg class="tool-icon-copy is-filled" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
     }, 1400);
   };
-  toolbar.appendChild(copyBtn);
+  actionsGroup.appendChild(copyBtn);
 
-  // Save/Download Button
+  // Save/Download Button (Circle, icon-only, using existing dl-arrow & dl-bar)
   const saveBtn = document.createElement("button");
-  saveBtn.className = "qs-guide-btn pill";
-  saveBtn.title = "Download Annotated Image (Ctrl+S)";
+  saveBtn.className = "qs-guide-btn circle";
   saveBtn.innerHTML =
-    '<svg class="tool-icon-save" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="dl-tray" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><g class="dl-arrow"><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></g></svg><span>Save</span>';
+    '<svg class="tool-icon-save is-filled" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path class="dl-arrow" d="M19 9h-4V3H9v6H5l7 7 7-7z"/><path class="dl-bar" d="M5 18v2h14v-2H5z"/></svg>';
+  attachTooltip(saveBtn, "Download Image", "", "Ctrl+S", 200, _annotateHost);
   saveBtn.onclick = (e) => {
     e?.stopPropagation?.();
+    hideCustomTooltip();
     handleSaveAnnotated();
   };
-  toolbar.appendChild(saveBtn);
+  actionsGroup.appendChild(saveBtn);
 
-  // Close Button
+  // Close Button (No divider)
   const closeBtn = document.createElement("button");
   closeBtn.className = "qs-guide-btn circle";
-  closeBtn.title = "Close (Esc)";
   closeBtn.innerHTML =
-    '<svg class="tool-icon-close" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line class="close-x1" x1="18" y1="6" x2="6" y2="18"/><line class="close-x2" x1="6" y1="6" x2="18" y2="18"/></svg>';
+    '<svg class="tool-icon-close" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  attachTooltip(closeBtn, "Close Editor", "", "Esc", 200, _annotateHost);
   closeBtn.onclick = (e) => {
     e?.stopPropagation?.();
+    hideCustomTooltip();
     closeAnnotationEditor();
   };
-  toolbar.appendChild(closeBtn);
+  actionsGroup.appendChild(closeBtn);
+
+  toolbar.appendChild(actionsGroup);
 
   _annotateHost.appendChild(toolbar);
 
@@ -604,6 +724,16 @@ function buildAnnotationUI() {
     e.stopPropagation();
     onCanvasPointerDown(e);
   });
+  _annotateCanvas.addEventListener("dblclick", (e) => {
+    e.stopPropagation();
+    const { x, y } = getCanvasCoords(e);
+    const hitIdx = hitTestShape(x, y);
+    if (hitIdx !== -1 && _shapes[hitIdx] && _shapes[hitIdx].type === "text") {
+      _selectedShapeIndex = hitIdx;
+      renderCanvas();
+      spawnInlineTextInput(x, y, _shapes[hitIdx]);
+    }
+  });
   window.addEventListener("pointermove", onCanvasPointerMove);
   window.addEventListener("pointerup", onCanvasPointerUp);
   window.addEventListener("keydown", onAnnotateKeyDown, true);
@@ -633,7 +763,7 @@ function showCropControls() {
   if (!_annotateHost || !_cropRect) return;
   if (!_cropControlsEl) {
     _cropControlsEl = document.createElement("div");
-    _cropControlsEl.className = "qs-crop-controls qs-theme-glass";
+    _cropControlsEl.className = "qs-guide qs-crop-controls qs-theme-glass";
     _cropControlsEl.addEventListener("pointerdown", (e) => e.stopPropagation());
     const uiTheme = window.SwiftSelect?.theme;
     if (uiTheme?.applyElementTheme) {
@@ -641,34 +771,55 @@ function showCropControls() {
     }
     _cropControlsEl.innerHTML = `
       <div class="qs-crop-meta">
-        <svg class="qs-crop-meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
-        <span class="qs-crop-dim">${Math.round(_cropRect.width)} × ${Math.round(_cropRect.height)} <small>px</small></span>
+        <span class="qs-crop-dim">
+          <svg class="qs-crop-meta-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 2v14a1.5 1.5 0 0 0 1.5 1.5H22"/>
+            <path d="M17.5 22V8a1.5 1.5 0 0 0-1.5-1.5H2"/>
+          </svg>
+          <span class="qs-crop-dim-val">${Math.round(_cropRect.width)} × ${Math.round(_cropRect.height)}</span>
+          <span class="qs-crop-unit">PX</span>
+        </span>
       </div>
-      <div class="qs-tool-sep"></div>
-      <button class="qs-guide-btn pill qs-crop-apply-btn active" title="Apply Crop (Enter)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        <span>Apply</span>
-      </button>
-      <button class="qs-guide-btn pill qs-crop-cancel-btn" title="Cancel Crop (Esc)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        <span>Cancel</span>
-      </button>
+      <div class="qs-crop-actions">
+        <button class="qs-guide-btn pill qs-crop-apply-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span>Apply</span>
+        </button>
+        <button class="qs-guide-btn pill qs-crop-cancel-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          <span>Cancel</span>
+        </button>
+      </div>
     `;
-    _cropControlsEl.querySelector(".qs-crop-apply-btn").onclick = (e) => {
+
+    const applyBtn = _cropControlsEl.querySelector(".qs-crop-apply-btn");
+    const cancelBtn = _cropControlsEl.querySelector(".qs-crop-cancel-btn");
+
+    attachTooltip(applyBtn, "Apply Crop", "", "Enter", 200, _annotateHost);
+    attachTooltip(cancelBtn, "Cancel Crop", "", "Esc", 200, _annotateHost);
+
+    applyBtn.onclick = (e) => {
       e?.stopPropagation?.();
+      hideCustomTooltip();
       applyCrop();
     };
-    _cropControlsEl.querySelector(".qs-crop-cancel-btn").onclick = (e) => {
+    cancelBtn.onclick = (e) => {
       e?.stopPropagation?.();
+      hideCustomTooltip();
       _cropRect = null;
       hideCropControls();
       selectTool("select");
     };
     _annotateHost.appendChild(_cropControlsEl);
   } else {
-    const dimEl = _cropControlsEl.querySelector(".qs-crop-dim");
-    if (dimEl) {
-      dimEl.innerHTML = `${Math.round(_cropRect.width)} × ${Math.round(_cropRect.height)} <small>px</small>`;
+    const dimValEl = _cropControlsEl.querySelector(".qs-crop-dim-val");
+    if (dimValEl) {
+      dimValEl.textContent = `${Math.round(_cropRect.width)} × ${Math.round(_cropRect.height)}`;
     }
   }
 }
@@ -802,22 +953,60 @@ function hitTestShape(x, y) {
   return -1;
 }
 
+function getHandleHitRadius() {
+  if (!_annotateCanvas) return 14;
+  const rect = _annotateCanvas.getBoundingClientRect();
+  const scale = _annotateCanvas.width / (rect.width || 1);
+  return Math.max(14, Math.round(14 * scale));
+}
+
+function hitTestCrop(x, y) {
+  if (!_cropRect || _currentTool !== "crop") return null;
+  const { x: cx, y: cy, width: cw, height: ch } = _cropRect;
+  const hitR = getHandleHitRadius();
+
+  // 8 handles in order of precision: corners first, then edge midpoints
+  if (Math.hypot(x - cx, y - cy) <= hitR) return "crop-tl";
+  if (Math.hypot(x - (cx + cw), y - cy) <= hitR) return "crop-tr";
+  if (Math.hypot(x - (cx + cw), y - (cy + ch)) <= hitR) return "crop-br";
+  if (Math.hypot(x - cx, y - (cy + ch)) <= hitR) return "crop-bl";
+
+  if (Math.hypot(x - (cx + cw / 2), y - cy) <= hitR) return "crop-t";
+  if (Math.hypot(x - (cx + cw), y - (cy + ch / 2)) <= hitR) return "crop-r";
+  if (Math.hypot(x - (cx + cw / 2), y - (cy + ch)) <= hitR) return "crop-b";
+  if (Math.hypot(x - cx, y - (cy + ch / 2)) <= hitR) return "crop-l";
+
+  // Inside crop rectangle: move action
+  if (x >= cx && x <= cx + cw && y >= cy && y <= cy + ch) return "crop-move";
+
+  return null;
+}
+
 function hitTestHandles(x, y) {
   if (_selectedShapeIndex === -1 || !_shapes[_selectedShapeIndex]) return null;
   const s = _shapes[_selectedShapeIndex];
+  const hitR = getHandleHitRadius();
 
   if (s.type === "arrow") {
-    if (Math.sqrt(distSq(x, y, s.x1, s.y1)) <= 14) return "arrow-start";
-    if (Math.sqrt(distSq(x, y, s.x2, s.y2)) <= 14) return "arrow-end";
+    if (Math.hypot(x - s.x1, y - s.y1) <= hitR) return "arrow-start";
+    if (Math.hypot(x - s.x2, y - s.y2) <= hitR) return "arrow-end";
   } else if (s.type === "rect" || s.type === "blur") {
     const minX = Math.min(s.x1, s.x2);
     const maxX = Math.max(s.x1, s.x2);
     const minY = Math.min(s.y1, s.y2);
     const maxY = Math.max(s.y1, s.y2);
-    if (Math.sqrt(distSq(x, y, minX, minY)) <= 14) return "rect-tl";
-    if (Math.sqrt(distSq(x, y, maxX, minY)) <= 14) return "rect-tr";
-    if (Math.sqrt(distSq(x, y, maxX, maxY)) <= 14) return "rect-br";
-    if (Math.sqrt(distSq(x, y, minX, maxY)) <= 14) return "rect-bl";
+    const midX = (minX + maxX) / 2;
+    const midY = (minY + maxY) / 2;
+
+    if (Math.hypot(x - minX, y - minY) <= hitR) return "rect-tl";
+    if (Math.hypot(x - maxX, y - minY) <= hitR) return "rect-tr";
+    if (Math.hypot(x - maxX, y - maxY) <= hitR) return "rect-br";
+    if (Math.hypot(x - minX, y - maxY) <= hitR) return "rect-bl";
+
+    if (Math.hypot(x - midX, y - minY) <= hitR) return "rect-t";
+    if (Math.hypot(x - maxX, y - midY) <= hitR) return "rect-r";
+    if (Math.hypot(x - midX, y - maxY) <= hitR) return "rect-b";
+    if (Math.hypot(x - minX, y - midY) <= hitR) return "rect-l";
   } else if (s.type === "text") {
     const fontSize = s.fontSize || 24;
     const boxW = Math.max(30, s.width || 120) + 12;
@@ -827,10 +1016,10 @@ function hitTestHandles(x, y) {
     const brX = tlX + boxW;
     const brY = tlY + boxH;
 
-    if (Math.sqrt(distSq(x, y, brX, brY)) <= 14) return "text-br";
-    if (Math.sqrt(distSq(x, y, brX, tlY)) <= 14) return "text-tr";
-    if (Math.sqrt(distSq(x, y, tlX, brY)) <= 14) return "text-bl";
-    if (Math.sqrt(distSq(x, y, tlX, tlY)) <= 14) return "text-tl";
+    if (Math.hypot(x - brX, y - brY) <= hitR) return "text-br";
+    if (Math.hypot(x - brX, y - tlY) <= hitR) return "text-tr";
+    if (Math.hypot(x - tlX, y - brY) <= hitR) return "text-bl";
+    if (Math.hypot(x - tlX, y - tlY) <= hitR) return "text-tl";
   }
   return null;
 }
@@ -945,6 +1134,14 @@ function drawShape(ctx, s, isSelected = false) {
       drawHandleCircle(ctx, x + w, y);
       drawHandleCircle(ctx, x + w, y + h);
       drawHandleCircle(ctx, x, y + h);
+      if (w > 20) {
+        drawHandleCircle(ctx, x + w / 2, y);
+        drawHandleCircle(ctx, x + w / 2, y + h);
+      }
+      if (h > 20) {
+        drawHandleCircle(ctx, x, y + h / 2);
+        drawHandleCircle(ctx, x + w, y + h / 2);
+      }
     }
   } else if (s.type === "counter") {
     const radius = 18;
@@ -1010,6 +1207,14 @@ function drawShape(ctx, s, isSelected = false) {
       drawHandleCircle(ctx, x + w, y);
       drawHandleCircle(ctx, x + w, y + h);
       drawHandleCircle(ctx, x, y + h);
+      if (w > 20) {
+        drawHandleCircle(ctx, x + w / 2, y);
+        drawHandleCircle(ctx, x + w / 2, y + h);
+      }
+      if (h > 20) {
+        drawHandleCircle(ctx, x, y + h / 2);
+        drawHandleCircle(ctx, x + w, y + h / 2);
+      }
     }
   } else if (s.type === "pen") {
     if (s.points && s.points.length > 1) {
@@ -1026,12 +1231,14 @@ function drawShape(ctx, s, isSelected = false) {
       ctx.stroke();
     }
   } else if (s.type === "text") {
-    const fontSize = s.fontSize || 24;
+    const fontSize = s.fontSize || 28;
     ctx.font = `bold ${fontSize}px 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
     ctx.fillStyle = s.color;
     ctx.textBaseline = "top";
-    ctx.shadowColor = "rgba(0,0,0,0.85)";
-    ctx.shadowBlur = 6;
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 1.5;
     ctx.fillText(s.text, s.x, s.y);
 
     const metrics = ctx.measureText(s.text);
@@ -1039,7 +1246,7 @@ function drawShape(ctx, s, isSelected = false) {
     s.height = Math.round(fontSize * 1.25);
 
     if (isSelected) {
-      ctx.strokeStyle = "#03d5ff";
+      ctx.strokeStyle = "#2563EB";
       ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 4]);
       const boxW = Math.max(30, metrics.width) + 12;
@@ -1057,14 +1264,20 @@ function drawShape(ctx, s, isSelected = false) {
 }
 
 function drawHandleCircle(ctx, x, y) {
+  const rect = _annotateCanvas?.getBoundingClientRect();
+  const scale = rect ? _annotateCanvas.width / (rect.width || 1) : 1;
+  const radius = Math.max(5, Math.round(5.5 * scale));
+  const lw = Math.max(2, Math.round(2 * scale));
+  const blur = Math.max(4, Math.round(4 * scale));
+
   ctx.save();
   ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = "#3B82F6";
-  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = "#2563EB";
+  ctx.lineWidth = lw;
   ctx.shadowColor = "rgba(0,0,0,0.4)";
-  ctx.shadowBlur = 6;
+  ctx.shadowBlur = blur;
   ctx.beginPath();
-  ctx.arc(x, y, 6, 0, Math.PI * 2);
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
   ctx.restore();
@@ -1073,9 +1286,11 @@ function drawHandleCircle(ctx, x, y) {
 function drawCropOverlay(ctx) {
   const { width, height } = _annotateCanvas;
   const { x, y, width: cw, height: ch } = _cropRect;
+  const rect = _annotateCanvas.getBoundingClientRect();
+  const scale = _annotateCanvas.width / (rect.width || 1);
 
   ctx.save();
-  ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
 
   // Dim 4 areas outside crop rectangle
   ctx.fillRect(0, 0, width, y);
@@ -1083,13 +1298,28 @@ function drawCropOverlay(ctx) {
   ctx.fillRect(x + cw, y, width - (x + cw), ch);
   ctx.fillRect(0, y + ch, width, height - (y + ch));
 
-  // Crop border
+  // Subtle Rule-of-Thirds Grid inside crop
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+  ctx.lineWidth = Math.max(1, Math.round(1 * scale));
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x + cw / 3, y);
+  ctx.lineTo(x + cw / 3, y + ch);
+  ctx.moveTo(x + (cw * 2) / 3, y);
+  ctx.lineTo(x + (cw * 2) / 3, y + ch);
+  ctx.moveTo(x, y + ch / 3);
+  ctx.lineTo(x + cw, y + ch / 3);
+  ctx.moveTo(x, y + (ch * 2) / 3);
+  ctx.lineTo(x + cw, y + (ch * 2) / 3);
+  ctx.stroke();
+
+  // Crisp dashed crop boundary
   ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 1.8;
-  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = Math.max(1.8, Math.round(1.8 * scale));
+  ctx.setLineDash([Math.round(6 * scale), Math.round(4 * scale)]);
   ctx.strokeRect(x, y, cw, ch);
 
-  // 8 handles
+  // 8 handles (corners + edge centers)
   const handles = [
     { hx: x, hy: y },
     { hx: x + cw / 2, hy: y },
@@ -1110,9 +1340,10 @@ function drawCropOverlay(ctx) {
 // ─── Pointer Event Handlers ──────────────────────────────────────────
 
 function getCanvasCoords(e) {
+  if (!_annotateCanvas) return { x: 0, y: 0 };
   const rect = _annotateCanvas.getBoundingClientRect();
-  const scaleX = _annotateCanvas.width / rect.width;
-  const scaleY = _annotateCanvas.height / rect.height;
+  const scaleX = _annotateCanvas.width / (rect.width || 1);
+  const scaleY = _annotateCanvas.height / (rect.height || 1);
 
   return {
     x: Math.round((e.clientX - rect.left) * scaleX),
@@ -1130,7 +1361,7 @@ function getScreenCoords(canvasX, canvasY) {
   };
 }
 
-function spawnInlineTextInput(canvasX, canvasY) {
+function spawnInlineTextInput(canvasX, canvasY, existingShape = null) {
   if (_textInputOverlay) {
     try {
       if (_textInputOverlay.parentNode) {
@@ -1139,26 +1370,42 @@ function spawnInlineTextInput(canvasX, canvasY) {
     } catch {}
     _textInputOverlay = null;
   }
-  const pos = getScreenCoords(canvasX, canvasY);
+  const targetX = existingShape ? existingShape.x : canvasX;
+  const targetY = existingShape ? existingShape.y : canvasY;
+  const pos = getScreenCoords(targetX, targetY);
+
+  const rect = _annotateCanvas?.getBoundingClientRect();
+  const scale = rect ? rect.width / (_annotateCanvas.width || 1) : 1;
+  const fontMap = { 2: 18, 4.5: 28, 7.5: 40, 12: 56 };
+  const baseFontSize = existingShape ? (existingShape.fontSize || 28) : (fontMap[_currentLineWidth] || 28);
+  const screenFontSize = Math.max(14, Math.round(baseFontSize * scale));
+
   const input = document.createElement("input");
   input.type = "text";
   input.placeholder = "Type text...";
+  if (existingShape) {
+    input.value = existingShape.text;
+  }
   input.style.cssText = `
     position: fixed;
-    left: ${pos.x}px;
-    top: ${pos.y}px;
+    left: ${pos.x - 6}px;
+    top: ${pos.y - 4}px;
     z-index: 2147483649;
     font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 18px;
+    font-size: ${screenFontSize}px;
     font-weight: 700;
-    color: ${_currentColor};
-    background: rgba(18, 18, 24, 0.92);
-    border: 1.5px solid #3B82F6;
-    border-radius: 6px;
-    padding: 4px 8px;
+    line-height: 1.25;
+    color: ${existingShape ? existingShape.color : _currentColor};
+    background: rgba(18, 18, 24, 0.88);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+    border-radius: 8px;
+    padding: 3px 8px;
     outline: none;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.25);
     min-width: 140px;
+    max-width: 90vw;
   `;
   _annotateHost.appendChild(input);
   _textInputOverlay = input;
@@ -1167,18 +1414,30 @@ function spawnInlineTextInput(canvasX, canvasY) {
     if (!input || !input.parentNode) return;
     const val = input.value.trim();
     if (val) {
-      const s = {
-        type: "text",
-        x: canvasX,
-        y: canvasY,
-        text: val,
-        color: _currentColor,
-        fontSize: 24,
-      };
-      _shapes.push(s);
-      _undoStack.push({ type: "add", shape: s });
-      _redoStack = [];
-      _selectedShapeIndex = _shapes.length - 1;
+      if (existingShape) {
+        const prevText = existingShape.text;
+        existingShape.text = val;
+        _undoStack.push({
+          type: "edit-text",
+          shape: existingShape,
+          prevText,
+          nextText: val,
+        });
+        _redoStack = [];
+      } else {
+        const s = {
+          type: "text",
+          x: targetX,
+          y: targetY,
+          text: val,
+          color: _currentColor,
+          fontSize: baseFontSize,
+        };
+        _shapes.push(s);
+        _undoStack.push({ type: "add", shape: s });
+        _redoStack = [];
+        _selectedShapeIndex = _shapes.length - 1;
+      }
       updateHistoryUI();
       renderCanvas();
       selectTool("select");
@@ -1211,18 +1470,12 @@ function spawnInlineTextInput(canvasX, canvasY) {
 
   input.addEventListener("pointerdown", (e) => e.stopPropagation());
 
-  setTimeout(() => input.focus(), 20);
-}
-
-function isNearCanvasEdge(x, y) {
-  if (!_annotateCanvas) return false;
-  const w = _annotateCanvas.width;
-  const h = _annotateCanvas.height;
-  const edgeDist = 18;
-  return (
-    x >= 0 && x <= w && y >= 0 && y <= h &&
-    (x <= edgeDist || x >= w - edgeDist || y <= edgeDist || y >= h - edgeDist)
-  );
+  setTimeout(() => {
+    input.focus();
+    if (existingShape) {
+      input.select();
+    }
+  }, 20);
 }
 
 function onCanvasPointerDown(e) {
@@ -1232,18 +1485,10 @@ function onCanvasPointerDown(e) {
 
   // 1. Crop Mode interactions
   if (_currentTool === "crop" && _cropRect) {
-    const minX = _cropRect.x;
-    const maxX = _cropRect.x + _cropRect.width;
-    const minY = _cropRect.y;
-    const maxY = _cropRect.y + _cropRect.height;
-
-    // Check corner handles
-    if (Math.sqrt(distSq(x, y, minX, minY)) <= 16) _dragAction = "crop-tl";
-    else if (Math.sqrt(distSq(x, y, maxX, minY)) <= 16) _dragAction = "crop-tr";
-    else if (Math.sqrt(distSq(x, y, maxX, maxY)) <= 16) _dragAction = "crop-br";
-    else if (Math.sqrt(distSq(x, y, minX, maxY)) <= 16) _dragAction = "crop-bl";
-    else if (x >= minX && x <= maxX && y >= minY && y <= maxY) _dragAction = "crop-move";
-    else {
+    const action = hitTestCrop(x, y);
+    if (action) {
+      _dragAction = action;
+    } else {
       // Start new crop box
       _cropRect = { x, y, width: 0, height: 0 };
       _dragAction = "crop-new";
@@ -1273,19 +1518,6 @@ function onCanvasPointerDown(e) {
       _dragAction = "move";
       _dragStartPos = { x, y };
       _shapeStartSnapshot = JSON.parse(JSON.stringify(_shapes[_selectedShapeIndex]));
-      _isDrawing = true;
-    } else if (isNearCanvasEdge(x, y)) {
-      // Near edge hover/click in select mode triggers crop mode
-      selectTool("crop");
-      _cropRect = {
-        x: Math.min(x, _annotateCanvas.width - 20),
-        y: Math.min(y, _annotateCanvas.height - 20),
-        width: 0,
-        height: 0,
-      };
-      _dragAction = "crop-new";
-      _dragStartPos = { x, y };
-      _shapeStartSnapshot = { ..._cropRect };
       _isDrawing = true;
     }
     renderCanvas();
@@ -1320,6 +1552,7 @@ function onCanvasPointerDown(e) {
     _redoStack = [];
     updateHistoryUI();
     renderCanvas();
+    // Keep counter tool active so user can stamp 1, 2, 3 consecutively
     return;
   }
 
@@ -1351,25 +1584,42 @@ function onCanvasPointerDown(e) {
 }
 
 function onCanvasPointerMove(e) {
+  const { x, y } = getCanvasCoords(e);
+
   if (!_isDrawing) {
     // Cursor hover update
     if (_currentTool === "crop") {
-      _annotateCanvas.style.cursor = "crosshair";
+      const cropAction = hitTestCrop(x, y);
+      if (cropAction === "crop-tl" || cropAction === "crop-br") {
+        _annotateCanvas.style.cursor = "nwse-resize";
+      } else if (cropAction === "crop-tr" || cropAction === "crop-bl") {
+        _annotateCanvas.style.cursor = "nesw-resize";
+      } else if (cropAction === "crop-t" || cropAction === "crop-b") {
+        _annotateCanvas.style.cursor = "ns-resize";
+      } else if (cropAction === "crop-l" || cropAction === "crop-r") {
+        _annotateCanvas.style.cursor = "ew-resize";
+      } else if (cropAction === "crop-move") {
+        _annotateCanvas.style.cursor = "move";
+      } else {
+        _annotateCanvas.style.cursor = "crosshair";
+      }
+      return;
     } else {
-      const { x, y } = getCanvasCoords(e);
       const handle = hitTestHandles(x, y);
       if (handle) {
         if (handle === "rect-tl" || handle === "rect-br" || handle === "text-br" || handle === "text-tl") {
           _annotateCanvas.style.cursor = "nwse-resize";
         } else if (handle === "rect-tr" || handle === "rect-bl" || handle === "text-tr" || handle === "text-bl") {
           _annotateCanvas.style.cursor = "nesw-resize";
+        } else if (handle === "rect-t" || handle === "rect-b") {
+          _annotateCanvas.style.cursor = "ns-resize";
+        } else if (handle === "rect-l" || handle === "rect-r") {
+          _annotateCanvas.style.cursor = "ew-resize";
         } else {
           _annotateCanvas.style.cursor = "pointer";
         }
       } else if (hitTestShape(x, y) !== -1) {
         _annotateCanvas.style.cursor = "move";
-      } else if (_currentTool === "select" && isNearCanvasEdge(x, y)) {
-        _annotateCanvas.style.cursor = "crosshair";
       } else {
         _annotateCanvas.style.cursor = _currentTool === "select" ? "default" : "crosshair";
       }
@@ -1377,28 +1627,56 @@ function onCanvasPointerMove(e) {
     return;
   }
 
-  const { x, y } = getCanvasCoords(e);
   const dx = x - _dragStartPos.x;
   const dy = y - _dragStartPos.y;
 
-  // Dragging crop
-  if (_currentTool === "crop" && _cropRect) {
-    if (_dragAction === "crop-move" && _shapeStartSnapshot) {
-      _cropRect.x = Math.max(0, Math.min(_annotateCanvas.width - _cropRect.width, _shapeStartSnapshot.x + dx));
-      _cropRect.y = Math.max(0, Math.min(_annotateCanvas.height - _cropRect.height, _shapeStartSnapshot.y + dy));
+  // Dragging crop with all 8 handles supported
+  if (_currentTool === "crop" && _cropRect && _shapeStartSnapshot) {
+    const s = _shapeStartSnapshot;
+    const minSize = 20;
+    const maxW = _annotateCanvas.width;
+    const maxH = _annotateCanvas.height;
+
+    if (_dragAction === "crop-move") {
+      _cropRect.x = Math.max(0, Math.min(maxW - s.width, s.x + dx));
+      _cropRect.y = Math.max(0, Math.min(maxH - s.height, s.y + dy));
     } else if (_dragAction === "crop-new") {
-      _cropRect.width = Math.abs(x - _dragStartPos.x);
-      _cropRect.height = Math.abs(y - _dragStartPos.y);
-      _cropRect.x = Math.min(x, _dragStartPos.x);
-      _cropRect.y = Math.min(y, _dragStartPos.y);
-    } else if (_dragAction === "crop-br" && _shapeStartSnapshot) {
-      _cropRect.width = Math.max(20, _shapeStartSnapshot.width + dx);
-      _cropRect.height = Math.max(20, _shapeStartSnapshot.height + dy);
-    } else if (_dragAction === "crop-tl" && _shapeStartSnapshot) {
-      _cropRect.x = _shapeStartSnapshot.x + dx;
-      _cropRect.y = _shapeStartSnapshot.y + dy;
-      _cropRect.width = Math.max(20, _shapeStartSnapshot.width - dx);
-      _cropRect.height = Math.max(20, _shapeStartSnapshot.height - dy);
+      _cropRect.x = Math.max(0, Math.min(x, _dragStartPos.x));
+      _cropRect.y = Math.max(0, Math.min(y, _dragStartPos.y));
+      _cropRect.width = Math.min(maxW - _cropRect.x, Math.abs(x - _dragStartPos.x));
+      _cropRect.height = Math.min(maxH - _cropRect.y, Math.abs(y - _dragStartPos.y));
+    } else if (_dragAction === "crop-tl") {
+      const newX = Math.max(0, Math.min(s.x + s.width - minSize, s.x + dx));
+      const newY = Math.max(0, Math.min(s.y + s.height - minSize, s.y + dy));
+      _cropRect.width = s.width + (s.x - newX);
+      _cropRect.height = s.height + (s.y - newY);
+      _cropRect.x = newX;
+      _cropRect.y = newY;
+    } else if (_dragAction === "crop-tr") {
+      const newY = Math.max(0, Math.min(s.y + s.height - minSize, s.y + dy));
+      _cropRect.y = newY;
+      _cropRect.height = s.height + (s.y - newY);
+      _cropRect.width = Math.max(minSize, Math.min(maxW - s.x, s.width + dx));
+    } else if (_dragAction === "crop-br") {
+      _cropRect.width = Math.max(minSize, Math.min(maxW - s.x, s.width + dx));
+      _cropRect.height = Math.max(minSize, Math.min(maxH - s.y, s.height + dy));
+    } else if (_dragAction === "crop-bl") {
+      const newX = Math.max(0, Math.min(s.x + s.width - minSize, s.x + dx));
+      _cropRect.x = newX;
+      _cropRect.width = s.width + (s.x - newX);
+      _cropRect.height = Math.max(minSize, Math.min(maxH - s.y, s.height + dy));
+    } else if (_dragAction === "crop-t") {
+      const newY = Math.max(0, Math.min(s.y + s.height - minSize, s.y + dy));
+      _cropRect.y = newY;
+      _cropRect.height = s.height + (s.y - newY);
+    } else if (_dragAction === "crop-b") {
+      _cropRect.height = Math.max(minSize, Math.min(maxH - s.y, s.height + dy));
+    } else if (_dragAction === "crop-l") {
+      const newX = Math.max(0, Math.min(s.x + s.width - minSize, s.x + dx));
+      _cropRect.x = newX;
+      _cropRect.width = s.width + (s.x - newX);
+    } else if (_dragAction === "crop-r") {
+      _cropRect.width = Math.max(minSize, Math.min(maxW - s.x, s.width + dx));
     }
     showCropControls();
     renderCanvas();
@@ -1450,6 +1728,26 @@ function onCanvasPointerMove(e) {
       s.y1 = minY;
       s.x2 = maxX;
       s.y2 = maxY + dy;
+    } else if (_dragAction === "rect-t") {
+      const minY = Math.min(_shapeStartSnapshot.y1, _shapeStartSnapshot.y2);
+      const maxY = Math.max(_shapeStartSnapshot.y1, _shapeStartSnapshot.y2);
+      s.y1 = minY + dy;
+      s.y2 = maxY;
+    } else if (_dragAction === "rect-b") {
+      const minY = Math.min(_shapeStartSnapshot.y1, _shapeStartSnapshot.y2);
+      const maxY = Math.max(_shapeStartSnapshot.y1, _shapeStartSnapshot.y2);
+      s.y1 = minY;
+      s.y2 = maxY + dy;
+    } else if (_dragAction === "rect-l") {
+      const minX = Math.min(_shapeStartSnapshot.x1, _shapeStartSnapshot.x2);
+      const maxX = Math.max(_shapeStartSnapshot.x1, _shapeStartSnapshot.x2);
+      s.x1 = minX + dx;
+      s.x2 = maxX;
+    } else if (_dragAction === "rect-r") {
+      const minX = Math.min(_shapeStartSnapshot.x1, _shapeStartSnapshot.x2);
+      const maxX = Math.max(_shapeStartSnapshot.x1, _shapeStartSnapshot.x2);
+      s.x1 = minX;
+      s.x2 = maxX + dx;
     } else if ((_dragAction === "text-br" || _dragAction === "text-tr") && _shapeStartSnapshot) {
       const origFontSize = _shapeStartSnapshot.fontSize || 24;
       const origBoxW = Math.max(30, _shapeStartSnapshot.width || 120);
@@ -1507,8 +1805,13 @@ function onCanvasPointerUp(e) {
     updateHistoryUI();
     renderCanvas();
 
-    // After drawing one shape, revert tool to select & move (except counter and crop)
-    if (_currentTool !== "select" && _currentTool !== "counter" && _currentTool !== "crop") {
+    // Revert tool to select after drawing one shape (except brush and step badge)
+    if (
+      _currentTool !== "select" &&
+      _currentTool !== "crop" &&
+      _currentTool !== "pen" &&
+      _currentTool !== "counter"
+    ) {
       selectTool("select");
     }
   }
@@ -1520,11 +1823,13 @@ function updateHistoryUI() {
   const canUndo = _undoStack.length > 0;
   const canRedo = _redoStack.length > 0;
   if (_undoBtn) {
-    _undoBtn.style.opacity = canUndo ? "1" : "0.35";
+    _undoBtn.disabled = !canUndo;
+    _undoBtn.classList.toggle("is-disabled", !canUndo);
     _undoBtn.style.pointerEvents = canUndo ? "auto" : "none";
   }
   if (_redoBtn) {
-    _redoBtn.style.opacity = canRedo ? "1" : "0.35";
+    _redoBtn.disabled = !canRedo;
+    _redoBtn.classList.toggle("is-disabled", !canRedo);
     _redoBtn.style.pointerEvents = canRedo ? "auto" : "none";
   }
 }
@@ -1559,6 +1864,9 @@ function handleUndo() {
       _stepCounter--;
     }
     _redoStack.push(op);
+  } else if (op.type === "edit-text") {
+    op.shape.text = op.prevText;
+    _redoStack.push(op);
   } else if (op.type === "delete") {
     _shapes.splice(op.index, 0, op.shape);
     _redoStack.push(op);
@@ -1586,6 +1894,9 @@ function handleRedo() {
     if (op.shape && op.shape.type === "counter") {
       _stepCounter++;
     }
+    _undoStack.push(op);
+  } else if (op.type === "edit-text") {
+    op.shape.text = op.nextText;
     _undoStack.push(op);
   } else if (op.type === "delete") {
     const idx = _shapes.indexOf(op.shape);
@@ -1690,7 +2001,7 @@ async function handleSaveAnnotated() {
   if (!exportCanvas) return;
 
   const blob = await new Promise((res) =>
-    exportCanvas.toBlob(res, mime, 0.98),
+    exportCanvas.toBlob(res, mime, 0.92),
   );
   if (!blob) return;
 
@@ -1776,7 +2087,7 @@ function onAnnotateKeyDown(e) {
     if (k === "v") selectTool("select");
     if (k === "a") selectTool("arrow");
     if (k === "r") selectTool("rect");
-    if (k === "x") selectTool("crop");
+    if (k === "x" || k === "c") selectTool("crop");
     if (k === "s") selectTool("counter");
     if (k === "b") selectTool("blur");
     if (k === "p") selectTool("pen");

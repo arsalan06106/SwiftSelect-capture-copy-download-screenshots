@@ -15,52 +15,59 @@
         --c-glass: #bbbbbc;
         --c-light: #fff;
         --c-dark: #000;
-        --c-content: #e1e1e1;
+        --c-content: #f0f0f3;
         --c-action: #03d5ff;
-        --c-bg: #1b1b1d;
+        --c-bg: #141418;
         --glass-reflex-dark: 1;
         --glass-reflex-light: 1;
-        --saturation: 150%;
+        --saturation: 160%;
       }
 
       html, body {
         margin: 0;
         padding: 0;
-        width: 360px;
-        min-width: 360px;
-        background: transparent;
-        color: var(--c-content, #e1e1e1);
+        width: 384px;
+        min-width: 384px;
+        background: #141418;
+        color: var(--c-content, #f0f0f3);
         font-family: var(--font-stack);
         font-size: 13.5px;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
         user-select: none;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
 
-      @media (min-width: 380px) {
+      @media (min-width: 420px) {
         html, body {
           width: 100%;
           min-height: 100vh;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #0f0f14;
+          background: #0d0d12;
+          padding: 24px;
+          box-sizing: border-box;
         }
         .qs-notice-card {
-          width: 360px;
+          width: 410px;
           margin: auto;
-          box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7);
+          border-radius: 22px !important;
+          border: 1px solid rgba(255, 255, 255, 0.14) !important;
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.22),
+            0 24px 64px rgba(0, 0, 0, 0.7) !important;
         }
       }
 
-      /* Seamless Liquid Glass Container matching main menu tooltip */
+      /* Authentic SwiftSelect Liquid Glass Card */
       .qs-notice-card {
         position: relative;
         box-sizing: border-box;
         width: 100%;
         min-height: 100%;
-        padding: 16px 18px 14px 18px;
+        padding: 22px 24px 20px 24px;
         border-radius: 0;
         border: none;
         display: flex;
@@ -68,215 +75,234 @@
         overflow: hidden;
 
         /* Unified Liquid Glass dark background matching tooltip */
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 14%, rgba(18, 18, 22, 0.96));
-        backdrop-filter: blur(20px) saturate(var(--saturation, 160%));
-        -webkit-backdrop-filter: blur(20px) saturate(var(--saturation, 160%));
+        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 14%, rgba(18, 18, 22, 0.97));
+        backdrop-filter: blur(24px) saturate(var(--saturation, 160%));
+        -webkit-backdrop-filter: blur(24px) saturate(var(--saturation, 160%));
         box-shadow:
           inset 0 0 0 1px rgba(255, 255, 255, 0.12),
           inset 1px 1.5px 0px -1px rgba(255, 255, 255, 0.75),
           inset -1px -1px 0px -1px rgba(0, 0, 0, 0.25),
-          0px 8px 24px rgba(0, 0, 0, 0.55);
+          0px 12px 32px rgba(0, 0, 0, 0.6);
       }
 
       /* Subtle Ambient Glow */
       .qs-notice-glow {
         position: absolute;
-        top: -30px;
-        left: -30px;
-        width: 120px;
-        height: 120px;
+        top: -40px;
+        left: -40px;
+        width: 150px;
+        height: 150px;
         border-radius: 50%;
         pointer-events: none;
-        opacity: 0.25;
-        filter: blur(36px);
+        opacity: 0.35;
+        filter: blur(44px);
         z-index: 0;
       }
       .qs-notice-glow.warning {
-        background: rgba(186, 75, 92, 0.5);
+        background: rgba(239, 68, 68, 0.55);
       }
       .qs-notice-glow.file {
-        background: rgba(245, 158, 11, 0.5);
+        background: rgba(245, 158, 11, 0.55);
       }
       .qs-notice-glow.settings {
-        background: rgba(3, 213, 255, 0.4);
+        background: rgba(3, 213, 255, 0.45);
       }
       .qs-notice-glow.help {
-        background: rgba(139, 92, 246, 0.4);
+        background: rgba(167, 139, 250, 0.45);
       }
 
-      /* Header Row matching tooltip header */
+      /* Header Row with breathing room */
       .qs-notice-header {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
         position: relative;
         z-index: 1;
-        margin-bottom: 2px;
+        margin-bottom: 14px;
       }
 
       .qs-notice-icon-wrapper {
-        width: 28px;
-        height: 28px;
-        border-radius: 4px;
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+        transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
+      }
+      .qs-notice-icon-wrapper svg {
+        width: 18px;
+        height: 18px;
       }
 
       .qs-notice-icon-wrapper.warning {
-        background: rgba(186, 75, 92, 0.2);
-        color: #e26d7f;
-        border: 1px solid rgba(186, 75, 92, 0.4);
+        background: rgba(239, 68, 68, 0.16);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.16);
       }
 
       .qs-notice-icon-wrapper.file {
-        background: rgba(245, 158, 11, 0.2);
-        color: #F59E0B;
-        border: 1px solid rgba(245, 158, 11, 0.4);
+        background: rgba(245, 158, 11, 0.16);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.16);
       }
 
       .qs-notice-icon-wrapper.settings {
-        background: rgba(3, 213, 255, 0.18);
+        background: rgba(3, 213, 255, 0.16);
         color: #03d5ff;
         border: 1px solid rgba(3, 213, 255, 0.35);
+        box-shadow: 0 4px 14px rgba(3, 213, 255, 0.16);
       }
 
       .qs-notice-icon-wrapper.help {
-        background: rgba(139, 92, 246, 0.18);
-        color: #A78BFA;
-        border: 1px solid rgba(139, 92, 246, 0.35);
+        background: rgba(167, 139, 250, 0.16);
+        color: #c4b5fd;
+        border: 1px solid rgba(167, 139, 250, 0.35);
+        box-shadow: 0 4px 14px rgba(167, 139, 250, 0.16);
       }
 
+      /* Rounded Pill Badge */
       .qs-notice-badge {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+        font-family: inherit;
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.3px;
-        padding: 3px 8px;
-        border-radius: 4px;
+        padding: 4px 12px;
+        border-radius: 999px;
         background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        color: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.95);
         line-height: 1.2;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
       }
 
+      /* Circular Liquid Glass Close Button */
       .qs-notice-close {
         margin-left: auto;
-        width: 26px;
-        height: 26px;
-        border-radius: 4px;
-        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(255, 255, 255, 0.06);
         color: rgba(255, 255, 255, 0.65);
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.15s ease;
+        transition: all 0.16s ease;
         padding: 0;
       }
       .qs-notice-close:hover {
-        background: rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.18);
         color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.25);
+        transform: scale(1.06);
+      }
+      .qs-notice-close:active {
+        transform: scale(0.94);
       }
 
-      /* Notice Content matching tooltip typography */
+      /* Notice Content matching tooltip typography & breathing room */
       .qs-notice-body {
         position: relative;
         z-index: 1;
         text-align: left;
+        margin-bottom: 14px;
       }
 
       .qs-notice-title {
-        font-size: 14.5px;
+        font-size: 16px;
         font-weight: 700;
-        letter-spacing: -0.25px;
-        margin: 8px 0 3px 0;
+        letter-spacing: -0.3px;
+        margin: 0 0 6px 0;
         color: #ffffff;
         line-height: 1.35;
       }
 
       .qs-notice-desc {
-        font-size: 12.5px;
-        line-height: 1.48;
+        font-size: 13px;
+        line-height: 1.5;
         color: rgba(255, 255, 255, 0.78);
-        margin: 0 0 12px 0;
+        margin: 0;
       }
 
-      /* Tip Card matching clean structured tooltip container */
+      /* Organic Liquid Glass Tip Callout */
       .qs-notice-tip {
         position: relative;
         z-index: 1;
         background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 4px;
-        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 12px;
+        padding: 11px 14px;
         font-size: 12px;
-        line-height: 1.45;
+        line-height: 1.5;
         display: flex;
         align-items: flex-start;
-        gap: 8px;
+        gap: 10px;
         text-align: left;
-        color: rgba(255, 255, 255, 0.78);
-        margin-bottom: 12px;
+        color: rgba(255, 255, 255, 0.82);
+        margin-bottom: 14px;
         box-sizing: border-box;
       }
 
       .qs-tip-icon {
         flex-shrink: 0;
         color: #03d5ff;
-        font-size: 13px;
+        font-size: 14px;
         line-height: 1.3;
       }
 
-      /* Quick Preferences Panel with crisp 4px corners */
+      /* Quick Preferences Panel with curved cards and pill buttons */
       .qs-quick-prefs {
         position: relative;
         z-index: 1;
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        padding: 10px 12px;
-        border-radius: 4px;
-        background: rgba(0, 0, 0, 0.32);
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.35);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
-        margin-bottom: 12px;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        margin-bottom: 16px;
       }
 
       .qs-pref-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
+        gap: 10px;
       }
 
       .qs-pref-label {
-        font-size: 11.5px;
-        font-weight: 700;
-        color: rgba(255, 255, 255, 0.78);
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.85);
+        white-space: nowrap;
       }
 
       .qs-segmented-toggle {
         display: flex;
-        padding: 2px;
+        padding: 3px;
         background: rgba(0, 0, 0, 0.45);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 4px;
-        gap: 2px;
+        border-radius: 999px;
+        gap: 3px;
       }
 
       .qs-toggle-btn {
         all: initial;
         font-family: inherit;
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 600;
-        padding: 4px 8px;
-        border-radius: 3px;
+        padding: 4px 10px;
+        border-radius: 999px;
         cursor: pointer;
         color: rgba(255, 255, 255, 0.65);
-        transition: all 0.15s ease;
+        transition: all 0.16s ease;
         text-align: center;
         white-space: nowrap !important;
         flex: 1;
@@ -285,7 +311,7 @@
         background: #ffffff;
         color: #121216;
         font-weight: 700;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 1.5px 5px rgba(0, 0, 0, 0.35);
       }
       .qs-toggle-btn:hover:not(.active) {
         color: #ffffff;
@@ -298,36 +324,37 @@
         z-index: 1;
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        padding: 10px 12px;
-        border-radius: 4px;
-        background: rgba(0, 0, 0, 0.32);
+        gap: 8px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.35);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
-        margin-bottom: 12px;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        margin-bottom: 16px;
       }
 
       .qs-shortcut-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-size: 11.5px;
-        color: rgba(255, 255, 255, 0.82);
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.85);
       }
 
       .qs-kbd {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-        font-size: 10.5px;
+        font-size: 11px;
         font-weight: 700;
-        padding: 2.5px 7px;
-        border-radius: 3px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.16);
+        padding: 2.5px 8px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.18);
         color: #ffffff;
-        line-height: 1.1;
+        line-height: 1.2;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
       }
 
-      /* Action Button - Liquid Glass with crisp 4px corners */
+      /* Authentic SwiftSelect Liquid Glass Action Button */
       .qs-notice-btn {
         position: relative;
         z-index: 1;
@@ -336,51 +363,61 @@
         justify-content: center;
         gap: 8px;
         width: 100%;
-        height: 36px;
-        padding: 0 14px;
-        border-radius: 4px;
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        font-size: 12.5px;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: none;
+        font-size: 13px;
         font-weight: 700;
         font-family: inherit;
         cursor: pointer;
         box-sizing: border-box;
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 30%, transparent);
+        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 32%, transparent);
         color: #ffffff;
         box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.35),
-          0px 2px 6px rgba(0, 0, 0, 0.3);
-        transition: transform 140ms ease, background-color 150ms ease;
+          inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+          inset 1.5px 2px 0px -1px rgba(255, 255, 255, 0.8),
+          inset -1px -1px 0px -1px rgba(0, 0, 0, 0.3),
+          0px 4px 14px rgba(0, 0, 0, 0.35);
+        transition: transform 140ms ease, background-color 150ms ease, box-shadow 150ms ease;
       }
       .qs-notice-btn:hover {
         background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 45%, transparent);
-        transform: translateY(-1px);
+        transform: translateY(-1px) scale(1.01);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+          inset 2px 2px 0px -1px rgba(255, 255, 255, 0.95),
+          0px 6px 18px rgba(0, 0, 0, 0.45);
       }
       .qs-notice-btn:active {
         transform: scale(0.98);
+        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 50%, transparent);
       }
 
-      /* Quick Sub Action Buttons with crisp 4px corners */
+      /* Quick Sub Action Buttons */
       .qs-quick-actions-row {
         position: relative;
         z-index: 1;
         display: flex;
         gap: 8px;
-        margin-top: 6px;
+        margin-top: 8px;
         width: 100%;
       }
       .qs-notice-sub-btn {
         all: initial;
         font-family: inherit;
-        font-size: 11.5px;
+        font-size: 12px;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.85);
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 22%, transparent);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
-        border-radius: 4px;
-        height: 32px;
-        padding: 0 10px;
+        color: rgba(255, 255, 255, 0.9);
+        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 24%, transparent);
+        border: none;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+          inset 1px 1.5px 0 -1px rgba(255, 255, 255, 0.6),
+          0 2px 6px rgba(0, 0, 0, 0.25);
+        border-radius: 999px;
+        height: 36px;
+        padding: 0 12px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -388,12 +425,16 @@
         flex: 1;
         cursor: pointer;
         box-sizing: border-box;
-        transition: transform 140ms ease, background-color 150ms ease, color 150ms ease;
+        transition: transform 140ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
       }
       .qs-notice-sub-btn:hover {
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 36%, transparent);
+        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 38%, transparent);
         color: #ffffff;
         transform: translateY(-1px);
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+          inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.8),
+          0 4px 10px rgba(0, 0, 0, 0.35);
       }
       .qs-notice-sub-btn:active {
         transform: scale(0.98);
@@ -403,9 +444,9 @@
       .qs-notice-footer {
         position: relative;
         z-index: 1;
-        margin-top: 10px;
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.55);
+        margin-top: 14px;
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.58);
         text-align: center;
         display: flex;
         align-items: center;
@@ -414,12 +455,12 @@
       }
       .qs-notice-footer kbd {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-        font-size: 10px;
+        font-size: 10.5px;
         font-weight: 700;
-        padding: 2px 5px;
-        border-radius: 3px;
+        padding: 2px 6px;
+        border-radius: 5px;
         background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.16);
         color: #ffffff;
         line-height: 1;
       }

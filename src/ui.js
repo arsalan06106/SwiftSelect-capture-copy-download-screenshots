@@ -534,20 +534,29 @@ export function hideCustomTooltip() {
   }
 }
 
-export function showCustomTooltip(btn, title, desc, key) {
-  if (!guideShadow || !btn) return;
-  if (!menuTooltipEl) {
+export function showCustomTooltip(btn, title, desc = "", key = "", host = null) {
+  if (!btn) return;
+  const parent = host || guideShadow || document.getElementById("swiftselect-annotate-root") || document.body;
+  if (!parent) return;
+
+  if (!menuTooltipEl || !menuTooltipEl.isConnected || menuTooltipEl.parentNode !== parent) {
+    if (menuTooltipEl && menuTooltipEl.parentNode) {
+      menuTooltipEl.parentNode.removeChild(menuTooltipEl);
+    }
     menuTooltipEl = document.createElement("div");
     menuTooltipEl.className = "qs-custom-tooltip";
-    guideShadow.appendChild(menuTooltipEl);
+    parent.appendChild(menuTooltipEl);
   }
+
+  const isCompact = !desc;
+  menuTooltipEl.classList.toggle("qs-tooltip-compact", isCompact);
 
   menuTooltipEl.innerHTML = `
     <div class="qs-tooltip-header">
       <span class="qs-tooltip-title">${title}</span>
       ${key ? `<span class="qs-tooltip-key">${key}</span>` : ""}
     </div>
-    <div class="qs-tooltip-desc">${desc}</div>
+    ${desc ? `<div class="qs-tooltip-desc">${desc}</div>` : ""}
   `;
 
   applyElementTheme(menuTooltipEl, currentUserTheme);
@@ -555,13 +564,18 @@ export function showCustomTooltip(btn, title, desc, key) {
 
   const btnRect = btn.getBoundingClientRect();
   const actualRect = menuTooltipEl.getBoundingClientRect();
-  const tipWidth = actualRect.width || 250;
+  const tipWidth = actualRect.width || (isCompact ? 140 : 250);
 
   let left = btnRect.left + btnRect.width / 2;
-  const top = btnRect.bottom + 12;
+  let top = btnRect.bottom + 10;
 
-  const minLeft = tipWidth / 2 + 16;
-  const maxLeft = window.innerWidth - tipWidth / 2 - 16;
+  // Flip above button if near the bottom of viewport
+  if (top + (actualRect.height || 40) > window.innerHeight - 10) {
+    top = Math.max(10, btnRect.top - (actualRect.height || 40) - 10);
+  }
+
+  const minLeft = tipWidth / 2 + 12;
+  const maxLeft = window.innerWidth - tipWidth / 2 - 12;
   left = Math.max(minLeft, Math.min(maxLeft, left));
 
   menuTooltipEl.style.left = `${Math.round(left)}px`;
@@ -572,12 +586,13 @@ export function showCustomTooltip(btn, title, desc, key) {
   });
 }
 
-function attachTooltip(btn, title, desc, key) {
+export function attachTooltip(btn, title, desc, key, delayMs = 1600, host = null) {
+  if (!btn) return;
   btn.addEventListener("pointerenter", () => {
     hideCustomTooltip();
     tooltipTimer = setTimeout(() => {
-      showCustomTooltip(btn, title, desc, key);
-    }, 1600);
+      showCustomTooltip(btn, title, desc, key, host);
+    }, delayMs);
   });
   btn.addEventListener("pointerleave", hideCustomTooltip);
   btn.addEventListener("pointerdown", hideCustomTooltip);
@@ -1110,7 +1125,7 @@ export async function hideUiForCapture() {
   }
 
   await new Promise((r) => requestAnimationFrame(r));
-  await new Promise((r) => setTimeout(r, 100));
+  await new Promise((r) => requestAnimationFrame(r));
 }
 
 export function cleanup(preserveStatus = false) {
