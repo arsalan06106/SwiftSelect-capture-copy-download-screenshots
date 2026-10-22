@@ -569,6 +569,9 @@ export async function captureStream({
     if (typeof window.SwiftSelect.ui.releaseFreeze === "function") {
       window.SwiftSelect.ui.releaseFreeze();
     }
+    if (typeof window.SwiftSelect.ui.removeFlash === "function") {
+      window.SwiftSelect.ui.removeFlash();
+    }
 
     const tCursor =
       "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=), auto";
@@ -598,15 +601,48 @@ export async function captureStream({
     });
 
     if (_abortCapture || result?.abort) throw new Error("Capture Aborted");
-    if (!result || !result.success)
+    if (!result || !result.success) {
       throw new Error(result?.error || `${label} capture failed`);
+    }
 
-    const response = await fetch(result.blobUrl);
-    const blob = await response.blob();
+    function dataUrlToBlob(dataUrl) {
+      try {
+        const parts = dataUrl.split(",");
+        const mime = parts[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
+      } catch (e) {
+        console.warn("dataUrlToBlob failed:", e);
+        return null;
+      }
+    }
+
+    let blob = null;
+    if (result.dataUrl) {
+      blob = dataUrlToBlob(result.dataUrl);
+    }
+    if (!blob && result.blobUrl) {
+      try {
+        const response = await fetch(result.blobUrl);
+        blob = await response.blob();
+      } catch (err) {
+        console.warn("fetch blobUrl failed:", err);
+      }
+    }
+
+    if (!blob) throw new Error("Could not process captured full-page image");
     setLastBlob(blob, fileExt);
 
-    // Revoke now that we've fetched the blob into memory (as a Blob object)
-    URL.revokeObjectURL(result.blobUrl);
+    if (result.blobUrl) {
+      try {
+        URL.revokeObjectURL(result.blobUrl);
+      } catch {}
+    }
 
     window.SwiftSelect.ui.updateBadge("✓", "#10B981");
     if (btn) {

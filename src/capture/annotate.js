@@ -24,7 +24,11 @@ let _textInputOverlay = null;
 let _currentTool = "pen"; // 'pen' (Brush) is default active tool | 'select' | 'arrow' | 'rect' | 'counter' | 'blur' | 'text' | 'crop'
 let _currentColor = "#FF3333"; // Vivid High-Visibility Red
 let _currentLineWidth = 7.5; // 3rd size is default
+let _currentOpacity = 1.0;
 let _stepCounter = 1;
+let _strokePopoverEl = null;
+let _tuneBtn = null;
+let _closePopoverHandler = null;
 
 let _isDrawing = false;
 let _activeShape = null;
@@ -38,6 +42,8 @@ let _shapeStartSnapshot = null;
 // Crop State
 let _cropRect = null; // { x, y, width, height }
 let _cropControlsEl = null;
+let _cropAspectRatioKey = "free";
+let _cropAspectRatio = null;
 
 let _undoBtn = null;
 let _redoBtn = null;
@@ -53,6 +59,16 @@ const PALETTE = [
   "#8B5CF6", // Purple
   "#FFFFFF", // Pure White
 ];
+
+// High-DPI Custom Pen/Brush SVG Cursor (Tip at 2, 22)
+const BRUSH_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M18 2.5l3.5 3.5-12 12H6v-3.5L18 2.5z' fill='%23ffffff' stroke='%23111111' stroke-width='1.5' stroke-linejoin='round'/%3E%3Ccircle cx='5.5' cy='18.5' r='1.5' fill='%23BA4B5C'/%3E%3Cpath d='M2 22l3.5-3.5' stroke='%23111111' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") 2 22, crosshair`;
+
+function getToolCursor(tool = _currentTool) {
+  if (tool === "select") return "default";
+  if (tool === "pen") return BRUSH_CURSOR;
+  if (tool === "text") return "text";
+  return "crosshair";
+}
 
 const COLOR_NAMES = {
   "#FF3333": "Vivid Red",
@@ -138,6 +154,7 @@ export async function openAnnotationEditor(source) {
     }
 
     // First time opening annotate editor without prior capture: use visible area view as default source
+    await window.SwiftSelect?.ui?.hideUiForCapture?.();
     const snap = await new Promise((resolve) => {
       const timer = setTimeout(() => resolve(null), 4000);
       try {
@@ -236,6 +253,9 @@ function selectTool(toolId) {
   if (_cropBtn) {
     _cropBtn.classList.toggle("active", _currentTool === "crop");
   }
+  if (_annotateCanvas) {
+    _annotateCanvas.style.cursor = getToolCursor(_currentTool);
+  }
   renderCanvas();
 }
 
@@ -257,7 +277,9 @@ function buildAnnotationUI() {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(10, 10, 14, 0.55);
+    background: rgba(10, 10, 14, 0.82);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
     user-select: none;
     font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: #e1e1e1;
@@ -396,11 +418,54 @@ function buildAnnotationUI() {
   };
   toolbar.appendChild(_cropBtn);
 
-  // Stroke Width Selector Capsule (4 sizes, 3rd default)
+  // Stroke Width Selector Capsule (4 sizes, 3rd default + custom tune button)
   const strokeGroup = document.createElement("div");
   strokeGroup.className = "qs-stroke-capsule";
 
-  const fontMap = { 2: 18, 4.5: 28, 7.5: 40, 12: 56 };
+  function getScaledFontSize(width) {
+    return Math.round(14 + width * 3.5);
+  }
+
+  function updateStrokeUI() {
+    strokeGroup.querySelectorAll("button[data-stroke]").forEach((b) => {
+      const act = Number(b.dataset.stroke) === _currentLineWidth;
+      b.style.background = act ? "rgba(255,255,255,0.24)" : "transparent";
+      b.style.borderColor = act ? "rgba(255,255,255,0.45)" : "transparent";
+      b.style.boxShadow = act ? "0 0 0 1.5px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.4)" : "none";
+      const d = b.querySelector("div");
+      if (d) d.style.opacity = act ? "1" : "0.55";
+    });
+    const isPreset = STROKE_WIDTHS.some((sw) => sw.width === _currentLineWidth);
+    const isPopoverOpen = _strokePopoverEl && _strokePopoverEl.style.display !== "none";
+    if (_tuneBtn) {
+      const tuneAct = isPopoverOpen || !isPreset;
+      _tuneBtn.style.background = tuneAct ? "rgba(255,255,255,0.24)" : "transparent";
+      _tuneBtn.style.borderColor = tuneAct ? "rgba(255,255,255,0.45)" : "transparent";
+      _tuneBtn.style.boxShadow = tuneAct ? "0 0 0 1.5px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.4)" : "none";
+    }
+  }
+
+  function applyLineWidth(width) {
+    _currentLineWidth = width;
+    if (_selectedShapeIndex !== -1 && _shapes[_selectedShapeIndex]) {
+      _shapes[_selectedShapeIndex].lineWidth = width;
+      if (_shapes[_selectedShapeIndex].type === "text") {
+        _shapes[_selectedShapeIndex].fontSize = getScaledFontSize(width);
+      }
+      renderCanvas();
+    }
+    syncPopoverControls();
+    updateStrokeUI();
+  }
+
+  function applyOpacity(opacity) {
+    _currentOpacity = opacity;
+    if (_selectedShapeIndex !== -1 && _shapes[_selectedShapeIndex]) {
+      _shapes[_selectedShapeIndex].opacity = opacity;
+      renderCanvas();
+    }
+    syncPopoverControls();
+  }
 
   STROKE_WIDTHS.forEach((sw) => {
     const sBtn = document.createElement("button");
@@ -436,25 +501,139 @@ function buildAnnotationUI() {
     sBtn.onclick = (e) => {
       e?.stopPropagation?.();
       hideCustomTooltip();
-      _currentLineWidth = sw.width;
-      if (_selectedShapeIndex !== -1 && _shapes[_selectedShapeIndex]) {
-        _shapes[_selectedShapeIndex].lineWidth = sw.width;
-        if (_shapes[_selectedShapeIndex].type === "text") {
-          _shapes[_selectedShapeIndex].fontSize = fontMap[sw.width] || 28;
-        }
-        renderCanvas();
-      }
-      strokeGroup.querySelectorAll("button").forEach((b) => {
-        const act = Number(b.dataset.stroke) === _currentLineWidth;
-        b.style.background = act ? "rgba(255,255,255,0.24)" : "transparent";
-        b.style.borderColor = act ? "rgba(255,255,255,0.45)" : "transparent";
-        b.style.boxShadow = act ? "0 0 0 1.5px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.4)" : "none";
-        const d = b.querySelector("div");
-        if (d) d.style.opacity = act ? "1" : "0.55";
-      });
+      applyLineWidth(sw.width);
     };
     strokeGroup.appendChild(sBtn);
   });
+
+  // 5th Button: Custom Stroke Slider & Popover Trigger
+  const tuneBtn = document.createElement("button");
+  tuneBtn.className = "qs-stroke-tune-btn";
+  tuneBtn.style.cssText = `
+    all: initial;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    color: #ffffff;
+  `;
+  tuneBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+      <line x1="4" y1="21" x2="4" y2="14"/>
+      <line x1="4" y1="10" x2="4" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12" y2="3"/>
+      <line x1="20" y1="21" x2="20" y2="16"/>
+      <line x1="20" y1="12" x2="20" y2="3"/>
+      <line x1="1" y1="14" x2="7" y2="14"/>
+      <line x1="9" y1="8" x2="15" y2="8"/>
+      <line x1="17" y1="16" x2="23" y2="16"/>
+    </svg>
+  `;
+  attachTooltip(tuneBtn, "Stroke & Style Options", "", "Slider", 200, _annotateHost);
+  _tuneBtn = tuneBtn;
+  strokeGroup.appendChild(tuneBtn);
+
+  // Floating Popover Card
+  const popover = document.createElement("div");
+  popover.className = "qs-stroke-popover";
+  popover.style.display = "none";
+
+  // Completely isolate popover from canvas and host drag/pointer listeners
+  ["pointerdown", "pointermove", "pointerup", "mousedown", "mousemove", "mouseup", "touchstart", "touchmove", "touchend", "click"].forEach((evt) => {
+    popover.addEventListener(evt, (e) => e.stopPropagation());
+  });
+
+  popover.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+      <span style="font-size: 11.5px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">Stroke &amp; Style</span>
+      <span class="qs-popover-width-val" style="font-size: 10.5px; font-weight: 700; color: #ffffff; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.22); padding: 2px 7px; border-radius: 999px;">${_currentLineWidth}px</span>
+    </div>
+
+    <div class="qs-slider-group">
+      <div class="qs-slider-header">
+        <span>Thickness</span>
+        <span>1px – 72px</span>
+      </div>
+      <input type="range" class="qs-popover-slider-width" min="1" max="72" step="0.5" value="${_currentLineWidth}">
+    </div>
+
+    <div style="background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; height: 26px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0 12px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);">
+      <div class="qs-popover-preview-line" style="height: ${Math.min(20, Math.max(1, _currentLineWidth))}px; width: 100%; border-radius: 999px; background: ${_currentColor}; opacity: ${_currentOpacity}; transition: height 0.08s ease, opacity 0.08s ease, background-color 0.1s ease;"></div>
+    </div>
+
+    <div class="qs-slider-group">
+      <div class="qs-slider-header">
+        <span>Opacity (Highlight)</span>
+        <span class="qs-popover-opacity-val">${Math.round(_currentOpacity * 100)}%</span>
+      </div>
+      <input type="range" class="qs-popover-slider-opacity" min="10" max="100" step="5" value="${Math.round(_currentOpacity * 100)}">
+    </div>
+  `;
+
+  strokeGroup.appendChild(popover);
+  _strokePopoverEl = popover;
+
+  const widthValEl = popover.querySelector(".qs-popover-width-val");
+  const widthSlider = popover.querySelector(".qs-popover-slider-width");
+  const previewLine = popover.querySelector(".qs-popover-preview-line");
+  const opacityValEl = popover.querySelector(".qs-popover-opacity-val");
+  const opacitySlider = popover.querySelector(".qs-popover-slider-opacity");
+
+  function syncPopoverControls() {
+    if (previewLine) {
+      previewLine.style.height = `${Math.min(20, Math.max(1, _currentLineWidth))}px`;
+      previewLine.style.background = _currentColor;
+      previewLine.style.opacity = String(_currentOpacity);
+    }
+    if (widthValEl) widthValEl.textContent = `${_currentLineWidth}px`;
+    if (widthSlider) widthSlider.value = String(_currentLineWidth);
+    if (opacityValEl) opacityValEl.textContent = `${Math.round(_currentOpacity * 100)}%`;
+    if (opacitySlider) opacitySlider.value = String(Math.round(_currentOpacity * 100));
+  }
+
+  widthSlider.addEventListener("input", (e) => {
+    applyLineWidth(parseFloat(e.target.value));
+  });
+
+  opacitySlider.addEventListener("input", (e) => {
+    applyOpacity(parseInt(e.target.value, 10) / 100);
+  });
+
+  tuneBtn.onclick = (e) => {
+    e?.stopPropagation?.();
+    hideCustomTooltip();
+    const isVisible = popover.style.display !== "none";
+    if (isVisible) {
+      popover.style.display = "none";
+    } else {
+      syncPopoverControls();
+      popover.style.display = "flex";
+    }
+    updateStrokeUI();
+  };
+
+  if (_closePopoverHandler) {
+    window.removeEventListener("pointerdown", _closePopoverHandler);
+  }
+  _closePopoverHandler = (e) => {
+    if (_strokePopoverEl && _strokePopoverEl.style.display !== "none") {
+      if (!strokeGroup.contains(e.target)) {
+        _strokePopoverEl.style.display = "none";
+        updateStrokeUI();
+      }
+    }
+  };
+  window.addEventListener("pointerdown", _closePopoverHandler);
+
   toolbar.appendChild(strokeGroup);
 
   // Palette Swatches & Custom Color Picker (No divider)
@@ -690,9 +869,15 @@ function buildAnnotationUI() {
 
   _annotateCanvas = document.createElement("canvas");
   _annotateCanvas.style.cssText = `
-    box-shadow: 0 25px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.14);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.28),
+      0 0 0 3.5px #ffffff,
+      0 0 0 4.5px rgba(0, 0, 0, 0.35),
+      0 16px 48px -6px rgba(0, 0, 0, 0.75),
+      0 32px 80px -10px rgba(0, 0, 0, 0.85);
     border-radius: 12px;
-    cursor: crosshair;
+    overflow: hidden;
+    cursor: ${getToolCursor(_currentTool)};
     max-width: 95vw;
     max-height: 85vh;
     object-fit: contain;
@@ -756,7 +941,56 @@ function initCropRect() {
     width: _annotateCanvas.width - margin * 2,
     height: _annotateCanvas.height - margin * 2,
   };
+  _cropAspectRatioKey = "free";
+  _cropAspectRatio = null;
   showCropControls();
+}
+
+function setCropRatio(ratioKey) {
+  const ratioMap = {
+    free: null,
+    "16:9": 16 / 9,
+    "4:3": 4 / 3,
+    "1:1": 1 / 1,
+    "3:2": 3 / 2,
+    "9:16": 9 / 16,
+  };
+  _cropAspectRatioKey = ratioKey;
+  _cropAspectRatio = ratioMap[ratioKey] ?? null;
+
+  if (_cropAspectRatio && _annotateCanvas && _cropRect) {
+    const cw = _annotateCanvas.width;
+    const ch = _annotateCanvas.height;
+    let targetW = Math.min(_cropRect.width, cw * 0.95);
+    let targetH = targetW / _cropAspectRatio;
+    if (targetH > ch * 0.95) {
+      targetH = ch * 0.95;
+      targetW = targetH * _cropAspectRatio;
+    }
+    const cx = _cropRect.x + _cropRect.width / 2;
+    const cy = _cropRect.y + _cropRect.height / 2;
+    let newX = Math.round(cx - targetW / 2);
+    let newY = Math.round(cy - targetH / 2);
+    newX = Math.max(0, Math.min(cw - targetW, newX));
+    newY = Math.max(0, Math.min(ch - targetH, newY));
+    _cropRect = {
+      x: newX,
+      y: newY,
+      width: Math.round(targetW),
+      height: Math.round(targetH),
+    };
+    renderCanvas();
+  }
+
+  if (_cropControlsEl) {
+    _cropControlsEl.querySelectorAll(".qs-crop-ratio-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.ratio === ratioKey);
+    });
+    const dimValEl = _cropControlsEl.querySelector(".qs-crop-dim-val");
+    if (dimValEl && _cropRect) {
+      dimValEl.textContent = `${Math.round(_cropRect.width)} × ${Math.round(_cropRect.height)}`;
+    }
+  }
 }
 
 function showCropControls() {
@@ -779,6 +1013,14 @@ function showCropControls() {
           <span class="qs-crop-dim-val">${Math.round(_cropRect.width)} × ${Math.round(_cropRect.height)}</span>
           <span class="qs-crop-unit">PX</span>
         </span>
+      </div>
+      <div class="qs-crop-ratios">
+        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === 'free' ? 'active' : ''}" data-ratio="free">Free</button>
+        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '16:9' ? 'active' : ''}" data-ratio="16:9">16:9</button>
+        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '4:3' ? 'active' : ''}" data-ratio="4:3">4:3</button>
+        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '1:1' ? 'active' : ''}" data-ratio="1:1">1:1</button>
+        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '3:2' ? 'active' : ''}" data-ratio="3:2">3:2</button>
+        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '9:16' ? 'active' : ''}" data-ratio="9:16">9:16</button>
       </div>
       <div class="qs-crop-actions">
         <button class="qs-guide-btn pill qs-crop-apply-btn">
@@ -803,6 +1045,13 @@ function showCropControls() {
     attachTooltip(applyBtn, "Apply Crop", "", "Enter", 200, _annotateHost);
     attachTooltip(cancelBtn, "Cancel Crop", "", "Esc", 200, _annotateHost);
 
+    _cropControlsEl.querySelectorAll(".qs-crop-ratio-btn").forEach((btn) => {
+      btn.onclick = (e) => {
+        e?.stopPropagation?.();
+        setCropRatio(btn.dataset.ratio);
+      };
+    });
+
     applyBtn.onclick = (e) => {
       e?.stopPropagation?.();
       hideCustomTooltip();
@@ -821,6 +1070,9 @@ function showCropControls() {
     if (dimValEl) {
       dimValEl.textContent = `${Math.round(_cropRect.width)} × ${Math.round(_cropRect.height)}`;
     }
+    _cropControlsEl.querySelectorAll(".qs-crop-ratio-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.ratio === _cropAspectRatioKey);
+    });
   }
 }
 
@@ -829,6 +1081,8 @@ function hideCropControls() {
     _cropControlsEl.remove();
     _cropControlsEl = null;
   }
+  _cropAspectRatioKey = "free";
+  _cropAspectRatio = null;
 }
 
 async function applyCrop() {
@@ -1066,6 +1320,9 @@ function renderCanvas() {
 
 function drawShape(ctx, s, isSelected = false) {
   ctx.save();
+  if (typeof s.opacity === "number") {
+    ctx.globalAlpha = s.opacity;
+  }
 
   if (s.type === "arrow") {
     ctx.strokeStyle = s.color;
@@ -1076,9 +1333,9 @@ function drawShape(ctx, s, isSelected = false) {
     const angle = Math.atan2(s.y2 - s.y1, s.x2 - s.x1);
     const headLen = Math.max(16, lw * 3.8);
 
-    // Stop line before the tip under the arrowhead so NO circular cap pokes through
-    const shaftEndX = s.x2 - headLen * 0.72 * Math.cos(angle);
-    const shaftEndY = s.y2 - headLen * 0.72 * Math.sin(angle);
+    // Extend shaft line securely inside the arrowhead body so no hollow/gap appears at notch
+    const shaftEndX = s.x2 - headLen * 0.42 * Math.cos(angle);
+    const shaftEndY = s.y2 - headLen * 0.42 * Math.sin(angle);
 
     // Shaft line
     ctx.beginPath();
@@ -1432,6 +1689,7 @@ function spawnInlineTextInput(canvasX, canvasY, existingShape = null) {
           text: val,
           color: _currentColor,
           fontSize: baseFontSize,
+          opacity: _currentOpacity,
         };
         _shapes.push(s);
         _undoStack.push({ type: "add", shape: s });
@@ -1545,6 +1803,7 @@ function onCanvasPointerDown(e) {
       y,
       number: _stepCounter++,
       color: _currentColor,
+      opacity: _currentOpacity,
     };
     _shapes.push(s);
     _undoStack.push({ type: "add", shape: s });
@@ -1569,6 +1828,7 @@ function onCanvasPointerDown(e) {
       points: [{ x, y }],
       color: _currentColor,
       lineWidth: _currentLineWidth,
+      opacity: _currentOpacity,
     };
   } else {
     _activeShape = {
@@ -1579,6 +1839,7 @@ function onCanvasPointerDown(e) {
       y2: y,
       color: _currentColor,
       lineWidth: _currentLineWidth,
+      opacity: _currentOpacity,
     };
   }
 }
@@ -1621,7 +1882,7 @@ function onCanvasPointerMove(e) {
       } else if (hitTestShape(x, y) !== -1) {
         _annotateCanvas.style.cursor = "move";
       } else {
-        _annotateCanvas.style.cursor = _currentTool === "select" ? "default" : "crosshair";
+        _annotateCanvas.style.cursor = getToolCursor(_currentTool);
       }
     }
     return;
@@ -1641,42 +1902,191 @@ function onCanvasPointerMove(e) {
       _cropRect.x = Math.max(0, Math.min(maxW - s.width, s.x + dx));
       _cropRect.y = Math.max(0, Math.min(maxH - s.height, s.y + dy));
     } else if (_dragAction === "crop-new") {
-      _cropRect.x = Math.max(0, Math.min(x, _dragStartPos.x));
-      _cropRect.y = Math.max(0, Math.min(y, _dragStartPos.y));
-      _cropRect.width = Math.min(maxW - _cropRect.x, Math.abs(x - _dragStartPos.x));
-      _cropRect.height = Math.min(maxH - _cropRect.y, Math.abs(y - _dragStartPos.y));
+      if (_cropAspectRatio) {
+        const dragW = x - _dragStartPos.x;
+        const dragH = y - _dragStartPos.y;
+        const dirX = dragW >= 0 ? 1 : -1;
+        const dirY = dragH >= 0 ? 1 : -1;
+        let w = Math.abs(dragW);
+        let h = w / _cropAspectRatio;
+        if (Math.abs(dragH) > Math.abs(dragW)) {
+          h = Math.abs(dragH);
+          w = h * _cropAspectRatio;
+        }
+        if (dirX > 0) {
+          w = Math.min(w, maxW - _dragStartPos.x);
+        } else {
+          w = Math.min(w, _dragStartPos.x);
+        }
+        if (dirY > 0) {
+          h = Math.min(h, maxH - _dragStartPos.y);
+        } else {
+          h = Math.min(h, _dragStartPos.y);
+        }
+        if (w / h > _cropAspectRatio) {
+          w = h * _cropAspectRatio;
+        } else {
+          h = w / _cropAspectRatio;
+        }
+        const minW = _cropAspectRatio >= 1 ? minSize * _cropAspectRatio : minSize;
+        const minH = _cropAspectRatio >= 1 ? minSize : minSize / _cropAspectRatio;
+        _cropRect.width = Math.max(minW, Math.round(w));
+        _cropRect.height = Math.max(minH, Math.round(h));
+        _cropRect.x = dirX > 0 ? _dragStartPos.x : Math.round(_dragStartPos.x - _cropRect.width);
+        _cropRect.y = dirY > 0 ? _dragStartPos.y : Math.round(_dragStartPos.y - _cropRect.height);
+      } else {
+        _cropRect.x = Math.max(0, Math.min(x, _dragStartPos.x));
+        _cropRect.y = Math.max(0, Math.min(y, _dragStartPos.y));
+        _cropRect.width = Math.min(maxW - _cropRect.x, Math.abs(x - _dragStartPos.x));
+        _cropRect.height = Math.min(maxH - _cropRect.y, Math.abs(y - _dragStartPos.y));
+      }
     } else if (_dragAction === "crop-tl") {
-      const newX = Math.max(0, Math.min(s.x + s.width - minSize, s.x + dx));
-      const newY = Math.max(0, Math.min(s.y + s.height - minSize, s.y + dy));
-      _cropRect.width = s.width + (s.x - newX);
-      _cropRect.height = s.height + (s.y - newY);
-      _cropRect.x = newX;
-      _cropRect.y = newY;
+      if (_cropAspectRatio) {
+        const anchorX = s.x + s.width;
+        const anchorY = s.y + s.height;
+        const availW = anchorX;
+        const availH = anchorY;
+        const minW = _cropAspectRatio >= 1 ? minSize * _cropAspectRatio : minSize;
+        const minH = _cropAspectRatio >= 1 ? minSize : minSize / _cropAspectRatio;
+        let w = Math.max(minW, Math.min(availW, s.width - dx));
+        let h = w / _cropAspectRatio;
+        if (h > availH) {
+          h = availH;
+          w = h * _cropAspectRatio;
+        }
+        if (Math.abs(dy) > Math.abs(dx)) {
+          h = Math.max(minH, Math.min(availH, s.height - dy));
+          w = h * _cropAspectRatio;
+          if (w > availW) {
+            w = availW;
+            h = w / _cropAspectRatio;
+          }
+        }
+        _cropRect.width = Math.round(w);
+        _cropRect.height = Math.round(h);
+        _cropRect.x = Math.round(anchorX - _cropRect.width);
+        _cropRect.y = Math.round(anchorY - _cropRect.height);
+      } else {
+        const newX = Math.max(0, Math.min(s.x + s.width - minSize, s.x + dx));
+        const newY = Math.max(0, Math.min(s.y + s.height - minSize, s.y + dy));
+        _cropRect.width = s.width + (s.x - newX);
+        _cropRect.height = s.height + (s.y - newY);
+        _cropRect.x = newX;
+        _cropRect.y = newY;
+      }
     } else if (_dragAction === "crop-tr") {
-      const newY = Math.max(0, Math.min(s.y + s.height - minSize, s.y + dy));
-      _cropRect.y = newY;
-      _cropRect.height = s.height + (s.y - newY);
-      _cropRect.width = Math.max(minSize, Math.min(maxW - s.x, s.width + dx));
+      if (_cropAspectRatio) {
+        const anchorX = s.x;
+        const anchorY = s.y + s.height;
+        const availW = maxW - anchorX;
+        const availH = anchorY;
+        const minW = _cropAspectRatio >= 1 ? minSize * _cropAspectRatio : minSize;
+        const minH = _cropAspectRatio >= 1 ? minSize : minSize / _cropAspectRatio;
+        let w = Math.max(minW, Math.min(availW, s.width + dx));
+        let h = w / _cropAspectRatio;
+        if (h > availH) {
+          h = availH;
+          w = h * _cropAspectRatio;
+        }
+        if (Math.abs(dy) > Math.abs(dx)) {
+          h = Math.max(minH, Math.min(availH, s.height - dy));
+          w = h * _cropAspectRatio;
+          if (w > availW) {
+            w = availW;
+            h = w / _cropAspectRatio;
+          }
+        }
+        _cropRect.width = Math.round(w);
+        _cropRect.height = Math.round(h);
+        _cropRect.x = anchorX;
+        _cropRect.y = Math.round(anchorY - _cropRect.height);
+      } else {
+        const newY = Math.max(0, Math.min(s.y + s.height - minSize, s.y + dy));
+        _cropRect.y = newY;
+        _cropRect.height = s.height + (s.y - newY);
+        _cropRect.width = Math.max(minSize, Math.min(maxW - s.x, s.width + dx));
+      }
     } else if (_dragAction === "crop-br") {
-      _cropRect.width = Math.max(minSize, Math.min(maxW - s.x, s.width + dx));
-      _cropRect.height = Math.max(minSize, Math.min(maxH - s.y, s.height + dy));
+      if (_cropAspectRatio) {
+        const availW = maxW - s.x;
+        const availH = maxH - s.y;
+        const minW = _cropAspectRatio >= 1 ? minSize * _cropAspectRatio : minSize;
+        const minH = _cropAspectRatio >= 1 ? minSize : minSize / _cropAspectRatio;
+        let w = Math.max(minW, Math.min(availW, s.width + dx));
+        let h = w / _cropAspectRatio;
+        if (h > availH) {
+          h = availH;
+          w = h * _cropAspectRatio;
+        }
+        if (Math.abs(dy) > Math.abs(dx)) {
+          h = Math.max(minH, Math.min(availH, s.height + dy));
+          w = h * _cropAspectRatio;
+          if (w > availW) {
+            w = availW;
+            h = w / _cropAspectRatio;
+          }
+        }
+        _cropRect.width = Math.round(w);
+        _cropRect.height = Math.round(h);
+      } else {
+        _cropRect.width = Math.max(minSize, Math.min(maxW - s.x, s.width + dx));
+        _cropRect.height = Math.max(minSize, Math.min(maxH - s.y, s.height + dy));
+      }
     } else if (_dragAction === "crop-bl") {
-      const newX = Math.max(0, Math.min(s.x + s.width - minSize, s.x + dx));
-      _cropRect.x = newX;
-      _cropRect.width = s.width + (s.x - newX);
-      _cropRect.height = Math.max(minSize, Math.min(maxH - s.y, s.height + dy));
-    } else if (_dragAction === "crop-t") {
-      const newY = Math.max(0, Math.min(s.y + s.height - minSize, s.y + dy));
-      _cropRect.y = newY;
-      _cropRect.height = s.height + (s.y - newY);
-    } else if (_dragAction === "crop-b") {
-      _cropRect.height = Math.max(minSize, Math.min(maxH - s.y, s.height + dy));
-    } else if (_dragAction === "crop-l") {
-      const newX = Math.max(0, Math.min(s.x + s.width - minSize, s.x + dx));
-      _cropRect.x = newX;
-      _cropRect.width = s.width + (s.x - newX);
-    } else if (_dragAction === "crop-r") {
-      _cropRect.width = Math.max(minSize, Math.min(maxW - s.x, s.width + dx));
+      if (_cropAspectRatio) {
+        const anchorX = s.x + s.width;
+        const anchorY = s.y;
+        const availW = anchorX;
+        const availH = maxH - anchorY;
+        const minW = _cropAspectRatio >= 1 ? minSize * _cropAspectRatio : minSize;
+        const minH = _cropAspectRatio >= 1 ? minSize : minSize / _cropAspectRatio;
+        let w = Math.max(minW, Math.min(availW, s.width - dx));
+        let h = w / _cropAspectRatio;
+        if (h > availH) {
+          h = availH;
+          w = h * _cropAspectRatio;
+        }
+        if (Math.abs(dy) > Math.abs(dx)) {
+          h = Math.max(minH, Math.min(availH, s.height + dy));
+          w = h * _cropAspectRatio;
+          if (w > availW) {
+            w = availW;
+            h = w / _cropAspectRatio;
+          }
+        }
+        _cropRect.width = Math.round(w);
+        _cropRect.height = Math.round(h);
+        _cropRect.x = Math.round(anchorX - _cropRect.width);
+        _cropRect.y = anchorY;
+      } else {
+        const newX = Math.max(0, Math.min(s.x + s.width - minSize, s.x + dx));
+        _cropRect.x = newX;
+        _cropRect.width = s.width + (s.x - newX);
+        _cropRect.height = Math.max(minSize, Math.min(maxH - s.y, s.height + dy));
+      }
+    } else if (_dragAction === "crop-t" || _dragAction === "crop-b" || _dragAction === "crop-l" || _dragAction === "crop-r") {
+      if (_cropAspectRatioKey !== "free") {
+        _cropAspectRatioKey = "free";
+        _cropAspectRatio = null;
+        if (_cropControlsEl) {
+          _cropControlsEl.querySelectorAll(".qs-crop-ratio-btn").forEach((b) => {
+            b.classList.toggle("active", b.dataset.ratio === "free");
+          });
+        }
+      }
+      if (_dragAction === "crop-t") {
+        const newY = Math.max(0, Math.min(s.y + s.height - minSize, s.y + dy));
+        _cropRect.y = newY;
+        _cropRect.height = s.height + (s.y - newY);
+      } else if (_dragAction === "crop-b") {
+        _cropRect.height = Math.max(minSize, Math.min(maxH - s.y, s.height + dy));
+      } else if (_dragAction === "crop-l") {
+        const newX = Math.max(0, Math.min(s.x + s.width - minSize, s.x + dx));
+        _cropRect.x = newX;
+        _cropRect.width = s.width + (s.x - newX);
+      } else if (_dragAction === "crop-r") {
+        _cropRect.width = Math.max(minSize, Math.min(maxW - s.x, s.width + dx));
+      }
     }
     showCropControls();
     renderCanvas();
@@ -2107,6 +2517,10 @@ export function closeAnnotationEditor() {
   window.removeEventListener("pointermove", onCanvasPointerMove);
   window.removeEventListener("pointerup", onCanvasPointerUp);
   window.removeEventListener("keydown", onAnnotateKeyDown, true);
+  if (_closePopoverHandler) {
+    window.removeEventListener("pointerdown", _closePopoverHandler);
+    _closePopoverHandler = null;
+  }
 
   hideCropControls();
 
@@ -2138,6 +2552,9 @@ export function closeAnnotationEditor() {
     _redoBtn = null;
     _toolsGroup = null;
     _cropControlsEl = null;
+    _strokePopoverEl = null;
+    _tuneBtn = null;
+    _currentOpacity = 1.0;
     _selectedShapeIndex = -1;
     _scratchBlurCanvas = null;
     _scratchBlurCtx = null;
@@ -2146,6 +2563,8 @@ export function closeAnnotationEditor() {
     _redoStack = [];
     _stepCounter = 1;
     _cropRect = null;
+    _cropAspectRatioKey = "free";
+    _cropAspectRatio = null;
     _activeShape = null;
     _isDrawing = false;
   }, 200);

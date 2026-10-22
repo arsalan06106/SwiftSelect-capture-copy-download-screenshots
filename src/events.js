@@ -113,6 +113,7 @@ function isExtensionUi(candidate) {
     candidate === window.SwiftSelect?.ui?.highlighterHost ||
     candidate === window.SwiftSelect?.ui?.keyGuideHost ||
     candidate === window.SwiftSelect?.ui?.countdownHost ||
+    candidate === window.SwiftSelect?.ui?.flashHost ||
     candidate.id === "qs-guide-host" ||
     candidate.id === "qs-status-host" ||
     candidate.id === "swiftselect-annotate-root" ||
@@ -124,6 +125,9 @@ function isExtensionUi(candidate) {
     candidate.closest?.("#qs-settings-modal-root") ||
     candidate.classList?.contains("qs-ovl") ||
     candidate.classList?.contains("qs-highlighter") ||
+    candidate.classList?.contains("qs-flash") ||
+    candidate.classList?.contains("qs-flash-host") ||
+    candidate.dataset?.qsRole === "qs-flash" ||
     candidate.classList?.contains("qs-guide-host")
   );
 }
@@ -404,9 +408,8 @@ export function onPointerUp(e) {
     if (highlightedRect) {
       const snapRect = highlightedRect;
       cleanup();
-      window.SwiftSelect.ui.cleanup(true);
-      window.SwiftSelect.ui.triggerFlash(snapRect);
-      captureAndCrop(snapRect).catch((err) => {
+      window.SwiftSelect.ui.cleanup(true, true);
+      captureAndCrop(snapRect, true).catch((err) => {
         console.warn("captureAndCrop snap failed:", err);
         window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
       });
@@ -430,9 +433,8 @@ export function onPointerUp(e) {
 
   const finalRect = { ...rect };
   cleanup();
-  window.SwiftSelect.ui.cleanup(true);
-  window.SwiftSelect.ui.triggerFlash(finalRect);
-  captureAndCrop(finalRect).catch((err) => {
+  window.SwiftSelect.ui.cleanup(true, true);
+  captureAndCrop(finalRect, false).catch((err) => {
     console.warn("captureAndCrop failed:", err);
     window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
   });

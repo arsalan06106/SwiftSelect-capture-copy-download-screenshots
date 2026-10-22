@@ -448,14 +448,22 @@ async function captureFullPage(
   stream.getTracks().forEach((t) => t.stop());
   await sendToContent(tabId, "restore-unroll");
 
-  // Final Blob for download
+  // Final image as dataUrl (self-contained, robust across CSP & document closure)
+  let dataUrl = "";
+  try {
+    dataUrl = canvas.toDataURL(format, quality);
+  } catch (err) {
+    console.warn("offscreen toDataURL error:", err);
+  }
+
+  // Final Blob for download fallback
   const blob = await new Promise((r) => canvas.toBlob(r, format, quality));
-  const blobUrl = URL.createObjectURL(blob);
+  let blobUrl = "";
+  try {
+    blobUrl = URL.createObjectURL(blob);
+  } catch {}
 
-  // Note: We don't revoke here because the UI process needs time to fetch/download it.
-  // Revocation should happen after download or when capture finishes in fullpage.js.
-
-  return { blobUrl, clipboardSuccess };
+  return { dataUrl, blobUrl, clipboardSuccess };
 }
 
 // ─── Message Listener ────────────────────────────────────────────────

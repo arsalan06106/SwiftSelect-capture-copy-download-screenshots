@@ -22,8 +22,6 @@ chrome.runtime.onConnect.addListener((port) => {
 async function openExtensionIconPopup(view = "settings") {
   try {
     await chrome.action.setPopup({ popup: `popup.html?view=${view}` });
-    // Small delay ensures Chromium closes context menu window before opening action popup
-    await new Promise((r) => setTimeout(r, 60));
     await chrome.action.openPopup();
   } catch (err) {
     console.warn("SwiftSelect: Could not open popup directly:", err);

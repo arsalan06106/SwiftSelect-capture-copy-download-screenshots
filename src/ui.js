@@ -136,6 +136,8 @@ export function makeShadowOverlay(
   host.style.setProperty("border", "none", "important");
   host.style.setProperty("box-shadow", "none", "important");
   host.style.display = "none"; // Start hidden to prevent flash
+  host.dataset.qsRole = className;
+  host.classList.add("qs-shadow-host", `${className}-host`);
   const targetParent = document.body || document.documentElement;
   if (targetParent) {
     targetParent.appendChild(host);
@@ -224,6 +226,7 @@ export async function ensureUi() {
     return;
   }
   setCrosshairCursor();
+  removeFlash();
 
   if (hideGuideTimer) {
     clearTimeout(hideGuideTimer);
@@ -246,7 +249,7 @@ export async function ensureUi() {
 
     // Start background frame capture into memory for region crops (never overlaying on DOM)
     freezeFramePromise = new Promise((resolve) => {
-      const timer = setTimeout(() => resolve(null), 1500);
+      const timer = setTimeout(() => resolve(null), 3500);
       try {
         chrome.runtime.sendMessage({ type: "capture-visible-tab" }, (resp) => {
           clearTimeout(timer);
@@ -431,7 +434,7 @@ export async function ensureUi() {
     annotateBtn.dataset.action = "annotate";
     annotateBtn.dataset.tooltip = "Annotate (A)";
     const annSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    annSvg.setAttribute("viewBox", "0 0 24 24");
+    annSvg.setAttribute("viewBox", "-4 -4 32 32");
     annSvg.setAttribute("class", "ann-icon-svg");
     annSvg.setAttribute("fill", "none");
     annSvg.setAttribute("stroke", "currentColor");
@@ -875,7 +878,7 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     annotateBtn.title = "Annotate Screenshot (A)";
     annotateBtn.style.marginLeft = "6px";
     const annSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    annSvg.setAttribute("viewBox", "0 0 24 24");
+    annSvg.setAttribute("viewBox", "-4 -4 32 32");
     annSvg.setAttribute("class", "ann-icon-svg");
     annSvg.setAttribute("fill", "none");
     annSvg.setAttribute("stroke", "currentColor");
@@ -1072,8 +1075,35 @@ export function updateSelection(rect) {
   });
 }
 
+export let flashHost = null;
+
+export function removeFlash() {
+  if (flashHost && flashHost.parentNode) {
+    flashHost.parentNode.removeChild(flashHost);
+  }
+  flashHost = null;
+  const orphanFlashes = document.querySelectorAll(
+    "[data-qs-role='qs-flash'], .qs-flash-host",
+  );
+  orphanFlashes.forEach((node) => {
+    if (node.parentNode) node.parentNode.removeChild(node);
+  });
+}
+
 export function triggerFlash(targetRect = null) {
-  const { host, el } = makeShadowOverlay("div", "qs-flash");
+  removeFlash();
+
+  const { host, el, shadow } = makeShadowOverlay("div", "qs-flash");
+  host.dataset.qsRole = "qs-flash";
+  host.classList.add("qs-flash-host");
+  flashHost = host;
+
+  if (qsSheet && shadow) {
+    shadow.adoptedStyleSheets = [qsSheet];
+  }
+  host.style.display = "block";
+  el.style.opacity = "";
+
   if (!isPageDark()) el.classList.add("qs-flash-inverse");
 
   if (targetRect) {
@@ -1081,15 +1111,19 @@ export function triggerFlash(targetRect = null) {
     el.style.top = targetRect.top + "px";
     el.style.width = targetRect.width + "px";
     el.style.height = targetRect.height + "px";
-    el.style.position = "absolute";
-    el.style.borderRadius = "6px";
+    el.style.position = "fixed";
+    el.style.setProperty("border-radius", "8px", "important");
+    el.style.overflow = "hidden";
   } else {
+    el.classList.add("qs-flash-fullscreen");
     el.style.inset = "0";
-    el.style.borderRadius = "0";
+    el.style.position = "fixed";
+    el.style.setProperty("border-radius", "0", "important");
   }
 
   setTimeout(() => {
     if (host && host.parentNode) host.parentNode.removeChild(host);
+    if (flashHost === host) flashHost = null;
   }, 380);
 }
 
@@ -1108,6 +1142,7 @@ export function setButtonLoading(action, loading) {
 }
 
 export async function hideUiForCapture() {
+  removeFlash();
   hideCustomTooltip();
   hideKeyGuide();
   if (guideHost) guideHost.style.display = "none";
@@ -1128,7 +1163,8 @@ export async function hideUiForCapture() {
   await new Promise((r) => requestAnimationFrame(r));
 }
 
-export function cleanup(preserveStatus = false) {
+export function cleanup(preserveStatus = false, preserveFreeze = false) {
+  removeFlash();
   hideCustomTooltip();
   menuTooltipEl = null;
   removeCrosshairCursor();
@@ -1168,9 +1204,11 @@ export function cleanup(preserveStatus = false) {
   box = null;
   hudEl = null;
   freezeBg = null;
-  freezeFrameVersion++;
-  freezeFrameDataUrl = null;
-  freezeFramePromise = null;
+  if (!preserveFreeze) {
+    freezeFrameVersion++;
+    freezeFrameDataUrl = null;
+    freezeFramePromise = null;
+  }
   curtains = [];
   snapBlurPanels = [];
 

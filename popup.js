@@ -17,17 +17,46 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnQuickVisible = document.getElementById("btn-quick-visible");
   const btnQuickFull = document.getElementById("btn-quick-full");
 
+  function applyThemeMode(theme) {
+    const activeTheme = theme || "glass";
+    document.documentElement.setAttribute("data-theme", activeTheme);
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = activeTheme === "dark" || ((activeTheme === "glass" || activeTheme === "standard") && prefersDark);
+    if (isDark) {
+      document.body.classList.add("dark-theme");
+      document.body.classList.remove("light-theme");
+    } else {
+      document.body.classList.add("light-theme");
+      document.body.classList.remove("dark-theme");
+    }
+  }
+
+  // Pre-seed theme from OS color scheme immediately
+  const initialPrefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  if (initialPrefersDark) {
+    document.body.classList.add("dark-theme");
+    document.body.classList.remove("light-theme");
+  } else {
+    document.body.classList.add("light-theme");
+    document.body.classList.remove("dark-theme");
+  }
+
+  // Listen for dynamic OS color-scheme changes (if in glass or standard mode)
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      chrome.storage.local.get(["userTheme"], (data) => {
+        const theme = data?.userTheme || "glass";
+        if (theme === "glass" || theme === "standard") {
+          applyThemeMode(theme);
+        }
+      });
+    });
+  }
+
   // Sync theme preference from storage
   chrome.storage.local.get(["userTheme", "outputFormat", "outputDestination"], (data) => {
     const theme = data?.userTheme || "glass";
-    document.documentElement.setAttribute("data-theme", theme);
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const isDark = theme === "dark" || (theme === "glass" && prefersDark);
-    if (isDark) {
-      document.body.classList.add("dark-theme");
-    } else {
-      document.body.classList.remove("dark-theme");
-    }
+    applyThemeMode(theme);
 
     // Set active states on preference toggles
     const activeFormat = data?.outputFormat || "jpg";
@@ -47,6 +76,51 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Keep in real-time sync with storage changes across tabs/windows
+  if (chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local") return;
+      if (changes.userTheme) {
+        const newTheme = changes.userTheme.newValue || "glass";
+        applyThemeMode(newTheme);
+        document.querySelectorAll("#pref-theme-toggle .qs-toggle-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.theme === newTheme);
+        });
+      }
+      if (changes.outputFormat) {
+        const newFormat = changes.outputFormat.newValue || "jpg";
+        document.querySelectorAll("#pref-format-toggle .qs-toggle-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.format === newFormat);
+        });
+      }
+      if (changes.outputDestination) {
+        const newDest = changes.outputDestination.newValue || "both";
+        document.querySelectorAll("#pref-dest-toggle .qs-toggle-btn").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.dest === newDest);
+        });
+      }
+    });
+  }
+
+  function flashSavedBadge() {
+    const textEl = document.getElementById("sync-pill-text");
+    const dotEl = document.querySelector(".qs-sync-dot");
+    if (!textEl) return;
+    textEl.textContent = "Saved ✓";
+    textEl.style.color = "#10B981";
+    if (dotEl) {
+      dotEl.style.background = "#10B981";
+      dotEl.style.transform = "scale(1.35)";
+    }
+    setTimeout(() => {
+      textEl.textContent = "Auto-saved";
+      textEl.style.color = "";
+      if (dotEl) {
+        dotEl.style.transform = "";
+      }
+    }, 1200);
+  }
+
   // Preference Toggle Handlers
   const formatToggle = document.getElementById("pref-format-toggle");
   if (formatToggle) {
@@ -56,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const format = btn.dataset.format;
       formatToggle.querySelectorAll(".qs-toggle-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      chrome.storage.local.set({ outputFormat: format });
+      chrome.storage.local.set({ outputFormat: format }, () => flashSavedBadge());
     });
   }
 
@@ -68,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const dest = btn.dataset.dest;
       destToggle.querySelectorAll(".qs-toggle-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      chrome.storage.local.set({ outputDestination: dest });
+      chrome.storage.local.set({ outputDestination: dest }, () => flashSavedBadge());
     });
   }
 
@@ -81,21 +155,16 @@ document.addEventListener("DOMContentLoaded", () => {
       themeToggle.querySelectorAll(".qs-toggle-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
 
-      document.documentElement.setAttribute("data-theme", theme);
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const isDark = theme === "dark" || (theme === "glass" && prefersDark);
-      if (isDark) {
-        document.body.classList.add("dark-theme");
-      } else {
-        document.body.classList.remove("dark-theme");
-      }
-      if (theme === "light") {
-        document.body.classList.add("light-theme");
-      } else {
-        document.body.classList.remove("light-theme");
-      }
+      applyThemeMode(theme);
 
-      chrome.storage.local.set({ userTheme: theme });
+      chrome.storage.local.set({ userTheme: theme }, () => {
+        flashSavedBadge();
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach((t) => {
+            if (t.id) chrome.tabs.sendMessage(t.id, { type: "apply-theme", theme }).catch(() => {});
+          });
+        });
+      });
     });
   }
 
@@ -250,6 +319,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewParam = urlParams.get("view");
 
   if (viewParam === "settings" || viewParam === "options" || window.location.pathname.endsWith("options.html")) {
+    document.body.classList.add("options-mode");
     showNotice({
       badge: "Preferences",
       iconType: "settings",

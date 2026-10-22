@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SwiftSelect</title>
+    <title>SwiftSelect Settings</title>
     <link rel="stylesheet" href="styles.css" />
     <link
       rel="stylesheet"
@@ -12,118 +12,263 @@
     <style>
       :root {
         --font-stack: "Google Sans", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
-        --c-glass: #bbbbbc;
-        --c-light: #fff;
-        --c-dark: #000;
-        --c-content: #f0f0f3;
-        --c-action: #03d5ff;
-        --c-bg: #141418;
-        --glass-reflex-dark: 1;
-        --glass-reflex-light: 1;
-        --saturation: 160%;
+        --brand-coral: #BA4B5C;
+        --brand-coral-hover: #d25367;
+        --c-accent: #0052f5;
+        --c-success: #10B981;
       }
 
+      /* -------------------------------------------
+         LIGHT THEME (Default & .light-theme)
+         Matches SwiftSelect Signature Light Liquid Glass
+         ------------------------------------------- */
+      :root,
+      html[data-theme="light"],
+      body.light-theme {
+        --bg-page: #eef1f6;
+        --bg-dialog: radial-gradient(135% 100% at 50% 0%, #ffffff 0%, #f0f2f7 50%, #e3e6ee 100%);
+        --bg-card: rgba(255, 255, 255, 0.9);
+        --bg-card-border: rgba(0, 0, 0, 0.08);
+        --bg-card-shadow: 0 16px 40px -4px rgba(30, 32, 60, 0.09), 0 4px 16px -2px rgba(30, 32, 60, 0.04);
+        --card-specular: inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+        --text-main: #181829;
+        --text-muted: #5a5d72;
+        --text-sub: #787b92;
+        --callout-bg: linear-gradient(135deg, rgba(0, 82, 245, 0.05) 0%, rgba(3, 213, 255, 0.08) 100%);
+        --callout-border: rgba(0, 82, 245, 0.14);
+        --callout-color: #1e3a6f;
+        --callout-icon: #0052f5;
+        --group-bg: rgba(255, 255, 255, 0.72);
+        --group-border: rgba(0, 0, 0, 0.07);
+        --group-divider: rgba(0, 0, 0, 0.05);
+        --toggle-bg: rgba(0, 0, 0, 0.045);
+        --toggle-border: rgba(0, 0, 0, 0.06);
+        --toggle-btn-color: #4b4d63;
+        --toggle-btn-hover: rgba(255, 255, 255, 0.65);
+        --toggle-btn-hover-color: #11111d;
+        --toggle-active-bg: #ffffff;
+        --toggle-active-color: #11111d;
+        --toggle-active-shadow: 0 1.5px 6px rgba(0, 0, 0, 0.09), 0 0.5px 1.5px rgba(0, 0, 0, 0.04), inset 0 1px 0 #ffffff;
+        --btn-bg: linear-gradient(180deg, #ffffff 0%, #f5f6fa 100%);
+        --btn-border: rgba(0, 0, 0, 0.12);
+        --btn-hover-bg: #ffffff;
+        --btn-hover-border: rgba(0, 0, 0, 0.2);
+        --btn-color: #181829;
+        --btn-shadow: inset 0 1px 0 #ffffff, 0 3px 10px rgba(0, 0, 0, 0.05);
+        --btn-hover-shadow: inset 0 1px 0 #ffffff, 0 6px 18px rgba(0, 0, 0, 0.09);
+        --sub-btn-bg: rgba(0, 0, 0, 0.04);
+        --sub-btn-border: rgba(0, 0, 0, 0.08);
+        --sub-btn-color: #181829;
+        --kbd-bg: rgba(0, 0, 0, 0.06);
+        --kbd-border: rgba(0, 0, 0, 0.1);
+        --kbd-color: #181829;
+        --sync-bg: rgba(16, 185, 129, 0.08);
+        --sync-border: rgba(16, 185, 129, 0.2);
+        --sync-color: #0b7d57;
+        --icon-bg: linear-gradient(135deg, #e4586d 0%, #BA4B5C 100%);
+        --icon-border: rgba(255, 255, 255, 0.5);
+        --icon-shadow: 0 4px 14px rgba(186, 75, 92, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        --icon-gear-stroke: #ffffff;
+        --pill-badge-bg: rgba(0, 0, 0, 0.05);
+        --pill-badge-border: rgba(0, 0, 0, 0.08);
+        --pill-badge-color: #4b4d63;
+      }
+
+      /* -------------------------------------------
+         DARK THEME (.dark-theme & html[data-theme="dark"])
+         Matches SwiftSelect Deep Dark Liquid Glass
+         ------------------------------------------- */
+      html[data-theme="dark"],
+      body.dark-theme {
+        --bg-page: #121217;
+        --bg-dialog: radial-gradient(135% 100% at 50% 0%, #1e1e27 0%, #131318 60%, #0d0d12 100%);
+        --bg-card: rgba(24, 24, 32, 0.92);
+        --bg-card-border: rgba(255, 255, 255, 0.1);
+        --bg-card-shadow: 0 20px 48px rgba(0, 0, 0, 0.65);
+        --card-specular: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+        --text-main: #f4f4f8;
+        --text-muted: rgba(255, 255, 255, 0.65);
+        --text-sub: rgba(255, 255, 255, 0.48);
+        --callout-bg: linear-gradient(135deg, rgba(3, 213, 255, 0.08) 0%, rgba(0, 82, 245, 0.05) 100%);
+        --callout-border: rgba(3, 213, 255, 0.2);
+        --callout-color: #9fe7fd;
+        --callout-icon: #03d5ff;
+        --group-bg: rgba(0, 0, 0, 0.34);
+        --group-border: rgba(255, 255, 255, 0.08);
+        --group-divider: rgba(255, 255, 255, 0.06);
+        --toggle-bg: rgba(0, 0, 0, 0.42);
+        --toggle-border: rgba(255, 255, 255, 0.09);
+        --toggle-btn-color: rgba(255, 255, 255, 0.65);
+        --toggle-btn-hover: rgba(255, 255, 255, 0.09);
+        --toggle-btn-hover-color: #ffffff;
+        --toggle-active-bg: #ffffff;
+        --toggle-active-color: #121217;
+        --toggle-active-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        --btn-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.05) 100%);
+        --btn-border: rgba(255, 255, 255, 0.16);
+        --btn-hover-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.08) 100%);
+        --btn-hover-border: rgba(255, 255, 255, 0.28);
+        --btn-color: #ffffff;
+        --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 14px rgba(0, 0, 0, 0.3);
+        --btn-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 20px rgba(0, 0, 0, 0.4);
+        --sub-btn-bg: rgba(255, 255, 255, 0.06);
+        --sub-btn-border: rgba(255, 255, 255, 0.1);
+        --sub-btn-color: #f4f4f8;
+        --kbd-bg: rgba(255, 255, 255, 0.1);
+        --kbd-border: rgba(255, 255, 255, 0.15);
+        --kbd-color: #ffffff;
+        --sync-bg: rgba(16, 185, 129, 0.12);
+        --sync-border: rgba(16, 185, 129, 0.25);
+        --sync-color: #34d399;
+        --icon-bg: linear-gradient(135deg, #e4586d 0%, #BA4B5C 100%);
+        --icon-border: rgba(255, 255, 255, 0.28);
+        --icon-shadow: 0 4px 16px rgba(186, 75, 92, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        --icon-gear-stroke: #ffffff;
+        --pill-badge-bg: rgba(255, 255, 255, 0.08);
+        --pill-badge-border: rgba(255, 255, 255, 0.12);
+        --pill-badge-color: rgba(255, 255, 255, 0.75);
+      }
+
+      /* Base Geometry & Layout */
       html, body {
         margin: 0;
         padding: 0;
-        width: 384px;
-        min-width: 384px;
-        background: #141418;
-        color: var(--c-content, #f0f0f3);
+        box-sizing: border-box;
         font-family: var(--font-stack);
-        font-size: 13.5px;
-        overflow-x: hidden;
-        overflow-y: auto;
+        font-size: 13px;
+        background: var(--bg-page);
+        color: var(--text-main);
         user-select: none;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        overflow: hidden;
+        transition: background 0.22s ease, color 0.22s ease;
       }
 
-      @media (min-width: 420px) {
-        html, body {
-          width: 100%;
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #0d0d12;
-          padding: 24px;
-          box-sizing: border-box;
-        }
-        .qs-notice-card {
-          width: 410px;
-          margin: auto;
-          border-radius: 22px !important;
-          border: 1px solid rgba(255, 255, 255, 0.14) !important;
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.22),
-            0 24px 64px rgba(0, 0, 0, 0.7) !important;
-        }
+      /* Extension Toolbar Popup Mode (380px Clean Width) */
+      body:not(.options-mode) {
+        width: 380px;
+        min-width: 380px;
+        max-width: 380px;
+        overflow: hidden;
+        background: var(--bg-page);
       }
 
-      /* Authentic SwiftSelect Liquid Glass Card */
+      body:not(.options-mode) .qs-notice-card {
+        width: 100%;
+        padding: 16px 16px 14px 16px;
+        border: none;
+        border-radius: 0;
+        background: var(--bg-card);
+        backdrop-filter: blur(28px) saturate(180%);
+        -webkit-backdrop-filter: blur(28px) saturate(180%);
+        box-shadow:
+          inset 0 0 0 1px var(--bg-card-border),
+          var(--card-specular),
+          0px 12px 32px rgba(0, 0, 0, 0.35);
+        box-sizing: border-box;
+      }
+
+      /* Options / Settings Dialog Mode (480px Clean Fit, ZERO Scrollbars) */
+      body.options-mode {
+        width: 480px;
+        min-width: 480px;
+        max-width: 480px;
+        height: auto;
+        min-height: 100%;
+        margin: 0 auto;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-dialog);
+      }
+
+      body.options-mode .qs-notice-card {
+        width: 100%;
+        max-width: none;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        padding: 20px 24px 18px 24px;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+
+      body.options-mode .qs-quick-prefs {
+        padding: 4px 16px;
+      }
+      body.options-mode .qs-toggle-btn {
+        padding: 4.5px 11px;
+        font-size: 11px;
+      }
+      body.options-mode .qs-pref-row {
+        padding: 10px 0;
+      }
+      body.options-mode .qs-pref-label {
+        font-size: 12.5px;
+      }
+      body.options-mode .qs-pref-sub {
+        font-size: 11px;
+      }
+
+      /* Notice Card Base */
       .qs-notice-card {
         position: relative;
         box-sizing: border-box;
-        width: 100%;
-        min-height: 100%;
-        padding: 22px 24px 20px 24px;
-        border-radius: 0;
-        border: none;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-
-        /* Unified Liquid Glass dark background matching tooltip */
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 14%, rgba(18, 18, 22, 0.97));
-        backdrop-filter: blur(24px) saturate(var(--saturation, 160%));
-        -webkit-backdrop-filter: blur(24px) saturate(var(--saturation, 160%));
-        box-shadow:
-          inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-          inset 1px 1.5px 0px -1px rgba(255, 255, 255, 0.75),
-          inset -1px -1px 0px -1px rgba(0, 0, 0, 0.25),
-          0px 12px 32px rgba(0, 0, 0, 0.6);
+        transition: background 0.22s ease, box-shadow 0.22s ease;
       }
 
-      /* Subtle Ambient Glow */
+      /* Ambient Glow */
       .qs-notice-glow {
         position: absolute;
         top: -40px;
         left: -40px;
-        width: 150px;
-        height: 150px;
+        width: 160px;
+        height: 160px;
         border-radius: 50%;
         pointer-events: none;
-        opacity: 0.35;
-        filter: blur(44px);
+        opacity: 0.32;
+        filter: blur(48px);
         z-index: 0;
       }
-      .qs-notice-glow.warning {
-        background: rgba(239, 68, 68, 0.55);
-      }
-      .qs-notice-glow.file {
-        background: rgba(245, 158, 11, 0.55);
-      }
-      .qs-notice-glow.settings {
-        background: rgba(3, 213, 255, 0.45);
-      }
-      .qs-notice-glow.help {
-        background: rgba(167, 139, 250, 0.45);
-      }
+      .qs-notice-glow.warning { background: rgba(239, 68, 68, 0.55); }
+      .qs-notice-glow.file { background: rgba(245, 158, 11, 0.55); }
+      .qs-notice-glow.settings { background: rgba(186, 75, 92, 0.38); }
+      .qs-notice-glow.help { background: rgba(167, 139, 250, 0.45); }
 
-      /* Header Row with breathing room */
-      .qs-notice-header {
+      /* Top Navigation Bar */
+      .qs-notice-topbar {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 12px;
+        margin-bottom: 12px;
         position: relative;
         z-index: 1;
-        margin-bottom: 14px;
       }
 
+      .qs-topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+
+      .qs-header-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+
+      /* App Icon */
       .qs-notice-icon-wrapper {
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
         border-radius: 12px;
         display: flex;
         align-items: center;
@@ -132,62 +277,114 @@
         transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
       }
       .qs-notice-icon-wrapper svg {
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
       }
 
       .qs-notice-icon-wrapper.warning {
         background: rgba(239, 68, 68, 0.16);
         color: #f87171;
         border: 1px solid rgba(239, 68, 68, 0.35);
-        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.16);
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2);
       }
-
       .qs-notice-icon-wrapper.file {
         background: rgba(245, 158, 11, 0.16);
         color: #fbbf24;
         border: 1px solid rgba(245, 158, 11, 0.35);
-        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.16);
+        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
       }
-
       .qs-notice-icon-wrapper.settings {
-        background: rgba(3, 213, 255, 0.16);
-        color: #03d5ff;
-        border: 1px solid rgba(3, 213, 255, 0.35);
-        box-shadow: 0 4px 14px rgba(3, 213, 255, 0.16);
+        background: var(--icon-bg);
+        color: var(--icon-gear-stroke);
+        border: 1px solid var(--icon-border);
+        box-shadow: var(--icon-shadow);
       }
-
       .qs-notice-icon-wrapper.help {
         background: rgba(167, 139, 250, 0.16);
         color: #c4b5fd;
         border: 1px solid rgba(167, 139, 250, 0.35);
-        box-shadow: 0 4px 14px rgba(167, 139, 250, 0.16);
+        box-shadow: 0 4px 14px rgba(167, 139, 250, 0.2);
       }
 
-      /* Rounded Pill Badge */
-      .qs-notice-badge {
-        font-family: inherit;
+      /* Pill Badge */
+      .qs-pill-badge {
+        display: inline-flex;
+        align-items: center;
         font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-        padding: 4px 12px;
+        font-weight: 600;
+        letter-spacing: -0.1px;
+        padding: 3.5px 9px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        color: rgba(255, 255, 255, 0.95);
-        line-height: 1.2;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        background: var(--pill-badge-bg);
+        border: 1px solid var(--pill-badge-border);
+        color: var(--pill-badge-color);
+        line-height: 1;
+        white-space: nowrap;
       }
 
-      /* Circular Liquid Glass Close Button */
+      /* Clean Full-Width Title & Subtitle Stack */
+      .qs-header-title-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        width: 100%;
+        margin-bottom: 14px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .qs-notice-title {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+        color: var(--text-main);
+        line-height: 1.25;
+        margin: 0;
+      }
+
+      .qs-notice-desc {
+        font-size: 11.5px;
+        line-height: 1.4;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      /* Live Sync Status Indicator */
+      .qs-sync-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--sync-color);
+        background: var(--sync-bg);
+        border: 1px solid var(--sync-border);
+        padding: 4px 10px;
+        border-radius: 999px;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+      .qs-sync-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--c-success);
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+        animation: pulse-dot 2.5s infinite;
+      }
+      @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.55; transform: scale(0.85); }
+      }
+
+      /* Close Button (Popup only) */
       .qs-notice-close {
-        margin-left: auto;
         width: 28px;
         height: 28px;
         border-radius: 50%;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(255, 255, 255, 0.06);
-        color: rgba(255, 255, 255, 0.65);
+        border: 1px solid var(--toggle-border);
+        background: var(--toggle-bg);
+        color: var(--text-muted);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -196,126 +393,127 @@
         padding: 0;
       }
       .qs-notice-close:hover {
-        background: rgba(255, 255, 255, 0.18);
-        color: #ffffff;
-        border-color: rgba(255, 255, 255, 0.25);
+        background: var(--toggle-btn-hover);
+        color: var(--text-main);
+        border-color: var(--btn-hover-border);
         transform: scale(1.06);
       }
       .qs-notice-close:active {
         transform: scale(0.94);
       }
-
-      /* Notice Content matching tooltip typography & breathing room */
-      .qs-notice-body {
-        position: relative;
-        z-index: 1;
-        text-align: left;
-        margin-bottom: 14px;
+      body.options-mode .qs-notice-close {
+        display: none !important;
       }
 
-      .qs-notice-title {
-        font-size: 16px;
-        font-weight: 700;
-        letter-spacing: -0.3px;
-        margin: 0 0 6px 0;
-        color: #ffffff;
-        line-height: 1.35;
-      }
-
-      .qs-notice-desc {
-        font-size: 13px;
-        line-height: 1.5;
-        color: rgba(255, 255, 255, 0.78);
-        margin: 0;
-      }
-
-      /* Organic Liquid Glass Tip Callout */
+      /* Callout Tip */
       .qs-notice-tip {
         position: relative;
         z-index: 1;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: var(--callout-bg);
+        border: 1px solid var(--callout-border);
         border-radius: 12px;
-        padding: 11px 14px;
-        font-size: 12px;
-        line-height: 1.5;
+        padding: 8.5px 12px;
+        font-size: 11.5px;
+        line-height: 1.4;
         display: flex;
-        align-items: flex-start;
-        gap: 10px;
+        align-items: center;
+        gap: 8px;
         text-align: left;
-        color: rgba(255, 255, 255, 0.82);
+        color: var(--callout-color);
         margin-bottom: 14px;
         box-sizing: border-box;
       }
-
       .qs-tip-icon {
         flex-shrink: 0;
-        color: #03d5ff;
-        font-size: 14px;
-        line-height: 1.3;
+        color: var(--callout-icon);
+        font-size: 13px;
+        line-height: 1;
       }
 
-      /* Quick Preferences Panel with curved cards and pill buttons */
+      /* Liquid Glass Preferences Control Panel */
       .qs-quick-prefs {
         position: relative;
         z-index: 1;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        padding: 12px 14px;
-        border-radius: 14px;
-        background: rgba(0, 0, 0, 0.35);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-        margin-bottom: 16px;
+        padding: 4px 12px;
+        border-radius: 16px;
+        background: var(--group-bg);
+        border: 1px solid var(--group-border);
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+        margin-bottom: 12px;
+        box-sizing: border-box;
       }
 
       .qs-pref-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        padding: 9px 0;
+        gap: 8px;
+      }
+      .qs-pref-row:not(:last-child) {
+        border-bottom: 1px solid var(--group-divider);
+      }
+
+      .qs-pref-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5px;
+        text-align: left;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
       }
 
       .qs-pref-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.85);
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -0.15px;
+        white-space: nowrap;
+      }
+
+      .qs-pref-sub {
+        font-size: 10.5px;
+        color: var(--text-sub);
+        line-height: 1.25;
         white-space: nowrap;
       }
 
       .qs-segmented-toggle {
         display: flex;
-        padding: 3px;
-        background: rgba(0, 0, 0, 0.45);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 2.5px;
+        background: var(--toggle-bg);
+        border: 1px solid var(--toggle-border);
         border-radius: 999px;
-        gap: 3px;
+        gap: 2px;
+        flex-shrink: 0;
       }
 
       .qs-toggle-btn {
         all: initial;
         font-family: inherit;
-        font-size: 11.5px;
+        font-size: 10.5px;
         font-weight: 600;
-        padding: 4px 10px;
+        padding: 4px 8.5px;
         border-radius: 999px;
         cursor: pointer;
-        color: rgba(255, 255, 255, 0.65);
-        transition: all 0.16s ease;
+        color: var(--toggle-btn-color);
+        transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
         text-align: center;
         white-space: nowrap !important;
-        flex: 1;
-      }
-      .qs-toggle-btn.active {
-        background: #ffffff;
-        color: #121216;
-        font-weight: 700;
-        box-shadow: 0 1.5px 5px rgba(0, 0, 0, 0.35);
+        user-select: none;
       }
       .qs-toggle-btn:hover:not(.active) {
-        color: #ffffff;
-        background: rgba(255, 255, 255, 0.08);
+        color: var(--toggle-btn-hover-color);
+        background: var(--toggle-btn-hover);
+      }
+      .qs-toggle-btn.active {
+        background: var(--toggle-active-bg);
+        color: var(--toggle-active-color);
+        font-weight: 700;
+        box-shadow: var(--toggle-active-shadow);
       }
 
       /* Keyboard Shortcuts Panel */
@@ -324,13 +522,12 @@
         z-index: 1;
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        padding: 12px 14px;
+        gap: 6px;
+        padding: 10px 14px;
         border-radius: 14px;
-        background: rgba(0, 0, 0, 0.35);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-        margin-bottom: 16px;
+        background: var(--group-bg);
+        border: 1px solid var(--group-border);
+        margin-bottom: 14px;
       }
 
       .qs-shortcut-row {
@@ -338,23 +535,22 @@
         align-items: center;
         justify-content: space-between;
         font-size: 12px;
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--text-main);
       }
 
       .qs-kbd {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-        font-size: 11px;
+        font-size: 10.5px;
         font-weight: 700;
         padding: 2.5px 8px;
         border-radius: 6px;
-        background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        color: #ffffff;
+        background: var(--kbd-bg);
+        border: 1px solid var(--kbd-border);
+        color: var(--kbd-color);
         line-height: 1.2;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
       }
 
-      /* Authentic SwiftSelect Liquid Glass Action Button */
+      /* Action Button */
       .qs-notice-btn {
         position: relative;
         z-index: 1;
@@ -363,38 +559,32 @@
         justify-content: center;
         gap: 8px;
         width: 100%;
-        height: 40px;
+        height: 38px;
         padding: 0 16px;
         border-radius: 999px;
-        border: none;
-        font-size: 13px;
-        font-weight: 700;
+        border: 1px solid var(--btn-border);
+        font-size: 12.5px;
+        font-weight: 650;
+        letter-spacing: -0.2px;
         font-family: inherit;
         cursor: pointer;
         box-sizing: border-box;
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 32%, transparent);
-        color: #ffffff;
-        box-shadow:
-          inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-          inset 1.5px 2px 0px -1px rgba(255, 255, 255, 0.8),
-          inset -1px -1px 0px -1px rgba(0, 0, 0, 0.3),
-          0px 4px 14px rgba(0, 0, 0, 0.35);
-        transition: transform 140ms ease, background-color 150ms ease, box-shadow 150ms ease;
+        background: var(--btn-bg);
+        color: var(--btn-color);
+        box-shadow: var(--btn-shadow);
+        transition: transform 140ms ease, background 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
       }
       .qs-notice-btn:hover {
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 45%, transparent);
-        transform: translateY(-1px) scale(1.01);
-        box-shadow:
-          inset 0 0 0 1px rgba(255, 255, 255, 0.25),
-          inset 2px 2px 0px -1px rgba(255, 255, 255, 0.95),
-          0px 6px 18px rgba(0, 0, 0, 0.45);
+        background: var(--btn-hover-bg);
+        border-color: var(--btn-hover-border);
+        transform: translateY(-1px);
+        box-shadow: var(--btn-hover-shadow);
       }
       .qs-notice-btn:active {
         transform: scale(0.98);
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 50%, transparent);
       }
 
-      /* Quick Sub Action Buttons */
+      /* Quick Sub Actions */
       .qs-quick-actions-row {
         position: relative;
         z-index: 1;
@@ -408,15 +598,11 @@
         font-family: inherit;
         font-size: 12px;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.9);
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 24%, transparent);
-        border: none;
-        box-shadow:
-          inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-          inset 1px 1.5px 0 -1px rgba(255, 255, 255, 0.6),
-          0 2px 6px rgba(0, 0, 0, 0.25);
+        color: var(--sub-btn-color);
+        background: var(--sub-btn-bg);
+        border: 1px solid var(--sub-btn-border);
         border-radius: 999px;
-        height: 36px;
+        height: 35px;
         padding: 0 12px;
         display: inline-flex;
         align-items: center;
@@ -425,28 +611,23 @@
         flex: 1;
         cursor: pointer;
         box-sizing: border-box;
-        transition: transform 140ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+        transition: transform 140ms ease, background 150ms ease;
       }
       .qs-notice-sub-btn:hover {
-        background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 38%, transparent);
-        color: #ffffff;
+        background: var(--toggle-btn-hover);
         transform: translateY(-1px);
-        box-shadow:
-          inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-          inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.8),
-          0 4px 10px rgba(0, 0, 0, 0.35);
       }
       .qs-notice-sub-btn:active {
         transform: scale(0.98);
       }
 
-      /* Footer Hint */
+      /* Footer */
       .qs-notice-footer {
         position: relative;
         z-index: 1;
-        margin-top: 14px;
-        font-size: 11.5px;
-        color: rgba(255, 255, 255, 0.58);
+        margin-top: 12px;
+        font-size: 11px;
+        color: var(--text-sub);
         text-align: center;
         display: flex;
         align-items: center;
@@ -455,13 +636,13 @@
       }
       .qs-notice-footer kbd {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-        font-size: 10.5px;
+        font-size: 10px;
         font-weight: 700;
         padding: 2px 6px;
         border-radius: 5px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        color: #ffffff;
+        background: var(--kbd-bg);
+        border: 1px solid var(--kbd-border);
+        color: var(--kbd-color);
         line-height: 1;
       }
     </style>
@@ -469,37 +650,55 @@
   <body class="notice-mode">
     <div id="notice-view" class="qs-notice-card">
       <div class="qs-notice-glow" id="notice-glow"></div>
-      <div class="qs-notice-header">
-        <div class="qs-notice-icon-wrapper" id="notice-icon"></div>
-        <span class="qs-notice-badge" id="notice-badge">Preferences</span>
-        <button class="qs-notice-close" id="notice-close-btn" title="Close (Esc)" aria-label="Close">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-          </svg>
-        </button>
+      
+      <!-- Top Navigation Row: Icon & Badge on Left, Sync Pill & Close on Right -->
+      <div class="qs-notice-topbar">
+        <div class="qs-topbar-left">
+          <div class="qs-notice-icon-wrapper settings" id="notice-icon"></div>
+          <span class="qs-pill-badge" id="notice-badge">Preferences</span>
+        </div>
+        <div class="qs-header-controls">
+          <div class="qs-sync-pill" id="sync-pill" title="Settings auto-save and sync immediately">
+            <span class="qs-sync-dot"></span>
+            <span id="sync-pill-text">Auto-saved</span>
+          </div>
+          <button class="qs-notice-close" id="notice-close-btn" title="Close (Esc)" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div class="qs-notice-body">
-        <div class="qs-notice-title" id="notice-title">Notice</div>
-        <div class="qs-notice-desc" id="notice-desc">Description</div>
+      <!-- Clean Full-Width Title & Subtitle Stack (Zero Overlap) -->
+      <div class="qs-header-title-stack">
+        <h1 class="qs-notice-title" id="notice-title">SwiftSelect Settings</h1>
+        <p class="qs-notice-desc" id="notice-desc">Customize default export format, destination and appearance.</p>
       </div>
 
-      <div class="qs-notice-tip" id="notice-tip">
+      <!-- Tip Callout -->
+      <div class="qs-notice-tip" id="notice-tip" style="display: none;">
         <span class="qs-tip-icon">✦</span>
-        <span class="qs-tip-text" id="notice-tip-text">SwiftSelect works on all normal websites and web apps.</span>
+        <span class="qs-tip-text" id="notice-tip-text">Changes save automatically and sync across your browser sessions.</span>
       </div>
 
-      <!-- Quick Preferences Toggle -->
+      <!-- Quick Preferences Controls -->
       <div class="qs-quick-prefs" id="notice-prefs">
         <div class="qs-pref-row">
-          <span class="qs-pref-label">Export Format</span>
+          <div class="qs-pref-meta">
+            <span class="qs-pref-label">Export Format</span>
+            <span class="qs-pref-sub">Capture file type</span>
+          </div>
           <div class="qs-segmented-toggle" id="pref-format-toggle">
             <button class="qs-toggle-btn active" data-format="jpg">JPG (Small)</button>
             <button class="qs-toggle-btn" data-format="png">PNG (Lossless)</button>
           </div>
         </div>
         <div class="qs-pref-row">
-          <span class="qs-pref-label">Destination</span>
+          <div class="qs-pref-meta">
+            <span class="qs-pref-label">Destination</span>
+            <span class="qs-pref-sub">Where captures go</span>
+          </div>
           <div class="qs-segmented-toggle" id="pref-dest-toggle">
             <button class="qs-toggle-btn active" data-dest="both">Both</button>
             <button class="qs-toggle-btn" data-dest="clipboard">Copy</button>
@@ -507,7 +706,10 @@
           </div>
         </div>
         <div class="qs-pref-row">
-          <span class="qs-pref-label">Theme</span>
+          <div class="qs-pref-meta">
+            <span class="qs-pref-label">Appearance</span>
+            <span class="qs-pref-sub">Visual theme</span>
+          </div>
           <div class="qs-segmented-toggle" id="pref-theme-toggle">
             <button class="qs-toggle-btn active" data-theme="glass">Glass</button>
             <button class="qs-toggle-btn" data-theme="standard">Standard</button>
@@ -541,13 +743,16 @@
         </div>
       </div>
 
+      <!-- Action Button -->
       <button class="qs-notice-btn" id="notice-action-btn" style="display: none;">
-        <span id="notice-action-text">Action</span>
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-          <path d="M5 13h11.86l-5.43 5.43 1.42 1.42L21.14 12l-8.29-8.29-1.42 1.42L16.86 11H5v2z"/>
+        <span id="notice-action-text">Configure Chrome Shortcuts</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
         </svg>
       </button>
 
+      <!-- Quick Action Sub-buttons (Visible / Full Page) -->
       <div class="qs-quick-actions-row" id="notice-quick-actions" style="display: none;">
         <button class="qs-notice-sub-btn" id="btn-quick-visible" title="Capture Visible Area (Alt+S)">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -559,6 +764,7 @@
         </button>
       </div>
 
+      <!-- Footer -->
       <div class="qs-notice-footer">
         <span id="notice-footer-text">Press <kbd>Alt</kbd>+<kbd>X</kbd> on any webpage</span>
       </div>

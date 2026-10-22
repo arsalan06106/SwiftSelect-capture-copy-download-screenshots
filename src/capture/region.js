@@ -202,7 +202,7 @@ export async function handleCaptureAndDownload() {
   return handleCaptureVisible();
 }
 
-export async function captureAndCrop(viewRect) {
+export async function captureAndCrop(viewRect, shouldFlash = false) {
   try {
     toggleCursor(true);
 
@@ -313,6 +313,10 @@ export async function captureAndCrop(viewRect) {
       }
     }
 
+    if (shouldFlash) {
+      window.SwiftSelect.ui.triggerFlash?.(viewRect);
+    }
+
     let statusMsg = "Selection Captured";
     let statusType = "saved";
     if (destination === "both") {
@@ -335,6 +339,7 @@ export async function captureAndCrop(viewRect) {
     throw err;
   } finally {
     toggleCursor(false);
+    window.SwiftSelect.ui.releaseFreeze?.();
   }
 }
 
