@@ -277,12 +277,9 @@ function buildAnnotationUI() {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(10, 10, 14, 0.82);
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    background: rgba(0, 0, 0, 0.14);
     user-select: none;
     font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #e1e1e1;
     opacity: 0;
     transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   `;
@@ -307,6 +304,16 @@ function buildAnnotationUI() {
     @keyframes qsAnnotateToolbarIn {
       0% {
         transform: translate3d(-50%, -24px, 0) scale(0.94);
+        opacity: 0;
+      }
+      100% {
+        transform: translate3d(-50%, 0, 0) scale(1);
+        opacity: 1;
+      }
+    }
+    @keyframes qsCropControlsIn {
+      0% {
+        transform: translate3d(-50%, 24px, 0) scale(0.94);
         opacity: 0;
       }
       100% {
@@ -429,19 +436,23 @@ function buildAnnotationUI() {
   function updateStrokeUI() {
     strokeGroup.querySelectorAll("button[data-stroke]").forEach((b) => {
       const act = Number(b.dataset.stroke) === _currentLineWidth;
-      b.style.background = act ? "rgba(255,255,255,0.24)" : "transparent";
-      b.style.borderColor = act ? "rgba(255,255,255,0.45)" : "transparent";
-      b.style.boxShadow = act ? "0 0 0 1.5px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.4)" : "none";
+      b.style.background = act ? "color-mix(in srgb, var(--c-glass) 58%, transparent)" : "transparent";
+      b.style.borderColor = "transparent";
+      b.style.boxShadow = act ? "inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 15%), transparent), inset 1px 1px 1px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 70%), transparent), 0 1px 3px rgba(0, 0, 0, 0.15)" : "none";
       const d = b.querySelector("div");
-      if (d) d.style.opacity = act ? "1" : "0.55";
+      if (d) {
+        d.style.opacity = act ? "1" : "0.55";
+        d.style.background = "currentColor";
+      }
     });
     const isPreset = STROKE_WIDTHS.some((sw) => sw.width === _currentLineWidth);
     const isPopoverOpen = _strokePopoverEl && _strokePopoverEl.style.display !== "none";
     if (_tuneBtn) {
       const tuneAct = isPopoverOpen || !isPreset;
-      _tuneBtn.style.background = tuneAct ? "rgba(255,255,255,0.24)" : "transparent";
-      _tuneBtn.style.borderColor = tuneAct ? "rgba(255,255,255,0.45)" : "transparent";
-      _tuneBtn.style.boxShadow = tuneAct ? "0 0 0 1.5px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.4)" : "none";
+      _tuneBtn.style.color = "var(--c-content)";
+      _tuneBtn.style.background = tuneAct ? "color-mix(in srgb, var(--c-glass) 58%, transparent)" : "transparent";
+      _tuneBtn.style.borderColor = "transparent";
+      _tuneBtn.style.boxShadow = tuneAct ? "inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 15%), transparent), inset 1px 1px 1px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 70%), transparent), 0 1px 3px rgba(0, 0, 0, 0.15)" : "none";
     }
   }
 
@@ -480,19 +491,20 @@ function buildAnnotationUI() {
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      background: ${isAct ? "rgba(255,255,255,0.24)" : "transparent"};
-      border: ${isAct ? "1px solid rgba(255,255,255,0.45)" : "1px solid transparent"};
-      box-shadow: ${isAct ? "0 0 0 1.5px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.4)" : "none"};
+      background: ${isAct ? "color-mix(in srgb, var(--c-glass) 58%, transparent)" : "transparent"};
+      border: transparent;
+      box-shadow: ${isAct ? "inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 15%), transparent), inset 1px 1px 1px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 70%), transparent), 0 1px 3px rgba(0, 0, 0, 0.15)" : "none"};
       box-sizing: border-box;
       transition: all 0.15s ease;
       flex-shrink: 0;
+      color: var(--c-content);
     `;
     const dot = document.createElement("div");
     dot.style.cssText = `
       width: ${sw.dotSize}px;
       height: ${sw.dotSize}px;
       border-radius: 50%;
-      background: #ffffff;
+      background: currentColor;
       opacity: ${isAct ? "1" : "0.55"};
       transition: opacity 0.15s ease, transform 0.15s ease;
     `;
@@ -523,7 +535,7 @@ function buildAnnotationUI() {
     box-sizing: border-box;
     transition: all 0.15s ease;
     flex-shrink: 0;
-    color: #ffffff;
+    color: var(--c-content);
   `;
   tuneBtn.innerHTML = `
     <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
@@ -553,27 +565,27 @@ function buildAnnotationUI() {
   });
 
   popover.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
-      <span style="font-size: 11.5px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">Stroke &amp; Style</span>
-      <span class="qs-popover-width-val" style="font-size: 10.5px; font-weight: 700; color: #ffffff; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.22); padding: 2px 7px; border-radius: 999px;">${_currentLineWidth}px</span>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
+      <span style="font-size: 12px; font-weight: 700; color: var(--c-content); letter-spacing: -0.2px;">Stroke &amp; Style</span>
+      <span class="qs-popover-width-val" style="font-size: 11px; font-weight: 700; color: var(--c-action); background: color-mix(in srgb, var(--c-action) 12%, transparent); border: 1px solid color-mix(in srgb, var(--c-action) 25%, transparent); padding: 2px 8px; border-radius: 999px;">${_currentLineWidth}px</span>
     </div>
 
     <div class="qs-slider-group">
       <div class="qs-slider-header">
         <span>Thickness</span>
-        <span>1px – 72px</span>
+        <span style="font-size: 10px; opacity: 0.65;">1px – 72px</span>
       </div>
       <input type="range" class="qs-popover-slider-width" min="1" max="72" step="0.5" value="${_currentLineWidth}">
     </div>
 
-    <div style="background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; height: 26px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0 12px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);">
+    <div style="background: color-mix(in srgb, var(--c-content) 6%, transparent); border: 1px solid color-mix(in srgb, var(--c-content) 12%, transparent); border-radius: 10px; height: 30px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0 14px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);">
       <div class="qs-popover-preview-line" style="height: ${Math.min(20, Math.max(1, _currentLineWidth))}px; width: 100%; border-radius: 999px; background: ${_currentColor}; opacity: ${_currentOpacity}; transition: height 0.08s ease, opacity 0.08s ease, background-color 0.1s ease;"></div>
     </div>
 
     <div class="qs-slider-group">
       <div class="qs-slider-header">
-        <span>Opacity (Highlight)</span>
-        <span class="qs-popover-opacity-val">${Math.round(_currentOpacity * 100)}%</span>
+        <span>Opacity</span>
+        <span class="qs-popover-opacity-val" style="font-weight: 700; color: var(--c-action);">${Math.round(_currentOpacity * 100)}%</span>
       </div>
       <input type="range" class="qs-popover-slider-opacity" min="10" max="100" step="5" value="${Math.round(_currentOpacity * 100)}">
     </div>
@@ -622,17 +634,21 @@ function buildAnnotationUI() {
   };
 
   if (_closePopoverHandler) {
-    window.removeEventListener("pointerdown", _closePopoverHandler);
+    window.removeEventListener("pointerdown", _closePopoverHandler, true);
+    window.removeEventListener("click", _closePopoverHandler, true);
   }
   _closePopoverHandler = (e) => {
     if (_strokePopoverEl && _strokePopoverEl.style.display !== "none") {
-      if (!strokeGroup.contains(e.target)) {
+      const path = e.composedPath ? e.composedPath() : [];
+      const clickedInside = path.includes(popover) || path.includes(tuneBtn) || popover.contains(e.target) || tuneBtn.contains(e.target);
+      if (!clickedInside) {
         _strokePopoverEl.style.display = "none";
         updateStrokeUI();
       }
     }
   };
-  window.addEventListener("pointerdown", _closePopoverHandler);
+  window.addEventListener("pointerdown", _closePopoverHandler, true);
+  window.addEventListener("click", _closePopoverHandler, true);
 
   toolbar.appendChild(strokeGroup);
 
@@ -895,6 +911,13 @@ function buildAnnotationUI() {
     const isTextInput = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA";
 
     if (!isCanvas && !isToolbar && !isCropControls && !isTextInput) {
+      if (_strokePopoverEl && _strokePopoverEl.style.display !== "none") {
+        _strokePopoverEl.style.display = "none";
+        updateStrokeUI();
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       closeAnnotationEditor();
@@ -926,7 +949,12 @@ function buildAnnotationUI() {
   document.body.appendChild(_annotateHost);
 
   requestAnimationFrame(() => {
-    if (_annotateHost) _annotateHost.style.opacity = "1";
+    if (_annotateHost) {
+      _annotateHost.style.opacity = "1";
+      if (uiTheme?.applyElementTheme && toolbar) {
+        uiTheme.applyElementTheme(toolbar, uiTheme.currentUserTheme || "glass");
+      }
+    }
   });
 }
 
@@ -997,11 +1025,11 @@ function showCropControls() {
   if (!_annotateHost || !_cropRect) return;
   if (!_cropControlsEl) {
     _cropControlsEl = document.createElement("div");
-    _cropControlsEl.className = "qs-guide qs-crop-controls qs-theme-glass";
+    _cropControlsEl.className = "qs-guide qs-annotate-toolbar qs-crop-controls qs-theme-glass";
     _cropControlsEl.addEventListener("pointerdown", (e) => e.stopPropagation());
     const uiTheme = window.SwiftSelect?.theme;
     if (uiTheme?.applyElementTheme) {
-      uiTheme.applyElementTheme(_cropControlsEl, "glass");
+      uiTheme.applyElementTheme(_cropControlsEl, uiTheme.currentUserTheme || "glass");
     }
     _cropControlsEl.innerHTML = `
       <div class="qs-crop-meta">
@@ -1015,12 +1043,12 @@ function showCropControls() {
         </span>
       </div>
       <div class="qs-crop-ratios">
-        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === 'free' ? 'active' : ''}" data-ratio="free">Free</button>
-        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '16:9' ? 'active' : ''}" data-ratio="16:9">16:9</button>
-        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '4:3' ? 'active' : ''}" data-ratio="4:3">4:3</button>
-        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '1:1' ? 'active' : ''}" data-ratio="1:1">1:1</button>
-        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '3:2' ? 'active' : ''}" data-ratio="3:2">3:2</button>
-        <button class="qs-crop-ratio-btn ${_cropAspectRatioKey === '9:16' ? 'active' : ''}" data-ratio="9:16">9:16</button>
+        <button class="qs-guide-btn pill qs-crop-ratio-btn ${_cropAspectRatioKey === 'free' ? 'active' : ''}" data-ratio="free">Free</button>
+        <button class="qs-guide-btn pill qs-crop-ratio-btn ${_cropAspectRatioKey === '16:9' ? 'active' : ''}" data-ratio="16:9">16:9</button>
+        <button class="qs-guide-btn pill qs-crop-ratio-btn ${_cropAspectRatioKey === '4:3' ? 'active' : ''}" data-ratio="4:3">4:3</button>
+        <button class="qs-guide-btn pill qs-crop-ratio-btn ${_cropAspectRatioKey === '1:1' ? 'active' : ''}" data-ratio="1:1">1:1</button>
+        <button class="qs-guide-btn pill qs-crop-ratio-btn ${_cropAspectRatioKey === '3:2' ? 'active' : ''}" data-ratio="3:2">3:2</button>
+        <button class="qs-guide-btn pill qs-crop-ratio-btn ${_cropAspectRatioKey === '9:16' ? 'active' : ''}" data-ratio="9:16">9:16</button>
       </div>
       <div class="qs-crop-actions">
         <button class="qs-guide-btn pill qs-crop-apply-btn">
@@ -1065,7 +1093,14 @@ function showCropControls() {
       selectTool("select");
     };
     _annotateHost.appendChild(_cropControlsEl);
+    if (uiTheme?.applyElementTheme) {
+      uiTheme.applyElementTheme(_cropControlsEl, uiTheme.currentUserTheme || "glass");
+    }
   } else {
+    const uiTheme = window.SwiftSelect?.theme;
+    if (uiTheme?.applyElementTheme) {
+      uiTheme.applyElementTheme(_cropControlsEl, uiTheme.currentUserTheme || "glass");
+    }
     const dimValEl = _cropControlsEl.querySelector(".qs-crop-dim-val");
     if (dimValEl) {
       dimValEl.textContent = `${Math.round(_cropRect.width)} × ${Math.round(_cropRect.height)}`;
@@ -2436,6 +2471,11 @@ async function handleSaveAnnotated() {
 
 function onAnnotateKeyDown(e) {
   if (e.key === "Escape") {
+    if (_strokePopoverEl && _strokePopoverEl.style.display !== "none") {
+      _strokePopoverEl.style.display = "none";
+      updateStrokeUI();
+      return;
+    }
     if (_currentTool === "crop") {
       _cropRect = null;
       hideCropControls();
@@ -2518,7 +2558,8 @@ export function closeAnnotationEditor() {
   window.removeEventListener("pointerup", onCanvasPointerUp);
   window.removeEventListener("keydown", onAnnotateKeyDown, true);
   if (_closePopoverHandler) {
-    window.removeEventListener("pointerdown", _closePopoverHandler);
+    window.removeEventListener("pointerdown", _closePopoverHandler, true);
+    window.removeEventListener("click", _closePopoverHandler, true);
     _closePopoverHandler = null;
   }
 

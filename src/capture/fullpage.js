@@ -547,9 +547,7 @@ export async function captureStream({
     }
   };
 
-  const btn = window.SwiftSelect.ui.guideShadow?.querySelector(
-    `[data-action="${actionName}"]`,
-  );
+  let btn = null;
 
   try {
     window.addEventListener("keydown", onAbortKey, true);
@@ -558,6 +556,9 @@ export async function captureStream({
     window.SwiftSelect.events.removeListeners();
     window.SwiftSelect.ui.updateBadge("0%", "#BA4B5C");
 
+    btn = window.SwiftSelect.ui.guideShadow?.querySelector(
+      `[data-action="${actionName}"]`,
+    );
     originalIcon = btn?.cloneNode(true);
 
     if (window.SwiftSelect.ui.guideHost) {

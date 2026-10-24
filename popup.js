@@ -18,44 +18,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnQuickFull = document.getElementById("btn-quick-full");
 
   function applyThemeMode(theme) {
-    const activeTheme = theme || "glass";
+    const activeTheme = theme || "light";
     document.documentElement.setAttribute("data-theme", activeTheme);
-    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const isDark = activeTheme === "dark" || ((activeTheme === "glass" || activeTheme === "standard") && prefersDark);
+    // Light is default for menus; dark is active only when explicitly selected
+    const isDark = activeTheme === "dark";
+    document.body.classList.add("qs-theme-glass");
     if (isDark) {
-      document.body.classList.add("dark-theme");
+      document.body.classList.add("dark-theme", "qs-theme-glass-dark");
       document.body.classList.remove("light-theme");
     } else {
       document.body.classList.add("light-theme");
-      document.body.classList.remove("dark-theme");
+      document.body.classList.remove("dark-theme", "qs-theme-glass-dark");
     }
   }
 
-  // Pre-seed theme from OS color scheme immediately
-  const initialPrefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-  if (initialPrefersDark) {
-    document.body.classList.add("dark-theme");
-    document.body.classList.remove("light-theme");
-  } else {
-    document.body.classList.add("light-theme");
-    document.body.classList.remove("dark-theme");
-  }
+  // Pre-seed theme: default to light liquid glass for these menus
+  document.body.classList.add("qs-theme-glass", "light-theme");
+  document.body.classList.remove("dark-theme", "qs-theme-glass-dark");
 
-  // Listen for dynamic OS color-scheme changes (if in glass or standard mode)
-  if (window.matchMedia) {
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-      chrome.storage.local.get(["userTheme"], (data) => {
-        const theme = data?.userTheme || "glass";
-        if (theme === "glass" || theme === "standard") {
-          applyThemeMode(theme);
-        }
-      });
-    });
-  }
-
-  // Sync theme preference from storage
+  // Sync theme preference from storage (defaults to light for these menus)
   chrome.storage.local.get(["userTheme", "outputFormat", "outputDestination"], (data) => {
-    const theme = data?.userTheme || "glass";
+    const theme = data?.userTheme || "light";
     applyThemeMode(theme);
 
     // Set active states on preference toggles
@@ -237,8 +220,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (noticeTip) {
       if (tip) {
-        if (noticeTipText) noticeTipText.textContent = tip;
-        else noticeTip.textContent = tip;
+        if (noticeTipText) {
+          noticeTipText.textContent = tip.replace(/^✦\s*/, "");
+        } else {
+          noticeTip.textContent = tip;
+        }
         noticeTip.style.display = "flex";
       } else {
         noticeTip.style.display = "none";
@@ -421,14 +407,16 @@ document.addEventListener("DOMContentLoaded", () => {
       /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent);
     const shortcut = isMacPlatform ? "Ctrl+X" : "Alt+X";
 
+    const brandIconSvg =
+      '<img src="icons/icon48.png" width="22" height="22" alt="SwiftSelect" style="display:block;border-radius:5px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.18));" />';
+
     showNotice({
-      badge: "Preferences",
-      iconType: "settings",
-      iconSvg:
-        '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
-      title: "SwiftSelect Settings",
-      desc: "Configure export format, destination and appearance",
-      tip: null,
+      badge: "SwiftSelect",
+      iconType: "brand",
+      iconSvg: brandIconSvg,
+      title: "SwiftSelect",
+      desc: "Instant area capture, copy & full page screenshot.",
+      tip: `Ready to snap: Press ${shortcut} on any webpage to select area.`,
       showPrefs: true,
       showShortcuts: false,
       showQuickActions: true,

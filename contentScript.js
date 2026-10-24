@@ -23,6 +23,9 @@ if (!window.__swiftSelectInjected_v2) {
         window.SwiftSelect.capture = { ...region, ...fullpage };
         theme.init();
         return { theme, ui, events, region, fullpage };
+      }).catch((err) => {
+        modulesPromise = null;
+        throw err;
       });
     }
     return modulesPromise;

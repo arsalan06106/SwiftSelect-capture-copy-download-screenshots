@@ -171,8 +171,19 @@ export function applyElementTheme(
     }
   }
 
+  const isToolbar =
+    el.classList?.contains("qs-guide") ||
+    el.classList?.contains("qs-annotate-toolbar") ||
+    el.classList?.contains("qs-crop-controls");
+
   const isDark =
-    theme === "dark" ? true : theme === "light" ? false : isAreaDark(rect);
+    theme === "dark"
+      ? true
+      : theme === "light"
+        ? false
+        : isToolbar
+          ? isPageDark()
+          : isAreaDark(rect);
 
   el.classList.remove(
     "qs-theme-dark",
@@ -277,10 +288,14 @@ function _buildDarkStandardPalette(surface, accent) {
 }
 
 function _getPageSurfaceColor() {
-  const roots = [document.body, document.documentElement].filter(Boolean);
+  const roots = [
+    document.body,
+    document.documentElement,
+    document.querySelector("#root, #__next, #app, main, .app, [id*='app'], [class*='app']"),
+  ].filter(Boolean);
   for (const el of roots) {
     const color = _parseColor(window.getComputedStyle(el).backgroundColor);
-    if (color && color.a >= 0.8) return color;
+    if (color && color.a >= 0.7) return color;
   }
 
   const vw = window.innerWidth || document.documentElement.clientWidth || 1;
@@ -300,7 +315,7 @@ function _getPageSurfaceColor() {
     for (const el of stack) {
       if (!_isThemeSampleCandidate(el)) continue;
       const color = _parseColor(window.getComputedStyle(el).backgroundColor);
-      if (color && color.a >= 0.8 && _chroma(color) < 80) return color;
+      if (color && color.a >= 0.7 && _chroma(color) < 80) return color;
     }
   }
 
@@ -422,8 +437,10 @@ export function setTabScreenshot(dataUrl) {
 
 function _isSwiftSelectElement(el) {
   if (!el || el.nodeType !== Node.ELEMENT_NODE) return true;
-  if (el.id && el.id.startsWith("qs-")) return true;
-  if (typeof el.className === "string" && el.className.includes("qs-"))
+  if (el.id && (el.id.startsWith("qs-") || el.id.includes("swiftselect"))) return true;
+  if (typeof el.className === "string" && (el.className.includes("qs-") || el.className.includes("swiftselect")))
+    return true;
+  if (el.closest?.("#swiftselect-annotate-root, .qs-annotate-root, [id^='qs-'], [class*='qs-']"))
     return true;
 
   const ui = window.SwiftSelect?.ui;
@@ -447,7 +464,7 @@ function _isSwiftSelectElement(el) {
         host === ui?.statusHost ||
         host === ui?.overlayHost ||
         host === ui?.highlighterHost ||
-        (typeof host.className === "string" && host.className.includes("qs-")))
+        (typeof host.className === "string" && (host.className.includes("qs-") || host.className.includes("swiftselect"))))
     ) {
       return true;
     }
@@ -714,16 +731,14 @@ export function samplePointTheme(x, y) {
     return "dark";
   }
 
-  const rootBg =
-    (document.body &&
-      _parseColor(window.getComputedStyle(document.body).backgroundColor)) ||
-    (document.documentElement &&
-      _parseColor(
-        window.getComputedStyle(document.documentElement).backgroundColor,
-      ));
-
+  const rootBg = _getPageSurfaceColor();
   const base =
-    rootBg && rootBg.a >= 0.5 ? rootBg : { r: 255, g: 255, b: 255 };
+    rootBg && rootBg.a >= 0.5
+      ? rootBg
+      : window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? { r: 24, g: 25, b: 28 }
+        : { r: 255, g: 255, b: 255 };
 
   const aTop = aAcc;
   rAcc = rAcc * aTop + base.r * (1 - aTop);
@@ -808,6 +823,22 @@ function _getFallbackRectForElement(el) {
     }
   }
 
+  if (el?.classList?.contains("qs-annotate-toolbar")) {
+    return {
+      left: Math.max(0, (vw - 600) / 2),
+      top: 20,
+      width: 600,
+      height: 50,
+    };
+  }
+  if (el?.classList?.contains("qs-crop-controls")) {
+    return {
+      left: Math.max(0, (vw - 500) / 2),
+      top: Math.max(0, vh - 24 - 50),
+      width: 500,
+      height: 50,
+    };
+  }
   if (el?.classList?.contains("qs-guide")) {
     return {
       left: Math.max(0, vw - 24 - 320),
@@ -841,6 +872,41 @@ export function isPageDark() {
     const explicitTheme = _readExplicitPageTheme();
     if (explicitTheme) return explicitTheme === "dark";
 
+    // 1. Direct page surface color check
+    const surface = _getPageSurfaceColor();
+    if (surface) {
+      return _luma(surface) < 128;
+    }
+
+    // 2. Sample physical screenshot pixels if available
+    if (_tabScreenshotCanvas && _tabScreenshotCtx) {
+      try {
+        const vw = _tabScreenshotCanvas.width;
+        const vh = _tabScreenshotCanvas.height;
+        const pts = [
+          [vw * 0.5, vh * 0.5],
+          [vw * 0.2, vh * 0.2],
+          [vw * 0.8, vh * 0.2],
+          [vw * 0.2, vh * 0.8],
+          [vw * 0.8, vh * 0.8],
+          [vw * 0.5, Math.min(120, vh * 0.15)],
+        ];
+        let darks = 0;
+        let total = 0;
+        for (const [x, y] of pts) {
+          const pixel = _tabScreenshotCtx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
+          if (pixel[3] > 30) {
+            total++;
+            if (_luma({ r: pixel[0], g: pixel[1], b: pixel[2] }) < 128) darks++;
+          }
+        }
+        if (total > 0) {
+          return darks >= total / 2;
+        }
+      } catch (e) {}
+    }
+
+    // 3. Grid DOM sampling
     const vw = window.innerWidth || document.documentElement.clientWidth || 1;
     const vh = window.innerHeight || document.documentElement.clientHeight || 1;
     const points = [
@@ -867,7 +933,7 @@ export function isPageDark() {
     }
 
     if (lightScore || darkScore) {
-      return darkScore > lightScore * 1.15;
+      return darkScore >= lightScore;
     }
 
     const roots = [document.documentElement, document.body].filter(Boolean);
@@ -891,21 +957,31 @@ function _readExplicitPageTheme() {
   const nodes = [document.documentElement, document.body].filter(Boolean);
 
   for (const el of nodes) {
+    const classStr = typeof el.className === "string" ? el.className : "";
     const explicit = [
       el.getAttribute("data-theme"),
       el.getAttribute("data-mode"),
       el.getAttribute("data-color-mode"),
       el.getAttribute("data-color-scheme"),
+      classStr,
       el.style?.colorScheme,
+      window.getComputedStyle(el).colorScheme,
     ]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
 
-    if (/\blight\b/.test(explicit) && !/\bdark\b/.test(explicit))
-      return "light";
-    if (/\bdark\b/.test(explicit) && !/\blight\b/.test(explicit))
+    if (/\b(dark|theme-dark|dark-mode|dark-theme|night|black)\b/i.test(explicit) && !/\b(light|theme-light|light-mode|light-theme)\b/i.test(explicit))
       return "dark";
+    if (/\b(light|theme-light|light-mode|light-theme)\b/i.test(explicit) && !/\b(dark|theme-dark|dark-mode|dark-theme|night|black)\b/i.test(explicit))
+      return "light";
+  }
+
+  const metaTheme = document.querySelector('meta[name="color-scheme"], meta[name="theme-color"]');
+  if (metaTheme) {
+    const content = (metaTheme.getAttribute("content") || "").toLowerCase();
+    if (content.includes("dark") && !content.includes("light")) return "dark";
+    if (content.includes("light") && !content.includes("dark")) return "light";
   }
 
   return null;

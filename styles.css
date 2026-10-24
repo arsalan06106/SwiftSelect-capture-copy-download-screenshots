@@ -819,6 +819,32 @@
   transition: none !important;
 }
 
+/* Notice Card (Popup / Options) Liquid Glass */
+.qs-theme-glass .qs-notice-card,
+.qs-notice-card.qs-theme-glass {
+  border-radius: 26px !important;
+  background-color: color-mix(
+    in srgb,
+    var(--c-glass) 12%,
+    transparent
+  ) !important;
+  backdrop-filter: blur(16px) saturate(var(--saturation)) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(var(--saturation)) !important;
+  border: none !important;
+  color: var(--c-content) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 10%), transparent),
+    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent),
+    inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent),
+    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent),
+    inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent),
+    inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent),
+    inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent),
+    inset 2px -6.5px 1px -4px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent),
+    0px 2px 8px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent),
+    0px 14px 30px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 14%), transparent) !important;
+}
+
 /* Curtains for Glass Theme */
 .qs-theme-glass .qs-curtain {
   backdrop-filter: none !important;
@@ -956,12 +982,10 @@
 
 /* 
    BUTTONS - UNIFIED GLASS STYLE
-   Applies to ALL buttons (Visible, Download, Full Page)
+   Applies universally to ALL buttons (.qs-guide-btn) in guide, annotate toolbar, and crop tool
 */
-.qs-theme-glass .qs-segmented .qs-guide-btn,
-.qs-theme-glass .qs-guide-buttons > .qs-guide-btn:not(.qs-theme-toggle),
-.qs-theme-glass .qs-annotate-toolbar .qs-guide-btn,
-.qs-theme-glass.qs-annotate-toolbar .qs-guide-btn,
+.qs-theme-glass .qs-guide-btn:not(.qs-theme-toggle),
+.qs-theme-glass.qs-guide .qs-guide-btn:not(.qs-theme-toggle),
 .qs-theme-glass .qs-save-btn {
   background-color: color-mix(
     in srgb,
@@ -1015,14 +1039,6 @@
         transparent
       ) !important;
 
-  transition: transform 0.1s ease-out;
-}
-
-.qs-theme-glass .qs-segmented .qs-guide-btn,
-.qs-theme-glass .qs-guide-buttons > .qs-guide-btn:not(.qs-theme-toggle),
-.qs-theme-glass .qs-annotate-toolbar .qs-guide-btn,
-.qs-theme-glass.qs-annotate-toolbar .qs-guide-btn,
-.qs-theme-glass .qs-save-btn {
   transition:
     transform 140ms cubic-bezier(0.2, 0, 0, 1),
     background-color 160ms ease,
@@ -1031,20 +1047,15 @@
   will-change: transform;
 }
 
-/* SVGs - Normal (No forced fill/stroke overrides) */
-.qs-theme-glass .qs-segmented .qs-guide-btn svg,
-.qs-theme-glass .qs-guide-buttons > .qs-guide-btn:not(.qs-theme-toggle) svg,
+/* SVGs - Inherit Content Color */
+.qs-theme-glass .qs-guide-btn:not(.qs-theme-toggle) svg,
 .qs-theme-glass .qs-save-btn svg {
-  fill: currentColor;
+  color: var(--c-content);
 }
 
-/* REMOVED: The block that forced 'initial' fill/stroke which broke the checkmark */
-
 /* Hover - Unified Glass */
-.qs-theme-glass .qs-segmented .qs-guide-btn:hover,
-.qs-theme-glass .qs-guide-buttons > .qs-guide-btn:not(.qs-theme-toggle):hover,
-.qs-theme-glass .qs-annotate-toolbar .qs-guide-btn:hover,
-.qs-theme-glass.qs-annotate-toolbar .qs-guide-btn:hover,
+.qs-theme-glass .qs-guide-btn:not(.qs-theme-toggle):hover,
+.qs-theme-glass.qs-guide .qs-guide-btn:not(.qs-theme-toggle):hover,
 .qs-theme-glass .qs-save-btn:hover {
   background-color: color-mix(
     in srgb,
@@ -1056,8 +1067,6 @@
 
 /* Active State (Click Compress) */
 .qs-theme-glass .qs-guide-btn:active,
-.qs-theme-glass .qs-annotate-toolbar .qs-guide-btn:active,
-.qs-theme-glass.qs-annotate-toolbar .qs-guide-btn:active,
 .qs-theme-glass .qs-save-btn:active {
   background-color: color-mix(
     in srgb,
@@ -1069,45 +1078,16 @@
     inset 0 1px 0 0
       color-mix(
         in srgb,
-        var(--c-light) calc(var(--glass-reflex-light) * 10%),
+        var(--c-light) calc(var(--glass-reflex-light) * 40%),
         transparent
       ),
-    inset 2px 2px 0px -1px
+    inset -1px -1px 0 0
       color-mix(
         in srgb,
-        var(--c-light) calc(var(--glass-reflex-light) * 90%),
+        var(--c-dark) calc(var(--glass-reflex-dark) * 30%),
         transparent
       ),
-    inset -1.5px -1.5px 0px -1px
-      color-mix(
-        in srgb,
-        var(--c-light) calc(var(--glass-reflex-light) * 80%),
-        transparent
-      ),
-    inset -2px -7px 1px -5px
-      color-mix(
-        in srgb,
-        var(--c-light) calc(var(--glass-reflex-light) * 60%),
-        transparent
-      ),
-    inset -1px 3px 3px -1px
-      color-mix(
-        in srgb,
-        var(--c-dark) calc(var(--glass-reflex-dark) * 20%),
-        transparent
-      ),
-    inset 0px -3px 1px -2px
-      color-mix(
-        in srgb,
-        var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
-        transparent
-      ),
-    0px 2px 4px 0px
-      color-mix(
-        in srgb,
-        var(--c-dark) calc(var(--glass-reflex-dark) * 8%),
-        transparent
-      ) !important;
+    0 1px 2px rgba(0, 0, 0, 0.2) !important;
   transition:
     transform 90ms cubic-bezier(0.2, 0, 0, 1),
     background-color 90ms ease,
@@ -2156,7 +2136,9 @@
 .qs-annotate-toolbar.qs-theme-glass-dark,
 .qs-theme-glass-dark .qs-annotate-toolbar,
 .qs-crop-controls.qs-theme-glass-dark,
-.qs-theme-glass-dark .qs-crop-controls {
+.qs-theme-glass-dark .qs-crop-controls,
+.qs-notice-card.qs-theme-glass-dark,
+.qs-theme-glass-dark .qs-notice-card {
   --c-glass: #bbbbbc !important;
   --c-light: #fff !important;
   --c-dark: #000 !important;
@@ -2490,26 +2472,29 @@
   }
 }
 
-.qs-annotate-toolbar {
-  --c-glass: #bbbbbc;
-  --c-light: #fff;
-  --c-dark: #000;
-  --c-content: #f0f0f2;
-  --glass-reflex-light: 1;
-  --glass-reflex-dark: 1;
-  --saturation: 160%;
+@keyframes qsCropControlsIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 14px, 0) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+}
+
+.qs-annotate-toolbar,
+.qs-crop-controls {
   position: fixed !important;
-  top: 20px !important;
   left: 50% !important;
   right: auto !important;
-  bottom: auto !important;
   transform: translateX(-50%) !important;
   z-index: 2147483648 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   flex-direction: row !important;
-  padding: 7px 8px !important;
+  padding: 7px 10px !important;
   gap: 10px !important;
   border-radius: 99em !important;
   white-space: nowrap !important;
@@ -2522,71 +2507,32 @@
   max-height: 50px !important;
   box-sizing: border-box !important;
   font-family: "Google Sans", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif !important;
-  animation: qsAnnotateToolbarIn 260ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
 
-  /* Authentic Liquid Glass Capsule */
-  background-color: color-mix(
-    in srgb,
-    var(--c-glass, #bbbbbc) 14%,
-    rgba(18, 18, 24, 0.88)
-  ) !important;
-  backdrop-filter: blur(16px) saturate(var(--saturation, 160%)) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(var(--saturation, 160%)) !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
-  color: var(--c-content, #f0f0f2) !important;
-  box-shadow:
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.4),
-    0 8px 32px 0 rgba(0, 0, 0, 0.45),
-    0 2px 8px 0 rgba(0, 0, 0, 0.25) !important;
+.qs-annotate-toolbar {
+  top: 20px !important;
+  bottom: auto !important;
+  animation: qsAnnotateToolbarIn 260ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+.qs-crop-controls {
+  bottom: 24px !important;
+  top: auto !important;
+  animation: qsCropControlsIn 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
 }
 
 .qs-annotate-tools,
 .qs-annotate-history,
-.qs-annotate-actions {
+.qs-annotate-actions,
+.qs-crop-meta,
+.qs-crop-ratios,
+.qs-crop-actions {
   display: inline-flex !important;
   align-items: center !important;
   gap: 5px !important;
   flex-shrink: 0 !important;
   padding: 0 !important;
   margin: 0 !important;
-}
-
-/* Base button inside annotation toolbar & crop controls */
-.qs-annotate-toolbar .qs-guide-btn,
-.qs-crop-controls .qs-guide-btn {
-  background-color: rgba(255, 255, 255, 0.07) !important;
-  color: rgba(255, 255, 255, 0.88) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.2),
-    0 1px 3px 0 rgba(0, 0, 0, 0.2) !important;
-  transition:
-    transform 140ms cubic-bezier(0.2, 0, 0, 1),
-    background-color 160ms ease,
-    color 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease !important;
-  will-change: transform;
-}
-
-.qs-annotate-toolbar .qs-guide-btn:hover,
-.qs-crop-controls .qs-guide-btn:hover {
-  background-color: rgba(255, 255, 255, 0.16) !important;
-  border-color: rgba(255, 255, 255, 0.22) !important;
-  color: #ffffff !important;
-  transform: translateY(-1px) !important;
-  box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35),
-    0 3px 8px 0 rgba(0, 0, 0, 0.3) !important;
-}
-
-.qs-annotate-toolbar .qs-guide-btn:active,
-.qs-crop-controls .qs-guide-btn:active {
-  background-color: rgba(255, 255, 255, 0.22) !important;
-  border-color: rgba(255, 255, 255, 0.28) !important;
-  transform: translateY(1px) scale(0.97) !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
 
 .qs-annotate-toolbar .qs-guide-btn.circle,
@@ -2655,34 +2601,51 @@
   display: block !important;
 }
 
-/* Active State for Drawing / Selected Tool — Pure Liquid Glass Specular Elevation */
+/* Active State for Drawing / Selected Tool — Illuminated Liquid Glass Active Pill */
 .qs-annotate-toolbar .qs-guide-btn.active,
 .qs-crop-controls .qs-guide-btn.active {
-  background: rgba(255, 255, 255, 0.22) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.42) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--c-action) 18%,
+    color-mix(in srgb, var(--c-glass) 55%, transparent)
+  ) !important;
+  color: var(--c-action) !important;
+  border: none !important;
   box-shadow:
-    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.65),
-    inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.2),
-    0 3px 10px rgba(0, 0, 0, 0.35) !important;
-  transform: translateY(-0.5px) scale(1.02) !important;
+    inset 0 0 0 1.5px var(--c-action),
+    inset 2px 2px 2px -1px color-mix(in srgb, var(--c-light) 90%, transparent),
+    inset -1px -1px 2px 0px color-mix(in srgb, var(--c-dark) 20%, transparent),
+    0 2px 10px color-mix(in srgb, var(--c-action) 35%, transparent) !important;
+  transform: translateY(-0.5px) scale(1.04) !important;
   position: relative !important;
 }
 
-.qs-annotate-toolbar .qs-guide-btn.active::after,
-.qs-crop-controls .qs-guide-btn.active::after {
+.qs-annotate-toolbar .qs-guide-btn.circle.active::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  bottom: 2px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background-color: var(--c-action) !important;
+  box-shadow: 0 0 5px var(--c-action) !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.active::after {
   display: none !important;
 }
 
 .qs-annotate-toolbar .qs-guide-btn.active svg,
 .qs-crop-controls .qs-guide-btn.active svg {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)) !important;
+  color: var(--c-action) !important;
 }
 
-.qs-annotate-toolbar .qs-guide-btn.active svg.is-filled {
-  fill: #ffffff !important;
+.qs-annotate-toolbar .qs-guide-btn.active svg.is-filled,
+.qs-crop-controls .qs-guide-btn.active svg.is-filled {
+  fill: var(--c-action) !important;
   stroke: none !important;
 }
 
@@ -2690,23 +2653,16 @@
 .qs-annotate-toolbar .qs-guide-btn:disabled,
 .qs-annotate-toolbar .qs-guide-btn[disabled],
 .qs-annotate-toolbar .qs-guide-btn.is-disabled {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: rgba(255, 255, 255, 0.45) !important;
-  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.1) !important;
+  opacity: 0.38 !important;
   cursor: default !important;
   pointer-events: none !important;
   transform: none !important;
-  opacity: 1 !important;
 }
 
 .qs-annotate-toolbar .qs-guide-btn:disabled svg,
 .qs-annotate-toolbar .qs-guide-btn[disabled] svg,
 .qs-annotate-toolbar .qs-guide-btn.is-disabled svg {
   opacity: 0.45 !important;
-  color: #ffffff !important;
-  stroke: #ffffff !important;
-  fill: none !important;
 }
 
 /* Stroke Thickness Capsule */
@@ -2718,33 +2674,50 @@
   height: 36px !important;
   border-radius: 99em !important;
   box-sizing: border-box !important;
-  background-color: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--c-glass) 24%,
+    transparent
+  ) !important;
+  color: var(--c-content) !important;
+  border: none !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 10%), transparent),
+    inset 1px 1px 1px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 70%), transparent),
+    0 1px 3px rgba(0, 0, 0, 0.15) !important;
   flex-shrink: 0 !important;
   position: relative !important;
 }
 
-/* Custom Stroke & Style Options Popover */
+/* Custom Stroke & Style Options Popover — High Density Liquid Glass Modal Card */
 .qs-stroke-popover {
   position: absolute;
   top: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
-  width: 250px;
-  padding: 16px 18px 14px 18px;
+  width: 264px;
+  padding: 16px 18px 16px 18px;
   box-sizing: border-box;
-  background: rgba(20, 20, 26, 0.98) !important;
-  backdrop-filter: blur(40px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.25) !important;
-  border-radius: 16px;
+  background-color: color-mix(
+    in srgb,
+    var(--c-bg) 88%,
+    color-mix(in srgb, var(--c-glass) 60%, transparent)
+  ) !important;
+  backdrop-filter: blur(36px) saturate(var(--saturation)) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(var(--saturation)) !important;
+  border: none !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 35%), transparent),
+    inset 2px 2px 2px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent),
+    inset -1px -1px 2px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 15%), transparent),
+    0 16px 40px -4px rgba(0, 0, 0, 0.28),
+    0 4px 12px rgba(0, 0, 0, 0.14) !important;
+  border-radius: 20px;
   z-index: 1000;
-  color: #ffffff;
+  color: var(--c-content) !important;
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 12px;
   animation: qsStrokePopoverIn 180ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   pointer-events: auto !important;
   user-select: none;
@@ -2764,16 +2737,17 @@
 .qs-stroke-popover .qs-slider-group {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .qs-stroke-popover .qs-slider-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.65);
-  font-weight: 500;
+  font-size: 11px;
+  color: var(--c-content) !important;
+  opacity: 0.82;
+  font-weight: 600;
 }
 
 .qs-stroke-popover input[type="range"] {
@@ -2795,7 +2769,7 @@
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--c-content) 18%, transparent);
   border: none;
 }
 
@@ -2805,65 +2779,23 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 1px #ffffff;
+  background: var(--c-action);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 1px #ffffff;
   cursor: pointer;
   margin-top: -6px;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .qs-stroke-popover input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.65);
+  transform: scale(1.18);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), inset 0 1px 1px #ffffff;
 }
 
 .qs-stroke-popover input[type="range"]::-webkit-slider-thumb:active {
-  transform: scale(1.22);
+  transform: scale(1.24);
 }
 
-/* Crop Aspect Ratio Presets */
-.qs-crop-ratios {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 2px !important;
-  padding: 2.5px !important;
-  height: 36px !important;
-  border-radius: 99em !important;
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12) !important;
-  box-sizing: border-box !important;
-  flex-shrink: 0 !important;
-}
 
-.qs-crop-ratio-btn {
-  all: initial;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.72);
-  background: transparent;
-  border: none;
-  border-radius: 999px;
-  padding: 4px 8px;
-  cursor: pointer;
-  transition: all 0.14s ease;
-  user-select: none;
-  box-sizing: border-box;
-  white-space: nowrap;
-}
-
-.qs-crop-ratio-btn:hover:not(.active) {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.qs-crop-ratio-btn.active {
-  color: #121217 !important;
-  background: #ffffff !important;
-  font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-}
 
 /* Palette Row */
 .qs-annotate-toolbar .qs-palette-row {
@@ -2881,89 +2813,27 @@
   display: none !important;
 }
 
-/* Floating Crop Controls Pill */
-@keyframes qsCropControlsIn {
-  0% {
-    opacity: 0;
-    transform: translate3d(-50%, 14px, 0) scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(-50%, 0, 0) scale(1);
-  }
-}
-
-.qs-crop-controls {
-  position: fixed !important;
-  bottom: 24px !important;
-  top: auto !important;
-  left: 50% !important;
-  right: auto !important;
-  transform: translate3d(-50%, 0, 0) !important;
-  z-index: 2147483648 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-direction: row !important;
-  padding: 7px 10px !important;
-  gap: 12px !important;
-  border-radius: 99em !important;
-  white-space: nowrap !important;
-  user-select: none !important;
-  box-sizing: border-box !important;
-  width: auto !important;
-  min-width: auto !important;
-  max-width: 92vw !important;
-  height: 50px !important;
-  min-height: 50px !important;
-  max-height: 50px !important;
-  font-family: "Google Sans", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif !important;
-  animation: qsCropControlsIn 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
-
-  /* Authentic Liquid Glass — Identical to .qs-guide and .qs-annotate-toolbar */
-  background-color: color-mix(
-    in srgb,
-    var(--c-glass, #bbbbbc) 14%,
-    rgba(18, 18, 24, 0.88)
-  ) !important;
-  backdrop-filter: blur(16px) saturate(var(--saturation, 160%)) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(var(--saturation, 160%)) !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
-  color: #ffffff !important;
-  box-shadow:
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -1px 2px 0 rgba(0, 0, 0, 0.4),
-    0 8px 32px 0 rgba(0, 0, 0, 0.45),
-    0 2px 8px 0 rgba(0, 0, 0, 0.25) !important;
-}
-
-.qs-crop-meta {
-  display: inline-flex !important;
-  align-items: center !important;
-  flex-shrink: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
+/* Crop Meta and Dimension Pill */
 .qs-crop-controls .qs-crop-dim {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace !important;
   font-size: 11.5px !important;
   font-weight: 700 !important;
-  height: 36px !important;
-  padding: 0 14px !important;
-  border-radius: 999px !important;
-  background: color-mix(
+  height: 34px !important;
+  padding: 0 12px !important;
+  border-radius: 99em !important;
+  background-color: color-mix(
     in srgb,
-    var(--c-glass, #bbbbbc) 18%,
+    var(--c-glass) 24%,
     transparent
   ) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: var(--c-content) !important;
+  border: none !important;
   letter-spacing: 0.3px !important;
   line-height: 1 !important;
   box-shadow:
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
-    0 1px 3px rgba(0, 0, 0, 0.2) !important;
+    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 10%), transparent),
+    inset 1px 1px 1px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 70%), transparent),
+    0 1px 3px rgba(0, 0, 0, 0.15) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -2973,7 +2843,7 @@
 }
 
 .qs-crop-meta-icon {
-  color: #ffffff !important;
+  color: var(--c-content) !important;
   opacity: 0.8 !important;
   display: block !important;
   flex-shrink: 0 !important;
@@ -2981,7 +2851,7 @@
 
 .qs-crop-controls .qs-crop-dim-val,
 .qs-crop-controls .qs-crop-unit {
-  color: #ffffff !important;
+  color: var(--c-content) !important;
 }
 
 .qs-crop-controls .qs-crop-unit {
@@ -2992,69 +2862,13 @@
   letter-spacing: 0.5px !important;
 }
 
-.qs-crop-actions {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  flex-shrink: 0 !important;
-}
-
-/* Default Liquid Glass Buttons for Crop Controls */
-.qs-crop-controls .qs-crop-apply-btn,
-.qs-crop-controls .qs-crop-cancel-btn {
-  height: 36px !important;
-  padding: 0 16px !important;
-  border-radius: 99em !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  gap: 6px !important;
-  background-color: color-mix(
-    in srgb,
-    var(--c-glass, #bbbbbc) 36%,
-    transparent
-  ) !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--c-light, #fff) 12%, transparent),
-    inset 2px 1px 0px -1px color-mix(in srgb, var(--c-light, #fff) 85%, transparent),
-    inset -1.5px -1px 0px -1px color-mix(in srgb, var(--c-light, #fff) 70%, transparent),
-    inset -2px -6px 1px -5px color-mix(in srgb, var(--c-light, #fff) 50%, transparent),
-    inset -1px 2px 3px -1px color-mix(in srgb, var(--c-dark, #000) 25%, transparent),
-    0px 3px 6px 0px rgba(0, 0, 0, 0.3) !important;
-  transition:
-    transform 140ms cubic-bezier(0.2, 0, 0, 1),
-    background-color 160ms ease,
-    box-shadow 160ms ease !important;
-  will-change: transform;
-}
-
-.qs-crop-controls .qs-crop-apply-btn:hover,
-.qs-crop-controls .qs-crop-cancel-btn:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--c-glass, #bbbbbc) 48%,
-    transparent
-  ) !important;
-  transform: translateY(-1px) scale(1.02) !important;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.3),
-    inset 2px 1.5px 0px -1px rgba(255, 255, 255, 0.95),
-    0 4px 12px rgba(0, 0, 0, 0.4) !important;
-}
-
-.qs-crop-controls .qs-crop-apply-btn:active,
-.qs-crop-controls .qs-crop-cancel-btn:active {
-  transform: translateY(1px) scale(0.97) !important;
-  background-color: color-mix(
-    in srgb,
-    var(--c-glass, #bbbbbc) 52%,
-    transparent
-  ) !important;
+.qs-crop-controls .qs-crop-ratio-btn {
+  padding: 0 10px !important;
 }
 
 @media (max-width: 900px) {
-  .qs-annotate-toolbar {
+  .qs-annotate-toolbar,
+  .qs-crop-controls {
     padding: 5px 8px !important;
     gap: 3px !important;
     height: 44px !important;

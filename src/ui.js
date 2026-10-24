@@ -949,11 +949,12 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
 
   if (timeout > 0) {
     hideStatusTimer = setTimeout(() => {
+      if (!statusEl) return;
       statusEl.classList.add("qs-hiding");
       setTimeout(() => {
-        if (statusEl.classList.contains("qs-hiding")) {
+        if (statusEl?.classList?.contains("qs-hiding")) {
           statusEl.style.display = "none";
-          statusHost.style.display = "none";
+          if (statusHost) statusHost.style.display = "none";
           statusEl.classList.remove("qs-hiding");
           currentStatus = null;
         }
@@ -1152,10 +1153,12 @@ export async function hideUiForCapture() {
 
   if (statusHost && statusHost.style.display !== "none") {
     if (hideStatusTimer) clearTimeout(hideStatusTimer);
-    statusEl.classList.add("qs-hiding");
-    statusEl.style.display = "none";
+    if (statusEl) {
+      statusEl.classList.add("qs-hiding");
+      statusEl.style.display = "none";
+      statusEl.classList.remove("qs-hiding");
+    }
     statusHost.style.display = "none";
-    statusEl.classList.remove("qs-hiding");
     currentStatus = null;
   }
 
