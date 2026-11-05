@@ -309,9 +309,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           streamId,
           tabId,
           mode: message.mode || "full",
-          frameInterval: message.frameInterval || 150,
-          format: message.format || "image/jpeg",
-          quality: message.quality || 0.98,
+          frameInterval: message.frameInterval || 60,
+          format: message.format || "image/png",
+          quality: message.quality !== undefined ? message.quality : 1.0,
         });
 
         sendResponse(result);
@@ -470,7 +470,7 @@ function setupContextMenus() {
     ["userTheme", "outputFormat", "outputDestination"],
     (data) => {
       const currentTheme = data?.userTheme || "glass";
-      const currentFormat = data?.outputFormat || "jpg";
+      const currentFormat = data?.outputFormat || "png";
       const currentDest = data?.outputDestination || "both";
 
       chrome.contextMenus.removeAll(() => {

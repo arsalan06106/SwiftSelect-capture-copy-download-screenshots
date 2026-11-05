@@ -51,16 +51,16 @@ try {
   if (typeof chrome !== "undefined" && chrome?.storage?.local) {
     chrome.storage.local.get(["outputFormat", "outputDestination"], (data) => {
       _cachedSettings = {
-        format: data?.outputFormat === "png" ? "png" : "jpg",
+        format: data?.outputFormat === "jpg" ? "jpg" : "png",
         destination: data?.outputDestination || "both",
       };
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === "local") {
-        if (!_cachedSettings) _cachedSettings = { format: "jpg", destination: "both" };
+        if (!_cachedSettings) _cachedSettings = { format: "png", destination: "both" };
         if (changes.outputFormat) {
-          _cachedSettings.format = changes.outputFormat.newValue === "png" ? "png" : "jpg";
+          _cachedSettings.format = changes.outputFormat.newValue === "jpg" ? "jpg" : "png";
         }
         if (changes.outputDestination) {
           _cachedSettings.destination = changes.outputDestination.newValue || "both";
@@ -71,7 +71,7 @@ try {
 } catch {}
 
 export function getOutputSettingsSync() {
-  return _cachedSettings || { format: "jpg", destination: "both" };
+  return _cachedSettings || { format: "png", destination: "both" };
 }
 
 export async function getOutputSettings() {
@@ -80,13 +80,13 @@ export async function getOutputSettings() {
     try {
       chrome.storage.local.get(["outputFormat", "outputDestination"], (data) => {
         _cachedSettings = {
-          format: data?.outputFormat === "png" ? "png" : "jpg",
+          format: data?.outputFormat === "jpg" ? "jpg" : "png",
           destination: data?.outputDestination || "both",
         };
         resolve(_cachedSettings);
       });
     } catch {
-      resolve({ format: "jpg", destination: "both" });
+      resolve({ format: "png", destination: "both" });
     }
   });
 }
@@ -227,56 +227,6 @@ export function detectStandaloneMediaOrActiveBounds() {
         : null,
       hasMargins,
     };
-  }
-
-  if (bodyChildren.length > 0) {
-    let minLeft = Infinity;
-    let minTop = Infinity;
-    let maxRight = -Infinity;
-    let maxBottom = -Infinity;
-    let count = 0;
-
-    for (const child of bodyChildren) {
-      const r = child.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) {
-        minLeft = Math.min(minLeft, r.left);
-        minTop = Math.min(minTop, r.top);
-        maxRight = Math.max(maxRight, r.right);
-        maxBottom = Math.max(maxBottom, r.bottom);
-        count++;
-      }
-    }
-
-    if (count > 0 && Number.isFinite(minLeft)) {
-      const contentLeft = Math.max(0, Math.round(minLeft));
-      const contentTop = Math.max(0, Math.round(minTop));
-      const contentWidth = Math.round(maxRight - minLeft);
-      const contentHeight = Math.round(maxBottom - minTop);
-
-      const isNarrower = contentWidth < winW - 5;
-      const isShorter = contentHeight < winH - 5;
-      const hasOffset = contentLeft > 5 || contentTop > 5;
-
-      if ((isNarrower || isShorter || hasOffset) && contentWidth > 20 && contentHeight > 20) {
-        return {
-          isStandaloneMedia: false,
-          mediaElement: bodyChildren.length === 1 ? bodyChildren[0] : null,
-          activeRect: {
-            left: contentLeft,
-            top: contentTop,
-            width: contentWidth,
-            height: contentHeight,
-          },
-          cropRect: {
-            x: contentLeft,
-            y: contentTop,
-            width: contentWidth,
-            height: contentHeight,
-          },
-          hasMargins: true,
-        };
-      }
-    }
   }
 
   return {

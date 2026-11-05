@@ -2446,7 +2446,7 @@ async function handleSaveAnnotated() {
   if (!exportCanvas) return;
 
   const blob = await new Promise((res) =>
-    exportCanvas.toBlob(res, mime, 0.92),
+    exportCanvas.toBlob(res, mime, format === "png" ? 1.0 : 0.98),
   );
   if (!blob) return;
 

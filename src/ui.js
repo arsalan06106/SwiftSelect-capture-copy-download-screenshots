@@ -1511,7 +1511,7 @@ export async function showSettingsModal() {
     settingsModalHost = null;
   }
 
-  const { outputFormat = "jpg", outputDestination = "both", userTheme = "glass" } =
+  const { outputFormat = "png", outputDestination = "both", userTheme = "glass" } =
     await new Promise((res) => {
       chrome.storage.local.get(
         ["outputFormat", "outputDestination", "userTheme"],

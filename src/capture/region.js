@@ -148,7 +148,7 @@ export async function handleCaptureVisible(options = {}) {
         canvas.toBlob(
           (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
           format === "png" ? "image/png" : "image/jpeg",
-          0.92,
+          format === "png" ? 1.0 : 0.98,
         ),
       );
       setLastBlob(exportBlob, ext);
@@ -312,7 +312,7 @@ export async function captureAndCrop(viewRect, shouldFlash = false) {
         canvas.toBlob(
           (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
           format === "png" ? "image/png" : "image/jpeg",
-          0.92,
+          format === "png" ? 1.0 : 0.98,
         ),
       );
       setLastBlob(exportBlob, ext);
@@ -333,7 +333,7 @@ export async function captureAndCrop(viewRect, shouldFlash = false) {
         clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
 
         exportBlob = await new Promise((res, rej) =>
-          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/jpeg", 0.92),
+          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/jpeg", 0.98),
         );
         setLastBlob(exportBlob, "jpg");
         handleSaveAction("jpg");

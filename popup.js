@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     applyThemeMode(theme);
 
     // Set active states on preference toggles
-    const activeFormat = data?.outputFormat || "jpg";
+    const activeFormat = data?.outputFormat || "png";
     const activeDest = data?.outputDestination || "both";
     const activeTheme = theme;
 
@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
       if (changes.outputFormat) {
-        const newFormat = changes.outputFormat.newValue || "jpg";
+        const newFormat = changes.outputFormat.newValue || "png";
         document.querySelectorAll("#pref-format-toggle .qs-toggle-btn").forEach((btn) => {
           btn.classList.toggle("active", btn.dataset.format === newFormat);
         });

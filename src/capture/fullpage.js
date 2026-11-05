@@ -194,6 +194,12 @@ export function measureFullContentHeight() {
   const bodySH = document.body?.scrollHeight || 0;
   const winH = window.innerHeight;
 
+  const standaloneImg = document.querySelector("body > img");
+  if (standaloneImg && (document.contentType?.startsWith("image/") || document.body?.children?.length === 1)) {
+    const natH = standaloneImg.naturalHeight || 0;
+    if (natH > winH) return natH;
+  }
+
   const innerScroller = findInnerScrollContainer();
   if (innerScroller && innerScroller !== document.body) {
     _innerScrollContainer = innerScroller;
@@ -216,6 +222,12 @@ export function measureFullContentWidth() {
 
   const docSW = doc?.scrollWidth || 0;
   const bodySW = body?.scrollWidth || 0;
+
+  const standaloneImg = document.querySelector("body > img");
+  if (standaloneImg && (document.contentType?.startsWith("image/") || document.body?.children?.length === 1)) {
+    const natW = standaloneImg.naturalWidth || 0;
+    if (natW > winW) return natW;
+  }
 
   // Real horizontal overflow exists only if scrollWidth exceeds innerWidth
   let width = winW;
@@ -400,6 +412,10 @@ export function applyUnrollCSS(
     body {
       max-width: none !important;
       overflow: visible !important;
+    }
+    body > img {
+      max-width: none !important;
+      max-height: none !important;
     }
     html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar {
       display: none !important; 
@@ -598,7 +614,7 @@ export async function captureStream({
 
     const { format, destination } = await getOutputSettings();
     const captureFormat = format === "png" ? "image/png" : "image/jpeg";
-    const captureQuality = 0.98;
+    const captureQuality = format === "png" ? 1.0 : 0.98;
     const fileExt = format;
 
     // Notify background
