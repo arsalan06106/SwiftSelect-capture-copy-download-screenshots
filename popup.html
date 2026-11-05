@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SwiftSelect</title>
     <link rel="stylesheet" href="styles.css" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&display=swap"
-    />
     <style>
       :root {
         --font-stack: "DM Sans", "Google Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
@@ -58,8 +54,21 @@
         user-select: none;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
         transition: background-color 0.25s ease, color 0.25s ease;
+      }
+
+      /* Sleek Scrollbar */
+      body::-webkit-scrollbar {
+        width: 5px;
+      }
+      body::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      body::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--c-content) 25%, transparent);
+        border-radius: 999px;
       }
 
       /* Extension Toolbar Popup Mode (380px Window) */
@@ -67,9 +76,11 @@
         width: 380px;
         min-width: 380px;
         max-width: 380px;
+        max-height: 590px;
         padding: 14px 14px 12px 14px;
         box-sizing: border-box;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
         background-color: #edf0f7;
         background-image:
           radial-gradient(circle 280px at 85% 10%, rgba(56, 189, 248, 0.20) 0%, transparent 65%),
@@ -85,10 +96,12 @@
         max-width: 480px;
         height: auto;
         min-height: 100%;
+        max-height: 590px;
         margin: 0 auto;
         padding: 18px 20px 16px 20px;
         box-sizing: border-box;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
         background-color: #edf0f7;
@@ -878,6 +891,18 @@
           <button class="qs-notice-sub-btn" id="btn-quick-full" title="Capture Full Page (Alt+F)">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
             <span>Full Page</span>
+          </button>
+        </div>
+
+        <!-- Secondary Sub-buttons for Restricted/Settings views -->
+        <div class="qs-quick-actions-row" id="notice-restricted-actions" style="display: none;">
+          <button class="qs-notice-sub-btn" id="btn-open-options" title="Open Full Settings Page">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Full Settings</span>
+          </button>
+          <button class="qs-notice-sub-btn" id="btn-open-shortcuts" title="Configure Shortcuts in Chrome">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/></svg>
+            <span>Shortcuts</span>
           </button>
         </div>
 

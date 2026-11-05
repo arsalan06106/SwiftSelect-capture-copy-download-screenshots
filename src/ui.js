@@ -783,10 +783,6 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     statusHost.style.display !== "none" &&
     !statusEl.classList.contains("qs-hiding")
   );
-  let oldWidth = 0;
-  if (isUpdating) {
-    oldWidth = statusEl.getBoundingClientRect().width;
-  }
 
   statusEl.className = "qs-status";
   statusEl.classList.remove("qs-hiding");
@@ -919,38 +915,27 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
   void statusEl.offsetWidth;
   applyElementTheme(statusEl, currentUserTheme);
 
-  if (isUpdating && oldWidth > 40) {
+  if (isUpdating) {
     statusEl.getAnimations().forEach(anim => { if (!anim.animationName) anim.cancel(); });
-    const newWidth = statusEl.getBoundingClientRect().width;
-    if (Math.abs(newWidth - oldWidth) > 4) {
-      statusEl.animate([
-        { width: `${oldWidth}px` },
-        { width: `${newWidth}px` }
-      ], {
-        duration: 260,
-        easing: "cubic-bezier(0.34, 1.15, 0.64, 1)",
-      });
-    }
-
     const textSpan = statusEl.querySelector('span');
     if (textSpan) {
       textSpan.animate([
-        { opacity: 0, transform: "translateY(6px) scale(0.6)" },
-        { opacity: 1, transform: "translateY(0) scale(1)" }
+        { opacity: 0, transform: "scale(0.92)" },
+        { opacity: 1, transform: "scale(1)" }
       ], {
-        duration: 260,
-        easing: "cubic-bezier(0.34, 1.15, 0.64, 1)",
+        duration: 180,
+        easing: "ease-out",
       });
     }
 
     const icon = statusEl.querySelector('.qs-status-icon');
     if (icon) {
       icon.animate([
-        { opacity: 0, transform: "translateY(6px) scale(0.6)" },
-        { opacity: 1, transform: "translateY(0) scale(1)" }
+        { opacity: 0, transform: "scale(0.85)" },
+        { opacity: 1, transform: "scale(1)" }
       ], {
-        duration: 260,
-        easing: "cubic-bezier(0.34, 1.15, 0.64, 1)",
+        duration: 180,
+        easing: "ease-out",
       });
     }
   }

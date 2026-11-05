@@ -14,8 +14,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const noticePrefs = document.getElementById("notice-prefs");
   const noticeShortcuts = document.getElementById("notice-shortcuts");
   const noticeQuickActions = document.getElementById("notice-quick-actions");
+  const noticeRestrictedActions = document.getElementById("notice-restricted-actions");
   const btnQuickVisible = document.getElementById("btn-quick-visible");
   const btnQuickFull = document.getElementById("btn-quick-full");
+  const btnOpenOptions = document.getElementById("btn-open-options");
+  const btnOpenShortcuts = document.getElementById("btn-open-shortcuts");
+
+  if (btnOpenOptions) {
+    btnOpenOptions.onclick = () => {
+      chrome.runtime.openOptionsPage();
+      window.close();
+    };
+  }
+  if (btnOpenShortcuts) {
+    btnOpenShortcuts.onclick = () => {
+      chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+      window.close();
+    };
+  }
 
   function applyThemeMode(theme) {
     const activeTheme = theme || "light";
@@ -200,6 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
     showPrefs = false,
     showShortcuts = false,
     showQuickActions = false,
+    showRestrictedActions = false,
     actionText,
     onAction,
   }) {
@@ -243,6 +260,10 @@ document.addEventListener("DOMContentLoaded", () => {
       noticeQuickActions.style.display = showQuickActions ? "flex" : "none";
     }
 
+    if (noticeRestrictedActions) {
+      noticeRestrictedActions.style.display = showRestrictedActions ? "flex" : "none";
+    }
+
     if (noticeActionBtn) {
       if (actionText && onAction) {
         if (noticeActionText) noticeActionText.textContent = actionText;
@@ -252,6 +273,53 @@ document.addEventListener("DOMContentLoaded", () => {
         noticeActionBtn.style.display = "none";
       }
     }
+  }
+
+  function renderRestrictedView() {
+    showNotice({
+      badge: "Chrome Policy",
+      iconType: "warning",
+      iconSvg:
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="10" width="6" height="5" rx="1"/><path d="M10 10V8a2 2 0 1 1 4 0v2"/></svg>',
+      title: "Browser Protected Page",
+      desc: "Chrome security policies prevent extensions from running on system settings, extensions, and the Web Store.",
+      tip: "SwiftSelect is fully active on all regular websites! Shortcuts and settings configured below will apply everywhere.",
+      showPrefs: true,
+      showShortcuts: true,
+      showQuickActions: false,
+      showRestrictedActions: true,
+      actionText: "Configure Chrome Shortcuts",
+      onAction: () => {
+        chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+        window.close();
+      },
+    });
+    if (noticeFooterText) {
+      noticeFooterText.innerHTML = `Active on all regular websites • <kbd>${modKey}</kbd>+<kbd>X</kbd>`;
+    }
+  }
+
+  function renderFileAccessView() {
+    showNotice({
+      badge: "File Permission",
+      iconType: "file",
+      iconSvg:
+        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><rect x="9" y="13" width="6" height="5" rx="1"/><path d="M10 13v-1.5a2 2 0 1 1 4 0V13"/></svg>',
+      title: "Local File Access",
+      desc: "To capture locally opened HTML or PDF files, Chrome requires explicit permission enabled in extension settings.",
+      tip: "Turn on \"Allow access to file URLs\" in the extension settings tab.",
+      showPrefs: true,
+      showShortcuts: true,
+      showQuickActions: false,
+      showRestrictedActions: true,
+      actionText: "Open Extension Settings",
+      onAction: () => {
+        chrome.tabs.create({
+          url: `chrome://extensions/?id=${chrome.runtime.id}`,
+        });
+        window.close();
+      },
+    });
   }
 
   function isRestrictedUrl(url) {
@@ -304,6 +372,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const urlParams = new URLSearchParams(window.location.search);
   const viewParam = urlParams.get("view");
 
+  if (viewParam === "restricted") {
+    renderRestrictedView();
+    return;
+  }
+
+  if (viewParam === "file-access") {
+    renderFileAccessView();
+    return;
+  }
+
   if (viewParam === "settings" || viewParam === "options" || window.location.pathname.endsWith("options.html")) {
     document.body.classList.add("options-mode");
     showNotice({
@@ -315,7 +393,9 @@ document.addEventListener("DOMContentLoaded", () => {
       desc: "Customize default export format, destination and appearance.",
       tip: "Changes save automatically and sync across your browser sessions.",
       showPrefs: true,
-      showShortcuts: false,
+      showShortcuts: true,
+      showQuickActions: false,
+      showRestrictedActions: true,
       actionText: "Configure Chrome Shortcuts",
       onAction: () => {
         chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
@@ -336,6 +416,8 @@ document.addEventListener("DOMContentLoaded", () => {
       tip: null,
       showPrefs: false,
       showShortcuts: true,
+      showQuickActions: false,
+      showRestrictedActions: true,
       actionText: "Customize Shortcuts in Chrome",
       onAction: () => {
         chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
@@ -350,46 +432,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!tab || !tab.url) return;
 
     if (isRestrictedUrl(tab.url)) {
-      showNotice({
-        badge: "Chrome Policy",
-        iconType: "warning",
-        iconSvg:
-          '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="10" width="6" height="5" rx="1"/><path d="M10 10V8a2 2 0 1 1 4 0v2"/></svg>',
-        title: "Browser Protected Page",
-        desc: "Chrome security policies prevent extensions from running on system pages, internal settings, and the Web Store.",
-        tip: "SwiftSelect is fully available on all regular websites and web applications.",
-        showPrefs: true,
-        showShortcuts: false,
-        actionText: "Configure Shortcuts",
-        onAction: () => {
-          chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-          window.close();
-        },
-      });
+      renderRestrictedView();
       return;
     }
 
     if (tab.url.startsWith("file://")) {
       chrome.extension.isAllowedFileSchemeAccess((isAllowed) => {
         if (!isAllowed) {
-          showNotice({
-            badge: "File Permission",
-            iconType: "file",
-            iconSvg:
-              '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><rect x="9" y="13" width="6" height="5" rx="1"/><path d="M10 13v-1.5a2 2 0 1 1 4 0V13"/></svg>',
-            title: "Local File Access",
-            desc: "To capture locally opened HTML or PDF files, Chrome requires explicit permission enabled in extension settings.",
-            tip: "Turn on \"Allow access to file URLs\" in the extension settings tab.",
-            showPrefs: true,
-            showShortcuts: false,
-            actionText: "Open Extension Settings",
-            onAction: () => {
-              chrome.tabs.create({
-                url: `chrome://extensions/?id=${chrome.runtime.id}`,
-              });
-              window.close();
-            },
-          });
+          renderFileAccessView();
           return;
         }
 

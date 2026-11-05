@@ -2,7 +2,7 @@ chrome.action.onClicked.addListener((tab) => {
   if (!tab?.id) return;
   const url = tab.url || "";
   if (isRestrictedUrl(url)) {
-    openExtensionIconPopup("settings");
+    openExtensionIconPopup("restricted");
     return;
   }
   chrome.action.setPopup({ tabId: tab.id, popup: "" }).catch(() => {});
@@ -19,7 +19,7 @@ chrome.runtime.onConnect.addListener((port) => {
   }
 });
 
-async function openExtensionIconPopup(view = "settings") {
+async function openExtensionIconPopup(view = "restricted") {
   try {
     await chrome.action.setPopup({ popup: `popup.html?view=${view}` });
     await chrome.action.openPopup();
@@ -81,7 +81,7 @@ function updateTabBadge(tab) {
       tabId,
       title: "SwiftSelect - Browser Protected Page (Click for Info & Settings)",
     }).catch(() => {});
-    chrome.action.setPopup({ tabId, popup: "popup.html" }).catch(() => {});
+    chrome.action.setPopup({ tabId, popup: "popup.html?view=restricted" }).catch(() => {});
     return;
   }
 
@@ -95,7 +95,7 @@ function updateTabBadge(tab) {
           tabId,
           title: "File URL access required. Enable in extension settings.",
         }).catch(() => {});
-        chrome.action.setPopup({ tabId, popup: "popup.html" }).catch(() => {});
+        chrome.action.setPopup({ tabId, popup: "popup.html?view=file-access" }).catch(() => {});
       } else {
         chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
         chrome.action.setTitle({ tabId, title: "SwiftSelect (Click to Capture)" }).catch(() => {});
@@ -118,16 +118,28 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   });
 });
 
+chrome.tabs.onCreated.addListener((tab) => {
+  if (tab?.id) updateTabBadge(tab);
+});
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" || changeInfo.url) {
+  if (tab) {
     updateTabBadge(tab);
   }
 });
 
-// Initialize badge for current active tab on load
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  if (tabs[0]) updateTabBadge(tabs[0]);
-});
+function initAllTabs() {
+  chrome.tabs.query({}, (tabs) => {
+    if (chrome.runtime.lastError || !tabs) return;
+    for (const tab of tabs) {
+      if (tab?.id) updateTabBadge(tab);
+    }
+  });
+}
+
+chrome.runtime.onStartup.addListener(initAllTabs);
+chrome.runtime.onInstalled.addListener(initAllTabs);
+initAllTabs();
 
 async function injectAndStart(tab, messageType) {
   try {

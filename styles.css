@@ -347,9 +347,9 @@
   gap: 12px;
   width: fit-content;
   max-width: min(480px, 90vw);
-  min-height: 54px;
+  min-height: 76px;
   opacity: 0;
-  animation: liquidSlideUp 280ms cubic-bezier(0.34, 1.15, 0.64, 1) forwards;
+  animation: liquidSlideUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
   transition: background-color 300ms ease, border-color 300ms ease;
 }
