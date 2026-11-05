@@ -73,6 +73,14 @@
     {
       "resources": [
         "styles.css",
+        "src/theme.js",
+        "src/ui.js",
+        "src/events.js",
+        "src/capture/region.js",
+        "src/capture/fullpage.js",
+        "src/capture/download.js",
+        "src/capture/annotate.js",
+        "src/capture/utils.js",
         "src/*",
         "src/*.js",
         "src/capture/*",

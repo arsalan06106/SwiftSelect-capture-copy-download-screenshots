@@ -357,37 +357,35 @@
 @keyframes liquidSlideUp {
   0% {
     opacity: 0;
-    transform: translate3d(-50%, 20px, 0) scale(0.9);
+    transform: translate3d(-50%, 10px, 0);
   }
   100% {
     opacity: 1;
-    transform: translate3d(-50%, 0, 0) scale(1);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
 .qs-status:not(.qs-hiding):not(.no-anim) > * {
-  animation: qsStatusPop 350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: qsStatusFade 160ms ease-out forwards;
 }
 
-@keyframes qsStatusPop {
+@keyframes qsStatusFade {
   0% {
     opacity: 0;
-    transform: translateY(6px) scale(0.6);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes liquidSlideDown {
   0% {
     opacity: 1;
-    transform: translate3d(-50%, 0, 0) scale(1);
+    transform: translate3d(-50%, 0, 0);
   }
   100% {
     opacity: 0;
-    transform: translate3d(-50%, 20px, 0) scale(0.9);
+    transform: translate3d(-50%, 10px, 0);
   }
 }
 

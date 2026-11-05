@@ -374,14 +374,15 @@
       .qs-header-title-stack {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 5px;
         width: 100%;
-        margin-bottom: 8px;
+        margin-top: 4px;
+        margin-bottom: 10px;
         position: relative;
       }
 
       .qs-notice-title {
-        font-size: 16px;
+        font-size: 16.5px;
         font-weight: 700;
         letter-spacing: -0.3px;
         color: var(--c-content);
@@ -391,8 +392,8 @@
 
       .qs-notice-desc {
         font-size: 12px;
-        line-height: 1.45;
-        color: color-mix(in srgb, var(--c-content) 75%, transparent);
+        line-height: 1.5;
+        color: color-mix(in srgb, var(--c-content) 72%, transparent);
         margin: 0;
       }
 
@@ -401,25 +402,21 @@
         position: relative;
         z-index: 1;
         border-radius: 14px;
-        padding: 9px 13px;
-        font-size: 11.5px;
-        line-height: 1.45;
+        padding: 10px 14px;
+        font-size: 12px;
+        line-height: 1.5;
         display: flex;
-        align-items: flex-start;
-        gap: 9px;
+        align-items: center;
+        gap: 10px;
         text-align: left;
-        margin-top: 4px;
-        margin-bottom: 4px;
+        margin-top: 6px;
+        margin-bottom: 12px;
         box-sizing: border-box;
         color: var(--c-content);
-        background: linear-gradient(
-          135deg,
-          color-mix(in srgb, var(--c-action) 12%, transparent) 0%,
-          color-mix(in srgb, var(--c-glass) 22%, transparent) 100%
-        ) !important;
+        background: color-mix(in srgb, var(--c-action) 10%, color-mix(in srgb, var(--c-glass) 25%, transparent)) !important;
         border: none !important;
         box-shadow:
-          inset 0 0 0 1px color-mix(in srgb, var(--c-action) 26%, transparent),
+          inset 0 0 0 1px color-mix(in srgb, var(--c-action) 25%, transparent),
           inset 1.5px 1.5px 0px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 85%), transparent),
           0 2px 8px rgba(0, 0, 0, 0.04);
         transition: all 0.2s ease;
@@ -427,9 +424,8 @@
       .qs-tip-icon {
         flex-shrink: 0;
         color: var(--c-action);
-        font-size: 13px;
+        font-size: 14px;
         line-height: 1;
-        margin-top: 1.5px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -912,13 +908,7 @@
           </button>
         </div>
 
-        <!-- Secondary Sub-buttons for Restricted/Settings views -->
-        <div class="qs-quick-actions-row" id="notice-restricted-actions" style="display: none;">
-          <button class="qs-notice-sub-btn" id="btn-open-options" title="Open Full Settings Page" style="width: 100%;">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            <span>Open Full Settings Page</span>
-          </button>
-        </div>
+
 
         <!-- Footer -->
         <div class="qs-notice-footer">

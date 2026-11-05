@@ -14,24 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const noticePrefs = document.getElementById("notice-prefs");
   const noticeShortcuts = document.getElementById("notice-shortcuts");
   const noticeQuickActions = document.getElementById("notice-quick-actions");
-  const noticeRestrictedActions = document.getElementById("notice-restricted-actions");
   const btnQuickVisible = document.getElementById("btn-quick-visible");
   const btnQuickFull = document.getElementById("btn-quick-full");
-  const btnOpenOptions = document.getElementById("btn-open-options");
-  const btnOpenShortcuts = document.getElementById("btn-open-shortcuts");
-
-  if (btnOpenOptions) {
-    btnOpenOptions.onclick = () => {
-      chrome.runtime.openOptionsPage();
-      window.close();
-    };
-  }
-  if (btnOpenShortcuts) {
-    btnOpenShortcuts.onclick = () => {
-      chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-      window.close();
-    };
-  }
 
   function applyThemeMode(theme) {
     const activeTheme = theme || "light";

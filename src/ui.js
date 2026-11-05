@@ -920,10 +920,10 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     const textSpan = statusEl.querySelector('span');
     if (textSpan) {
       textSpan.animate([
-        { opacity: 0, transform: "scale(0.92)" },
-        { opacity: 1, transform: "scale(1)" }
+        { opacity: 0 },
+        { opacity: 1 }
       ], {
-        duration: 180,
+        duration: 140,
         easing: "ease-out",
       });
     }
@@ -931,10 +931,10 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     const icon = statusEl.querySelector('.qs-status-icon');
     if (icon) {
       icon.animate([
-        { opacity: 0, transform: "scale(0.85)" },
-        { opacity: 1, transform: "scale(1)" }
+        { opacity: 0 },
+        { opacity: 1 }
       ], {
-        duration: 180,
+        duration: 140,
         easing: "ease-out",
       });
     }

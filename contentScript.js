@@ -2,7 +2,7 @@
  * main content script entry point
  */
 
-if (!window.__swiftSelectInjected_v2) {
+if (typeof window !== "undefined" && window === window.top && !window.__swiftSelectInjected_v2) {
   window.SwiftSelect = window.SwiftSelect || {};
   window.__swiftSelectInjected_v2 = true;
 
@@ -25,16 +25,12 @@ if (!window.__swiftSelectInjected_v2) {
         return { theme, ui, events, region, fullpage };
       }).catch((err) => {
         modulesPromise = null;
+        console.warn("SwiftSelect module load warning:", err?.message || err);
         throw err;
       });
     }
     return modulesPromise;
   }
-
-  // Pre-load modules immediately
-  getModules().catch((err) =>
-    console.error("SwiftSelect module load error:", err),
-  );
 
   // Synchronous listener registration so zero messages are dropped
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
