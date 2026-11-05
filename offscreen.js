@@ -137,8 +137,7 @@ async function getTabStream(streamId, width, height) {
         maxWidth: width,
         minHeight: height,
         maxHeight: height,
-        minFrameRate: 30,
-        maxFrameRate: 60,
+        maxFrameRate: 30,
         chromeMediaSourceCursor: "never",
       },
       cursor: "never",
@@ -186,15 +185,15 @@ async function captureFullPage(
   tabId,
   mode = "full",
   frameInterval = 50,
-  format = "image/png",
-  quality = 1.0,
+  format = "image/jpeg",
+  quality = 0.98,
 ) {
   // 1. Unroll the page — CSS is applied first, then rect is measured
   const meta = await sendToContent(tabId, "unroll-page", { mode });
   if (!meta)
     throw new Error("unroll-page failed — no response from content script");
 
-  const { innerWidth, innerHeight, devicePixelRatio: dpr, cropRect } = meta;
+  const { innerWidth, innerHeight, clientWidth, devicePixelRatio: dpr, cropRect } = meta;
 
   // Use rect (measured AFTER CSS injection) for true content dimensions.
   const rectHeight = meta.rect?.height || meta.scrollHeight || innerHeight;
@@ -208,6 +207,7 @@ async function captureFullPage(
     mode,
     innerWidth,
     innerHeight,
+    clientWidth,
     dpr,
     rectHeight,
     rectWidth,
@@ -225,7 +225,12 @@ async function captureFullPage(
   const streamW = rawW % 2 === 0 ? rawW : rawW + 1;
   const streamH = rawH % 2 === 0 ? rawH : rawH + 1;
 
-  const contentW = rawW;
+  // Active content width (excluding native scrollbars when no horizontal scroll)
+  const effectiveClientW = clientWidth || innerWidth;
+  const hasHorizontalOverflow = rectWidth > innerWidth + 5;
+  const activeContentW = Math.round(effectiveClientW * dpr);
+
+  const contentW = hasHorizontalOverflow ? rawW : activeContentW;
   const contentH = rawH;
 
   // 2. Get tab capture stream
@@ -253,8 +258,8 @@ async function captureFullPage(
 
   const grabber = new FrameGrabber(videoTrack);
 
-  // Wait a moment for the stream to start producing frames
-  await new Promise((r) => setTimeout(r, 20));
+  // Wait a moment for the stream to start producing full-resolution frames
+  await new Promise((r) => setTimeout(r, 100));
 
   // Overlap consecutive frames by 2px to prevent black seam lines.
   const OVERLAP = 2;
@@ -272,7 +277,9 @@ async function captureFullPage(
 
   const totalFrames = xPoints.length * yPoints.length;
 
-  const rawCanvasWidth = xPoints.length === 1 ? contentW : Math.ceil(rectWidth * dpr);
+  const rawCanvasWidth = (xPoints.length === 1 && !hasHorizontalOverflow)
+    ? activeContentW
+    : Math.ceil(rectWidth * dpr);
   const rawCanvasHeight = isHorizontalOnly ? Math.ceil(innerHeight * dpr) : Math.ceil(rectHeight * dpr);
 
   // 3. Capture loop (2D Matrix: rows x columns)
@@ -409,11 +416,9 @@ async function captureFullPage(
       if (drawW > 0 && drawH > 0) {
         const bw = f.bitmap.width;
         const bh = f.bitmap.height;
-        const sx = 0;
-        const sy = 0;
-        const sw = bw === contentW ? drawW : Math.max(1, Math.min(bw, Math.round((drawW / contentW) * bw)));
-        const sh = bh === contentH ? drawH : Math.max(1, Math.min(bh, Math.round((drawH / contentH) * bh)));
-        ctx.drawImage(f.bitmap, sx, sy, sw, sh, dx, dy, drawW, drawH);
+        const sw = Math.min(drawW, bw);
+        const sh = Math.min(drawH, bh);
+        ctx.drawImage(f.bitmap, 0, 0, sw, sh, dx, dy, sw, sh);
       }
       f.bitmap.close();
     }

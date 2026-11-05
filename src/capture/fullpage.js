@@ -484,6 +484,8 @@ export function handleUnrollPage(data = {}) {
 
   const initialScrollTop =
     window.scrollY || document.documentElement.scrollTop || 0;
+  // Measure client dimensions before unrolling and hiding scrollbars
+  const clientWidth = document.documentElement.clientWidth || window.innerWidth;
   const contentHeight =
     mode === "horizontal" ? window.innerHeight : measureFullContentHeight();
   const contentWidth = measureFullContentWidth();
@@ -509,7 +511,9 @@ export function handleUnrollPage(data = {}) {
   const actualWidth =
     mode === "horizontal" && contentWidth <= window.innerWidth + 5
       ? window.innerWidth
-      : Math.max(contentWidth, rect.width);
+      : contentWidth <= window.innerWidth + 5
+        ? clientWidth
+        : Math.max(contentWidth, rect.width);
 
   // Compute active bounds / cropRect
   const mediaInfo = detectStandaloneMediaOrActiveBounds();
@@ -521,6 +525,7 @@ export function handleUnrollPage(data = {}) {
   return {
     innerWidth: window.innerWidth,
     innerHeight: window.innerHeight,
+    clientWidth,
     devicePixelRatio: window.devicePixelRatio || 1,
     scrollHeight: Math.max(contentHeight, rect.height),
     scrollWidth: actualWidth,

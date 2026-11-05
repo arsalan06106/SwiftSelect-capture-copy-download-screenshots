@@ -51,16 +51,16 @@ try {
   if (typeof chrome !== "undefined" && chrome?.storage?.local) {
     chrome.storage.local.get(["outputFormat", "outputDestination"], (data) => {
       _cachedSettings = {
-        format: data?.outputFormat === "jpg" ? "jpg" : "png",
+        format: data?.outputFormat === "png" ? "png" : "jpg",
         destination: data?.outputDestination || "both",
       };
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === "local") {
-        if (!_cachedSettings) _cachedSettings = { format: "png", destination: "both" };
+        if (!_cachedSettings) _cachedSettings = { format: "jpg", destination: "both" };
         if (changes.outputFormat) {
-          _cachedSettings.format = changes.outputFormat.newValue === "jpg" ? "jpg" : "png";
+          _cachedSettings.format = changes.outputFormat.newValue === "png" ? "png" : "jpg";
         }
         if (changes.outputDestination) {
           _cachedSettings.destination = changes.outputDestination.newValue || "both";
@@ -71,7 +71,7 @@ try {
 } catch {}
 
 export function getOutputSettingsSync() {
-  return _cachedSettings || { format: "png", destination: "both" };
+  return _cachedSettings || { format: "jpg", destination: "both" };
 }
 
 export async function getOutputSettings() {
@@ -80,13 +80,13 @@ export async function getOutputSettings() {
     try {
       chrome.storage.local.get(["outputFormat", "outputDestination"], (data) => {
         _cachedSettings = {
-          format: data?.outputFormat === "jpg" ? "jpg" : "png",
+          format: data?.outputFormat === "png" ? "png" : "jpg",
           destination: data?.outputDestination || "both",
         };
         resolve(_cachedSettings);
       });
     } catch {
-      resolve({ format: "png", destination: "both" });
+      resolve({ format: "jpg", destination: "both" });
     }
   });
 }
