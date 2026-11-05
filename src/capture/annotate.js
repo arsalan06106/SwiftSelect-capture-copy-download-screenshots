@@ -7,7 +7,7 @@
  */
 
 import { getSmartFilename, getOutputSettings } from "./utils.js";
-import { setLastBlob } from "./download.js";
+import { setLastBlob, downloadBlob } from "./download.js";
 import { loadStyles, getCachedCssText, attachTooltip, hideCustomTooltip } from "../ui.js";
 
 let _annotateHost = null;
@@ -2451,14 +2451,7 @@ async function handleSaveAnnotated() {
   if (!blob) return;
 
   setLastBlob(blob, ext);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = getSmartFilename("annotated", ext);
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  await downloadBlob(blob, getSmartFilename("annotated", ext));
 
   window.SwiftSelect?.ui?.setStatus?.(
     "Saved to downloads",

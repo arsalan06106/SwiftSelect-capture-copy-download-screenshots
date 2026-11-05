@@ -1020,10 +1020,10 @@ export function updateSelection(rect) {
     const h = Math.round(r.height * dpr);
     let hudText = `${w} × ${h}`;
     if (window.SwiftSelect?.events?.isShiftPressed || (w === h && w > 0)) {
-      hudText += " • 1:1";
+      hudText += " · 1:1";
     }
     if (window.SwiftSelect?.events?.isSpacePressed) {
-      hudText += " • Move";
+      hudText += " · Move";
     }
     if (lastHudText !== hudText) {
       hudEl.textContent = hudText;

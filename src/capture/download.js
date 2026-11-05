@@ -1,4 +1,4 @@
-import { getSmartFilename } from "./utils.js";
+import { getSmartFilename, blobToDataUrl } from "./utils.js";
 
 let lastBlob = null;
 let lastExt = "jpg";
@@ -16,18 +16,102 @@ export function getLastExt() {
   return lastExt;
 }
 
-export function handleSaveAction(customExt = null) {
+export async function downloadBlob(blob, filename, options = {}) {
+  if (!blob) return false;
+
+  const isFileProtocol =
+    typeof window !== "undefined" && window.location?.protocol === "file:";
+  const extBlobUrl = options?.blobUrl;
+
+  // 1. If we have an extension blobUrl from offscreen, use chrome.downloads directly (0ms, zero IPC overhead)
+  if (extBlobUrl) {
+    try {
+      const resp = await new Promise((resolve) => {
+        chrome.runtime.sendMessage(
+          { type: "download-file", url: extBlobUrl, filename },
+          (res) => {
+            if (chrome.runtime.lastError || !res?.success) {
+              resolve({ success: false });
+            } else {
+              resolve(res);
+            }
+          },
+        );
+      });
+      if (resp?.success) return true;
+    } catch (e) {
+      console.debug("Extension blobUrl download failed, trying fallback:", e);
+    }
+  }
+
+  // 2. On standard web pages (https://, http://), native DOM <a> click is instantaneous (0ms, zero IPC overhead)
+  if (!isFileProtocol) {
+    try {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = filename;
+      (document.body || document.documentElement).appendChild(a);
+      a.click();
+      setTimeout(() => {
+        a.remove();
+        URL.revokeObjectURL(url);
+      }, 10000);
+      return true;
+    } catch (domErr) {
+      console.debug("DOM download failed, trying background fallback:", domErr);
+    }
+  }
+
+  // 3. On file:/// pages or if DOM click failed, use background chrome.downloads
+  try {
+    const dataUrl = await blobToDataUrl(blob);
+    const resp = await new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { type: "download-file", url: dataUrl, filename },
+        (res) => {
+          if (chrome.runtime.lastError || !res?.success) {
+            resolve({
+              success: false,
+              error: chrome.runtime.lastError?.message || res?.error,
+            });
+          } else {
+            resolve(res);
+          }
+        },
+      );
+    });
+    if (resp?.success) return true;
+  } catch (err) {
+    console.debug("Background download failed, trying DOM click:", err);
+  }
+
+  // 4. Final fallback to DOM click if background somehow failed
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = filename;
+    (document.body || document.documentElement).appendChild(a);
+    a.click();
+    setTimeout(() => {
+      a.remove();
+      URL.revokeObjectURL(url);
+    }, 10000);
+    return true;
+  } catch (domErr) {
+    return false;
+  }
+}
+
+export async function handleSaveAction(customExt = null) {
   if (!lastBlob) return;
 
   const ext = customExt || lastExt || "jpg";
-  const url = URL.createObjectURL(lastBlob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = getSmartFilename("screenshot", ext);
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  const filename = getSmartFilename("screenshot", ext);
+  await downloadBlob(lastBlob, filename);
 
   // Transition Logic via UI
   const statusEl = window.SwiftSelect.ui.statusEl;
@@ -37,9 +121,13 @@ export function handleSaveAction(customExt = null) {
 
     if (textSpan && saveBtn) {
       // True Fluid Morph using Web Animations API
-      statusEl.getAnimations().forEach(anim => { if (!anim.animationName) anim.cancel(); });
-      textSpan.getAnimations().forEach(anim => { if (!anim.animationName) anim.cancel(); });
-      
+      statusEl.getAnimations().forEach((anim) => {
+        if (!anim.animationName) anim.cancel();
+      });
+      textSpan.getAnimations().forEach((anim) => {
+        if (!anim.animationName) anim.cancel();
+      });
+
       const oldWidth = statusEl.getBoundingClientRect().width;
 
       statusEl.classList.remove("qs-success");
@@ -49,32 +137,40 @@ export function handleSaveAction(customExt = null) {
 
       const newWidth = statusEl.getBoundingClientRect().width;
 
-      statusEl.animate([
-        { width: `${oldWidth}px` },
-        { width: `${newWidth}px` }
-      ], {
-        duration: 350,
-        easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
-      });
-
-      textSpan.animate([
-        { opacity: 0, transform: "translateY(6px) scale(0.6)" },
-        { opacity: 1, transform: "translateY(0) scale(1)" }
-      ], {
-        duration: 350,
-        easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
-      });
-
-      const icon = statusEl.querySelector('.qs-status-icon');
-      if (icon) {
-        icon.getAnimations().forEach(anim => { if (!anim.animationName) anim.cancel(); });
-        icon.animate([
-          { opacity: 0, transform: "translateY(6px) scale(0.6)" },
-          { opacity: 1, transform: "translateY(0) scale(1)" }
-        ], {
+      statusEl.animate(
+        [{ width: `${oldWidth}px` }, { width: `${newWidth}px` }],
+        {
           duration: 350,
           easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        },
+      );
+
+      textSpan.animate(
+        [
+          { opacity: 0, transform: "translateY(6px) scale(0.6)" },
+          { opacity: 1, transform: "translateY(0) scale(1)" },
+        ],
+        {
+          duration: 350,
+          easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        },
+      );
+
+      const icon = statusEl.querySelector(".qs-status-icon");
+      if (icon) {
+        icon.getAnimations().forEach((anim) => {
+          if (!anim.animationName) anim.cancel();
         });
+        icon.animate(
+          [
+            { opacity: 0, transform: "translateY(6px) scale(0.6)" },
+            { opacity: 1, transform: "translateY(0) scale(1)" },
+          ],
+          {
+            duration: 350,
+            easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+          },
+        );
       }
     }
 

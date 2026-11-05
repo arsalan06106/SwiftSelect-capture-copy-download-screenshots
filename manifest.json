@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SwiftSelect - Capture, Copy & Download Screenshots",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "The all-in-one tool to snap, scroll-capture, copy and download screenshots instantly.",
   "permissions": [
     "scripting",
@@ -11,7 +11,8 @@
     "offscreen",
     "tabCapture",
     "storage",
-    "contextMenus"
+    "contextMenus",
+    "downloads"
   ],
   "host_permissions": [
     "<all_urls>"

@@ -1,5 +1,11 @@
-import { toggleCursor, getSmartFilename, getOutputSettings } from "./utils.js";
-import { setLastBlob } from "./download.js";
+import {
+  toggleCursor,
+  getSmartFilename,
+  getOutputSettings,
+  detectStandaloneMediaOrActiveBounds,
+  writeImageBlobToClipboard,
+} from "./utils.js";
+import { setLastBlob, downloadBlob } from "./download.js";
 import { handleCaptureVisible } from "./region.js";
 
 let _unrollStyle = null;
@@ -489,6 +495,13 @@ export function handleUnrollPage(data = {}) {
       ? window.innerWidth
       : Math.max(contentWidth, rect.width);
 
+  // Compute active bounds / cropRect
+  const mediaInfo = detectStandaloneMediaOrActiveBounds();
+  let cropRect = null;
+  if (mediaInfo.cropRect) {
+    cropRect = mediaInfo.cropRect;
+  }
+
   return {
     innerWidth: window.innerWidth,
     innerHeight: window.innerHeight,
@@ -505,6 +518,7 @@ export function handleUnrollPage(data = {}) {
     rectBottom: rect.bottom,
     rectRight: rect.right,
     bgColor,
+    cropRect,
     abort: _abortCapture,
   };
 }
@@ -632,7 +646,20 @@ export async function captureStream({
         const response = await fetch(result.blobUrl);
         blob = await response.blob();
       } catch (err) {
-        console.warn("fetch blobUrl failed:", err);
+        console.warn("fetch blobUrl failed in content script, trying background relay:", err);
+        try {
+          const bgResp = await new Promise((resolve) => {
+            chrome.runtime.sendMessage(
+              { type: "fetch-blob-url", blobUrl: result.blobUrl },
+              resolve,
+            );
+          });
+          if (bgResp?.success && bgResp.dataUrl) {
+            blob = dataUrlToBlob(bgResp.dataUrl);
+          }
+        } catch (bgErr) {
+          console.warn("fetch blobUrl via background relay failed:", bgErr);
+        }
       }
     }
 
@@ -672,26 +699,38 @@ export async function captureStream({
       }, 2000);
     }
 
-    if (destination === "both" || destination === "download") {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = getSmartFilename(filenameType, fileExt);
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    // Full Page & Horizontal captures MUST always trigger file download
+    await downloadBlob(blob, getSmartFilename(filenameType, fileExt), {
+      blobUrl: result.blobUrl,
+    });
+
+    let clipOk = result.clipboardSuccess;
+    if ((destination === "clipboard" || destination === "both") && !clipOk) {
+      try {
+        let clipBlob = blob;
+        if (fileExt !== "png") {
+          const imgBitmap = await createImageBitmap(blob);
+          const c = document.createElement("canvas");
+          c.width = imgBitmap.width;
+          c.height = imgBitmap.height;
+          const cx = c.getContext("2d");
+          cx.drawImage(imgBitmap, 0, 0);
+          imgBitmap.close();
+          clipBlob = await new Promise((r) => c.toBlob(r, "image/png"));
+        }
+        if (clipBlob) {
+          clipOk = await writeImageBlobToClipboard(clipBlob);
+        }
+      } catch (e) {
+        console.debug("Fullpage clipboard write fallback failed:", e);
+      }
     }
 
-    const clipOk = result.clipboardSuccess;
-    let statusMsg = "Page Captured";
+    let statusMsg = "Page Saved";
     let statusType = "saved";
-    if (destination === "both") {
+    if (destination === "both" || destination === "clipboard") {
       statusMsg = clipOk ? "Copied & Saved" : "Page Saved";
       statusType = "saved";
-    } else if (destination === "clipboard") {
-      statusMsg = clipOk ? "Copied to Clipboard" : "Page Captured";
-      statusType = clipOk ? "success" : "saved";
     } else if (destination === "download") {
       statusMsg = "Page Saved";
       statusType = "saved";
@@ -703,7 +742,9 @@ export async function captureStream({
     window.SwiftSelect.events.removeListeners();
     window.removeEventListener("keydown", onAbortKey, true);
 
-    window.SwiftSelect.ui.setStatus(statusMsg, 5000, statusType);
+    window.SwiftSelect.ui.setStatus(statusMsg, 5000, statusType, false, {
+      sourceBlob: blob,
+    });
 
     window.SwiftSelect.ui.updateBadge("✓", "#10B981");
     setTimeout(() => window.SwiftSelect.ui.updateBadge(""), 1500);
@@ -739,7 +780,7 @@ export async function handleCaptureFullPage() {
     contentHeight <= window.innerHeight + 5 &&
     contentWidth <= window.innerWidth + 5
   ) {
-    return handleCaptureVisible();
+    return handleCaptureVisible({ forceDownload: true });
   }
   return captureStream({
     mode: "full",
@@ -751,7 +792,7 @@ export async function handleCaptureFullPage() {
 
 export async function handleCaptureHorizontal() {
   if (measureFullContentWidth() <= window.innerWidth + 5) {
-    return handleCaptureVisible();
+    return handleCaptureVisible({ forceDownload: true });
   }
   return captureStream({
     mode: "horizontal",

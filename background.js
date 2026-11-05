@@ -319,12 +319,60 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.error("start-fullpage-capture error:", err);
         sendResponse({ success: false, error: err.message });
       } finally {
-        // 4. Always close offscreen document
-        await closeOffscreen();
+        // 4. Close offscreen document cleanly after inactivity
+        scheduleCloseOffscreen(30000);
       }
     })();
 
     return true; // async response
+  }
+
+  // --- Fetch blob URL fallback (handles CSP restrictions in web pages) ---
+  if (message?.type === "fetch-blob-url") {
+    fetch(message.blobUrl)
+      .then((r) => r.blob())
+      .then((blob) => {
+        const reader = new FileReader();
+        reader.onload = () => sendResponse({ success: true, dataUrl: reader.result });
+        reader.onerror = () => sendResponse({ success: false, error: "FileReader failed" });
+        reader.readAsDataURL(blob);
+      })
+      .catch((err) => {
+        sendResponse({ success: false, error: err?.message });
+      });
+    return true;
+  }
+
+  // --- Native download via chrome.downloads (bypasses file:// and CSP restrictions) ---
+  if (message?.type === "download-file") {
+    const { url, filename } = message;
+    if (chrome.downloads?.download) {
+      chrome.downloads.download(
+        {
+          url,
+          filename,
+          saveAs: false,
+        },
+        (downloadId) => {
+          if (chrome.runtime.lastError) {
+            console.warn(
+              "SwiftSelect: chrome.downloads error:",
+              chrome.runtime.lastError.message,
+            );
+            sendResponse({
+              success: false,
+              error: chrome.runtime.lastError.message,
+            });
+          } else {
+            sendResponse({ success: true, downloadId });
+          }
+        },
+      );
+      return true; // async response
+    } else {
+      sendResponse({ success: false, error: "chrome.downloads not available" });
+      return false;
+    }
   }
 
   // --- Relay: offscreen → content script ---

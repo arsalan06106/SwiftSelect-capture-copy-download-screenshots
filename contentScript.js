@@ -70,6 +70,9 @@ if (!window.__swiftSelectInjected_v2) {
         sendResponse({ success: true });
       } else if (message.type === "fullpage-progress") {
         const ps = ui.guideShadow?.querySelector(".qs-progress-text");
+        if (ps) {
+          ps.textContent = `${message.progress}%`;
+        }
         const isDone = message.progress >= 100;
         chrome.runtime.sendMessage({
           type: "update-badge",

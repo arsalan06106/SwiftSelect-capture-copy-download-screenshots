@@ -90,3 +90,200 @@ export async function getOutputSettings() {
     }
   });
 }
+
+export async function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () =>
+      reject(reader.error || new Error("FileReader failed"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function writeImageBlobToClipboard(blob) {
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({ "image/png": blob }),
+    ]);
+    return true;
+  } catch (clipErr) {
+    console.debug("Clipboard write from content failed:", clipErr);
+  }
+
+  try {
+    const dataUrl = await blobToDataUrl(blob);
+    const resp = await new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { type: "write-image-to-clipboard", dataUrl },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            resolve({
+              success: false,
+              error: chrome.runtime.lastError.message,
+            });
+            return;
+          }
+          resolve(response);
+        },
+      );
+    });
+    return !!resp?.success;
+  } catch (offscreenErr) {
+    console.debug("Clipboard write from offscreen failed:", offscreenErr);
+    return false;
+  }
+}
+
+export function detectStandaloneMediaOrActiveBounds() {
+  if (typeof document === "undefined" || !document.body) {
+    return {
+      isStandaloneMedia: false,
+      mediaElement: null,
+      activeRect: null,
+      cropRect: null,
+      hasMargins: false,
+    };
+  }
+
+  const winW = window.innerWidth;
+  const winH = window.innerHeight;
+
+  const contentType = document.contentType || "";
+  const isMediaContentType =
+    contentType.startsWith("image/") || contentType.startsWith("video/");
+
+  const bodyChildren = Array.from(document.body.children).filter((el) => {
+    if (!el || el.nodeType !== 1) return false;
+    const tag = el.tagName;
+    if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "TEMPLATE") {
+      return false;
+    }
+    if (
+      el.hasAttribute("data-swiftselect-unroll") ||
+      el.id === "swift-select-filters" ||
+      el.id?.startsWith("qs-") ||
+      el.classList?.contains("qs-shadow-host") ||
+      el.dataset?.qsRole
+    ) {
+      return false;
+    }
+    try {
+      const style = window.getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
+        return false;
+      }
+    } catch {}
+    return true;
+  });
+
+  let standaloneMediaEl = null;
+
+  if (bodyChildren.length === 1) {
+    const child = bodyChildren[0];
+    const tag = child.tagName;
+    if (tag === "IMG" || tag === "SVG" || tag === "VIDEO" || tag === "CANVAS") {
+      standaloneMediaEl = child;
+    }
+  }
+
+  if (!standaloneMediaEl && isMediaContentType) {
+    standaloneMediaEl =
+      document.querySelector("body > img, body > video, body > svg, body > canvas") ||
+      document.querySelector("img, video, svg, canvas");
+  }
+
+  if (standaloneMediaEl) {
+    const rect = standaloneMediaEl.getBoundingClientRect();
+    const activeLeft = Math.max(0, Math.round(rect.left));
+    const activeTop = Math.max(0, Math.round(rect.top));
+    const activeWidth = Math.round(rect.width);
+    const activeHeight = Math.round(rect.height);
+
+    const hasMargins =
+      activeLeft > 1 ||
+      activeTop > 1 ||
+      activeWidth < winW - 2 ||
+      activeHeight < winH - 2;
+
+    const activeRect = {
+      left: activeLeft,
+      top: activeTop,
+      width: activeWidth,
+      height: activeHeight,
+    };
+
+    return {
+      isStandaloneMedia: true,
+      mediaElement: standaloneMediaEl,
+      activeRect,
+      cropRect: hasMargins
+        ? {
+            x: activeLeft,
+            y: activeTop,
+            width: activeWidth,
+            height: activeHeight,
+          }
+        : null,
+      hasMargins,
+    };
+  }
+
+  if (bodyChildren.length > 0) {
+    let minLeft = Infinity;
+    let minTop = Infinity;
+    let maxRight = -Infinity;
+    let maxBottom = -Infinity;
+    let count = 0;
+
+    for (const child of bodyChildren) {
+      const r = child.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        minLeft = Math.min(minLeft, r.left);
+        minTop = Math.min(minTop, r.top);
+        maxRight = Math.max(maxRight, r.right);
+        maxBottom = Math.max(maxBottom, r.bottom);
+        count++;
+      }
+    }
+
+    if (count > 0 && Number.isFinite(minLeft)) {
+      const contentLeft = Math.max(0, Math.round(minLeft));
+      const contentTop = Math.max(0, Math.round(minTop));
+      const contentWidth = Math.round(maxRight - minLeft);
+      const contentHeight = Math.round(maxBottom - minTop);
+
+      const isNarrower = contentWidth < winW - 5;
+      const isShorter = contentHeight < winH - 5;
+      const hasOffset = contentLeft > 5 || contentTop > 5;
+
+      if ((isNarrower || isShorter || hasOffset) && contentWidth > 20 && contentHeight > 20) {
+        return {
+          isStandaloneMedia: false,
+          mediaElement: bodyChildren.length === 1 ? bodyChildren[0] : null,
+          activeRect: {
+            left: contentLeft,
+            top: contentTop,
+            width: contentWidth,
+            height: contentHeight,
+          },
+          cropRect: {
+            x: contentLeft,
+            y: contentTop,
+            width: contentWidth,
+            height: contentHeight,
+          },
+          hasMargins: true,
+        };
+      }
+    }
+  }
+
+  return {
+    isStandaloneMedia: false,
+    mediaElement: null,
+    activeRect: null,
+    cropRect: null,
+    hasMargins: false,
+  };
+}

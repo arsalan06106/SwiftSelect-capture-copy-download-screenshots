@@ -42,41 +42,24 @@ class FrameDetector {
 }
 
 // ─── Frame Grabber ───────────────────────────────────────────────────
-// Wraps ImageCapture with frame detection and blob conversion.
+// Wraps ImageCapture with frame detection for zero-overhead direct ImageBitmap extraction.
 class FrameGrabber {
   constructor(videoTrack) {
     this.ic = new ImageCapture(videoTrack);
     this.detector = new FrameDetector(10, 10);
-    this.canvas = document.createElement("canvas");
-    this.ctx = this.canvas.getContext("bitmaprenderer", { alpha: false });
   }
 
-  /** Grab a frame, retrying up to 3 times if the frame hasn't changed. */
+  /** Grab a frame, checking if tab repainted after scroll. */
   async grabFrame() {
     let attempts = 0;
     let frame;
     do {
       attempts++;
       frame = await this.ic.grabFrame();
-      if (!this.detector.detect(frame) || attempts >= 20) break;
+      if (!this.detector.detect(frame) || attempts >= 10) break;
       await new Promise((r) => setTimeout(r, 16));
     } while (true);
-    // Allow Blink compositor to settle at full subpixel raster detail
-    await new Promise((r) => setTimeout(r, 20));
-    try {
-      const settled = await this.ic.grabFrame();
-      return settled;
-    } catch (e) {
-      return frame;
-    }
-  }
-
-  /** Convert an ImageBitmap to a Blob (zero-copy transfer). */
-  async frameToBlob(frame, format = "image/png", quality = 1.0) {
-    this.canvas.width = frame.width;
-    this.canvas.height = frame.height;
-    this.ctx.transferFromImageBitmap(frame);
-    return new Promise((r) => this.canvas.toBlob(r, format, quality));
+    return frame;
   }
 }
 
@@ -210,11 +193,15 @@ async function captureFullPage(
   if (!meta)
     throw new Error("unroll-page failed — no response from content script");
 
-  const { innerWidth, innerHeight, devicePixelRatio: dpr } = meta;
+  const { innerWidth, innerHeight, devicePixelRatio: dpr, cropRect } = meta;
 
   // Use rect (measured AFTER CSS injection) for true content dimensions.
   const rectHeight = meta.rect?.height || meta.scrollHeight || innerHeight;
   const rectWidth = meta.rect?.width || meta.scrollWidth || innerWidth;
+
+  const hasCrop = !!cropRect;
+  const cropX = hasCrop ? Math.max(0, Math.round(cropRect.x * dpr)) : 0;
+  const cropY = hasCrop ? Math.max(0, Math.round(cropRect.y * dpr)) : 0;
 
   console.log("[offscreen] meta:", {
     mode,
@@ -223,6 +210,7 @@ async function captureFullPage(
     dpr,
     rectHeight,
     rectWidth,
+    cropRect,
     scrollHeight: meta.scrollHeight,
     scrollWidth: meta.scrollWidth,
     rectBottom: meta.rectBottom,
@@ -236,13 +224,6 @@ async function captureFullPage(
   const streamW = rawW % 2 === 0 ? rawW : rawW + 1;
   const streamH = rawH % 2 === 0 ? rawH : rawH + 1;
 
-  // Active tab content is ALWAYS rendered starting at (0, 0).
-  // Any codec padding (when stream dimension is padded to even) is located
-  // at the outer right (x = rawW) or bottom (y = rawH) border.
-  // By strictly sampling from (0, 0) for dimensions (rawW, rawH), we never
-  // pick up the codec's black padding row/column.
-  const sx = 0;
-  const sy = 0;
   const contentW = rawW;
   const contentH = rawH;
 
@@ -280,11 +261,33 @@ async function captureFullPage(
   const isHorizontalOnly = mode === "horizontal";
 
   // Generate 2D grid coordinates for full width & height coverage
-  const yPoints = isHorizontalOnly
-    ? [0]
-    : computeGridPoints(rectHeight, innerHeight, OVERLAP);
-  const xPoints = computeGridPoints(rectWidth, innerWidth, OVERLAP);
+  const yPoints = hasCrop
+    ? ((isHorizontalOnly || Math.round(cropRect.height * dpr) <= rawH)
+        ? [0]
+        : computeGridPoints(cropRect.height, innerHeight, OVERLAP))
+    : (isHorizontalOnly
+        ? [0]
+        : computeGridPoints(rectHeight, innerHeight, OVERLAP));
+
+  const xPoints = hasCrop
+    ? (Math.round(cropRect.width * dpr) <= rawW
+        ? [0]
+        : computeGridPoints(cropRect.width, innerWidth, OVERLAP))
+    : computeGridPoints(rectWidth, innerWidth, OVERLAP);
+
   const totalFrames = xPoints.length * yPoints.length;
+
+  const rawCanvasWidth = hasCrop
+    ? Math.max(1, Math.round(cropRect.width * dpr))
+    : (xPoints.length === 1 ? contentW : Math.ceil(rectWidth * dpr));
+  const rawCanvasHeight = hasCrop
+    ? Math.max(
+        1,
+        isHorizontalOnly
+          ? Math.min(Math.round(cropRect.height * dpr), Math.ceil(innerHeight * dpr))
+          : Math.round(cropRect.height * dpr),
+      )
+    : (isHorizontalOnly ? Math.ceil(innerHeight * dpr) : Math.ceil(rectHeight * dpr));
 
   // 3. Capture loop (2D Matrix: rows x columns)
   const frames = [];
@@ -312,17 +315,37 @@ async function captureFullPage(
         // Wait for repaint
         await new Promise((r) => setTimeout(r, frameInterval));
 
-        // Grab frame
+        // Grab frame directly as ImageBitmap (zero encoding overhead)
         const frame = await grabber.grabFrame();
-        // Use PNG for intermediate frames to avoid compression artifacts during stitching
-        const blob = await grabber.frameToBlob(frame, "image/png");
+
+        let frameSx = 0;
+        let frameSy = 0;
+        let frameSw = contentW;
+        let frameSh = contentH;
+
+        if (hasCrop) {
+          if (xPoints.length === 1) {
+            frameSx = cropX;
+            frameSw = Math.min(rawCanvasWidth, contentW - cropX);
+          } else if (xi === 0 && cropX > 0) {
+            frameSx = cropX;
+            frameSw = contentW - cropX;
+          }
+          if (yPoints.length === 1) {
+            frameSy = cropY;
+            frameSh = Math.min(rawCanvasHeight, contentH - cropY);
+          } else if (yi === 0 && cropY > 0) {
+            frameSy = cropY;
+            frameSh = contentH - cropY;
+          }
+        }
 
         frames.push({
-          blob,
-          sx,
-          sy,
-          sw: contentW,
-          sh: contentH,
+          bitmap: frame,
+          sx: frameSx,
+          sy: frameSy,
+          sw: frameSw,
+          sh: frameSh,
           dx: Math.floor(logicalX * dpr),
           dy: isHorizontalOnly ? 0 : Math.floor(logicalY * dpr),
         });
@@ -343,6 +366,11 @@ async function captureFullPage(
     }
   } catch (err) {
     console.error("[offscreen] Capture loop error:", err);
+    frames.forEach((f) => {
+      try {
+        f.bitmap?.close?.();
+      } catch {}
+    });
     if (frames.length === 0) {
       stream.getTracks().forEach((t) => t.stop());
       await sendToContent(tabId, "restore-unroll");
@@ -360,12 +388,6 @@ async function captureFullPage(
   // Chromium canvas dimension safety limit clamping
   const MAX_CANVAS_DIM = 16384;
   const MAX_CANVAS_AREA = 268435456; // 16384 * 16384
-
-  const rawCanvasWidth =
-    xPoints.length === 1 ? contentW : Math.ceil(rectWidth * dpr);
-  const rawCanvasHeight = isHorizontalOnly
-    ? Math.ceil(innerHeight * dpr)
-    : Math.ceil(rectHeight * dpr);
 
   let scaleRatio = 1;
   if (rawCanvasWidth > MAX_CANVAS_DIM) {
@@ -416,52 +438,56 @@ async function captureFullPage(
       const isLastCol = xi === xPoints.length - 1;
       const idx = yi * xPoints.length + xi;
       const f = frames[idx];
-      if (!f) continue;
-
-      const bitmap = await createImageBitmap(f.blob);
+      if (!f || !f.bitmap) continue;
 
       // On the final row / col, snap exactly to the canvas outer boundary to eliminate 1px gaps
-      const dx = isLastCol ? rawCanvasWidth - f.sw : f.dx;
-      const dy = isLastRow ? rawCanvasHeight - f.sh : f.dy;
+      const dx = isLastCol ? Math.max(0, rawCanvasWidth - f.sw) : f.dx;
+      const dy = isLastRow ? Math.max(0, rawCanvasHeight - f.sh) : f.dy;
       const drawW = Math.min(f.sw, rawCanvasWidth - dx);
       const drawH = Math.min(f.sh, rawCanvasHeight - dy);
 
       if (drawW > 0 && drawH > 0) {
-        ctx.drawImage(bitmap, f.sx, f.sy, drawW, drawH, dx, dy, drawW, drawH);
+        ctx.drawImage(f.bitmap, f.sx, f.sy, drawW, drawH, dx, dy, drawW, drawH);
       }
-      bitmap.close();
+      f.bitmap.close();
     }
   }
 
-  // --- Internal Clipboard Write (Silent Attempt) ---
+  // 5. Cleanup stream and page immediately so browser can release video hardware
+  stream.getTracks().forEach((t) => t.stop());
+  await sendToContent(tabId, "restore-unroll");
+
+  // Single-pass canvas Blob encoding
+  const blob = await new Promise((r) => canvas.toBlob(r, format, quality));
+  const blobUrl = blob ? URL.createObjectURL(blob) : "";
+
+  // Internal Clipboard Write (Silent Attempt)
   let clipboardSuccess = false;
   try {
-    const pngBlob = await new Promise((r) => canvas.toBlob(r, "image/png"));
-    if (pngBlob) {
-      clipboardSuccess = await writeToClipboardSilent(pngBlob);
+    if (format === "image/png" && blob) {
+      clipboardSuccess = await writeToClipboardSilent(blob);
+    } else {
+      const pngBlob = await new Promise((r) => canvas.toBlob(r, "image/png"));
+      if (pngBlob) {
+        clipboardSuccess = await writeToClipboardSilent(pngBlob);
+      }
     }
   } catch (err) {
     // Silently fail
   }
 
-  // 5. Cleanup stream and page
-  stream.getTracks().forEach((t) => t.stop());
-  await sendToContent(tabId, "restore-unroll");
-
-  // Final image as dataUrl (self-contained, robust across CSP & document closure)
+  // Final image as dataUrl (only for moderate canvases to avoid IPC lag)
   let dataUrl = "";
-  try {
-    dataUrl = canvas.toDataURL(format, quality);
-  } catch (err) {
-    console.warn("offscreen toDataURL error:", err);
+  if (rawCanvasWidth * rawCanvasHeight <= 3000 * 3000) {
+    try {
+      dataUrl = canvas.toDataURL(format, quality);
+      if (dataUrl && dataUrl.length > 20 * 1024 * 1024) {
+        dataUrl = "";
+      }
+    } catch (err) {
+      console.warn("offscreen toDataURL error:", err);
+    }
   }
-
-  // Final Blob for download fallback
-  const blob = await new Promise((r) => canvas.toBlob(r, format, quality));
-  let blobUrl = "";
-  try {
-    blobUrl = URL.createObjectURL(blob);
-  } catch {}
 
   return { dataUrl, blobUrl, clipboardSuccess };
 }
