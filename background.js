@@ -76,11 +76,11 @@ function updateTabBadge(tab) {
   const url = tab.url || "";
 
   if (isRestrictedUrl(url)) {
-    chrome.action.setBadgeText({ tabId, text: "" });
+    chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
     chrome.action.setTitle({
       tabId,
       title: "SwiftSelect - Browser Protected Page (Click for Info & Settings)",
-    });
+    }).catch(() => {});
     chrome.action.setPopup({ tabId, popup: "popup.html" }).catch(() => {});
     return;
   }
@@ -89,24 +89,24 @@ function updateTabBadge(tab) {
     chrome.extension.isAllowedFileSchemeAccess((isAllowed) => {
       if (chrome.runtime.lastError) return;
       if (!isAllowed) {
-        chrome.action.setBadgeText({ tabId, text: "FILE" });
-        chrome.action.setBadgeBackgroundColor({ tabId, color: "#FBBC04" });
+        chrome.action.setBadgeText({ tabId, text: "FILE" }).catch(() => {});
+        chrome.action.setBadgeBackgroundColor({ tabId, color: "#FBBC04" }).catch(() => {});
         chrome.action.setTitle({
           tabId,
           title: "File URL access required. Enable in extension settings.",
-        });
+        }).catch(() => {});
         chrome.action.setPopup({ tabId, popup: "popup.html" }).catch(() => {});
       } else {
-        chrome.action.setBadgeText({ tabId, text: "" });
-        chrome.action.setTitle({ tabId, title: "SwiftSelect (Click to Capture)" });
+        chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
+        chrome.action.setTitle({ tabId, title: "SwiftSelect (Click to Capture)" }).catch(() => {});
         chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
       }
     });
     return;
   }
 
-  chrome.action.setBadgeText({ tabId, text: "" });
-  chrome.action.setTitle({ tabId, title: "SwiftSelect (Click to Capture)" });
+  chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
+  chrome.action.setTitle({ tabId, title: "SwiftSelect (Click to Capture)" }).catch(() => {});
   chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
 }
 
@@ -395,12 +395,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // --- Relay: progress from offscreen → content script ---
   if (message?.type === "offscreen-progress") {
     const { tabId, progress, current, total } = message;
-    chrome.tabs.sendMessage(tabId, {
-      type: "fullpage-progress",
-      progress,
-      current,
-      total,
-    });
+    if (tabId) {
+      try {
+        chrome.tabs.sendMessage(tabId, {
+          type: "fullpage-progress",
+          progress,
+          current,
+          total,
+        }).catch(() => {});
+      } catch (e) {}
+    }
     // No response needed
     return false;
   }
@@ -416,9 +420,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
       if (chrome.action.setBadgeTextColor) {
         if (tabId) {
-          chrome.action.setBadgeTextColor({ tabId, color: "#FFFFFF" });
+          chrome.action.setBadgeTextColor({ tabId, color: "#FFFFFF" }).catch(() => {});
         } else {
-          chrome.action.setBadgeTextColor({ color: "#FFFFFF" });
+          chrome.action.setBadgeTextColor({ color: "#FFFFFF" }).catch(() => {});
         }
       }
     } catch (e) {
@@ -426,14 +430,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (tabId) {
-      chrome.action.setBadgeText({ tabId, text });
+      chrome.action.setBadgeText({ tabId, text }).catch(() => {});
       if (color && text) {
-        chrome.action.setBadgeBackgroundColor({ tabId, color });
+        chrome.action.setBadgeBackgroundColor({ tabId, color }).catch(() => {});
       }
     } else {
-      chrome.action.setBadgeText({ text });
+      chrome.action.setBadgeText({ text }).catch(() => {});
       if (color && text) {
-        chrome.action.setBadgeBackgroundColor({ color });
+        chrome.action.setBadgeBackgroundColor({ color }).catch(() => {});
       }
     }
   }

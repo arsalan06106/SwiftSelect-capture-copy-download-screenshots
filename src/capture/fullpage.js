@@ -1,4 +1,5 @@
 import {
+  loadImage,
   toggleCursor,
   getSmartFilename,
   getOutputSettings,
@@ -6,7 +7,7 @@ import {
   writeImageBlobToClipboard,
 } from "./utils.js";
 import { setLastBlob, downloadBlob } from "./download.js";
-import { handleCaptureVisible } from "./region.js";
+import { handleCaptureVisible, captureFrame } from "./region.js";
 
 let _unrollStyle = null;
 let _unrollScrollStyle = null;
@@ -566,6 +567,27 @@ export function handleRestoreUnroll() {
   removeUnrollCSS();
 }
 
+function computeGridPoints(totalSize, viewportSize, overlap = 2) {
+  if (totalSize <= viewportSize + 5) {
+    return [0];
+  }
+  const points = [];
+  const step = Math.max(1, viewportSize - overlap);
+  let current = 0;
+  const maxPos = Math.max(0, Math.round(totalSize - viewportSize));
+
+  while (current < maxPos) {
+    points.push(current);
+    current += step;
+  }
+
+  if (points.length === 0 || points[points.length - 1] < maxPos) {
+    points.push(maxPos);
+  }
+
+  return points;
+}
+
 export async function captureStream({
   mode = "full",
   actionName = "capture-full",
@@ -622,23 +644,19 @@ export async function captureStream({
     const captureQuality = format === "png" ? 1.0 : 0.98;
     const fileExt = format;
 
-    // Notify background
-    const result = await new Promise((resolve) => {
-      chrome.runtime.sendMessage(
-        {
-          type: "start-fullpage-capture",
-          mode,
-          frameInterval: 60,
-          format: captureFormat,
-          quality: captureQuality,
-        },
-        resolve,
-      );
-    });
+    const contentHeight =
+      mode === "horizontal" ? window.innerHeight : measureFullContentHeight();
+    const contentWidth = measureFullContentWidth();
+    const isHorizontal = mode === "horizontal";
+    const isSinglePage =
+      (contentHeight <= window.innerHeight + 5 && contentWidth <= window.innerWidth + 5) ||
+      (isHorizontal && contentWidth <= window.innerWidth + 5);
 
-    if (_abortCapture || result?.abort) throw new Error("Capture Aborted");
-    if (!result || !result.success) {
-      throw new Error(result?.error || `${label} capture failed`);
+    // Fast-path for single-viewport content: 100% native compositor snapshot
+    if (isSinglePage) {
+      document.documentElement.style.cursor = "";
+      document.body.style.cursor = "";
+      return handleCaptureVisible({ forceDownload: true, label });
     }
 
     function dataUrlToBlob(dataUrl) {
@@ -659,27 +677,178 @@ export async function captureStream({
     }
 
     let blob = null;
-    if (result.dataUrl) {
-      blob = dataUrlToBlob(result.dataUrl);
-    }
-    if (!blob && result.blobUrl) {
-      try {
-        const response = await fetch(result.blobUrl);
-        blob = await response.blob();
-      } catch (err) {
-        console.warn("fetch blobUrl failed in content script, trying background relay:", err);
-        try {
-          const bgResp = await new Promise((resolve) => {
-            chrome.runtime.sendMessage(
-              { type: "fetch-blob-url", blobUrl: result.blobUrl },
-              resolve,
-            );
+    let fallbackBlobUrl = "";
+
+    // Unroll the page
+    const meta = handleUnrollPage({ mode });
+    if (_abortCapture || meta?.abort) throw new Error("Capture Aborted");
+
+    const { innerWidth, innerHeight, clientWidth, devicePixelRatio: dpr, cropRect } = meta;
+    const rectHeight = meta.rect?.height || meta.scrollHeight || innerHeight;
+    const rectWidth = meta.rect?.width || meta.scrollWidth || innerWidth;
+
+    const hasCrop = !!cropRect;
+    const isHorizontalOnly = mode === "horizontal";
+
+    const yPoints = (isHorizontalOnly || (hasCrop && Math.round(cropRect.height * dpr) <= innerHeight * dpr))
+      ? [0]
+      : computeGridPoints(rectHeight, innerHeight, 2);
+
+    const xPoints = (hasCrop && Math.round(cropRect.width * dpr) <= innerWidth * dpr)
+      ? [0]
+      : computeGridPoints(rectWidth, innerWidth, 2);
+
+    const totalFrames = xPoints.length * yPoints.length;
+
+    // Use lossless compositor snapshots for up to 12 viewports
+    if (totalFrames <= 12) {
+      const frames = [];
+      let frameCount = 0;
+
+      for (let yi = 0; yi < yPoints.length && !_abortCapture; yi++) {
+        const logicalY = yPoints[yi];
+        for (let xi = 0; xi < xPoints.length && !_abortCapture; xi++) {
+          const logicalX = xPoints[xi];
+
+          setUnrollPosition(logicalY, logicalX);
+          void document.documentElement.offsetHeight;
+
+          // Repaint synchronization delay
+          await new Promise((r) => setTimeout(r, 60));
+
+          const dataUrl = await captureFrame(3);
+          const frameImg = await loadImage(dataUrl);
+
+          frames.push({
+            img: frameImg,
+            dx: Math.floor(logicalX * dpr),
+            dy: isHorizontalOnly ? 0 : Math.floor(logicalY * dpr),
           });
-          if (bgResp?.success && bgResp.dataUrl) {
-            blob = dataUrlToBlob(bgResp.dataUrl);
+
+          frameCount++;
+          const progress = Math.min(100, Math.round((frameCount / totalFrames) * 100));
+          window.SwiftSelect.ui.updateBadge(`${progress}%`, "#BA4B5C");
+          if (btn) {
+            let ps = btn.querySelector(".qs-progress-text");
+            if (!ps) {
+              ps = document.createElement("span");
+              ps.className = "qs-progress-text";
+              btn.appendChild(ps);
+            }
+            ps.textContent = `${progress}%`;
           }
-        } catch (bgErr) {
-          console.warn("fetch blobUrl via background relay failed:", bgErr);
+        }
+      }
+
+      handleRestoreUnroll();
+      if (_abortCapture) throw new Error("Capture Aborted");
+
+      const effectiveClientW = clientWidth || innerWidth;
+      const hasHorizontalOverflow = rectWidth > innerWidth + 5;
+      const activeContentW = Math.round(effectiveClientW * dpr);
+      const contentW = hasHorizontalOverflow ? Math.ceil(innerWidth * dpr) : activeContentW;
+      const contentH = Math.ceil(innerHeight * dpr);
+
+      const rawCanvasWidth = (xPoints.length === 1 && !hasHorizontalOverflow)
+        ? activeContentW
+        : Math.ceil(rectWidth * dpr);
+      const rawCanvasHeight = isHorizontalOnly ? Math.ceil(innerHeight * dpr) : Math.ceil(rectHeight * dpr);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, rawCanvasWidth);
+      canvas.height = Math.max(1, rawCanvasHeight);
+      const ctx = canvas.getContext("2d");
+
+      const safeBg = meta.bgColor && meta.bgColor !== "transparent" && meta.bgColor !== "rgba(0, 0, 0, 0)"
+        ? meta.bgColor
+        : "#ffffff";
+      ctx.fillStyle = safeBg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let yi = 0; yi < yPoints.length; yi++) {
+        const isLastRow = yi === yPoints.length - 1;
+        for (let xi = 0; xi < xPoints.length; xi++) {
+          const isLastCol = xi === xPoints.length - 1;
+          const idx = yi * xPoints.length + xi;
+          const f = frames[idx];
+          if (!f || !f.img) continue;
+
+          const dx = isLastCol ? Math.max(0, rawCanvasWidth - contentW) : f.dx;
+          const dy = isLastRow ? Math.max(0, rawCanvasHeight - contentH) : f.dy;
+          const drawW = Math.min(contentW, rawCanvasWidth - dx);
+          const drawH = Math.min(contentH, rawCanvasHeight - dy);
+
+          if (drawW > 0 && drawH > 0) {
+            const sw = Math.min(drawW, f.img.width);
+            const sh = Math.min(drawH, f.img.height);
+            ctx.drawImage(f.img, 0, 0, sw, sh, dx, dy, sw, sh);
+          }
+        }
+      }
+
+      let finalCanvas = canvas;
+      if (hasCrop) {
+        const cropX = Math.max(0, Math.round(cropRect.x * dpr));
+        const cropY = Math.max(0, Math.round(cropRect.y * dpr));
+        const cropW = Math.max(1, Math.min(canvas.width - cropX, Math.round(cropRect.width * dpr)));
+        const cropH = Math.max(1, Math.min(canvas.height - cropY, Math.round(cropRect.height * dpr)));
+
+        if (cropW > 0 && cropH > 0 && (cropX > 0 || cropY > 0 || cropW < canvas.width || cropH < canvas.height)) {
+          const croppedCanvas = document.createElement("canvas");
+          croppedCanvas.width = cropW;
+          croppedCanvas.height = cropH;
+          const cctx = croppedCanvas.getContext("2d");
+          cctx.fillStyle = safeBg;
+          cctx.fillRect(0, 0, cropW, cropH);
+          cctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+          finalCanvas = croppedCanvas;
+        }
+      }
+
+      blob = await new Promise((res, rej) =>
+        finalCanvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), captureFormat, captureQuality),
+      );
+    } else {
+      // Fallback for massive >12-viewport pages: offscreen tab capture stream
+      handleRestoreUnroll();
+      const result = await new Promise((resolve) => {
+        chrome.runtime.sendMessage(
+          {
+            type: "start-fullpage-capture",
+            mode,
+            frameInterval: 60,
+            format: captureFormat,
+            quality: captureQuality,
+          },
+          resolve,
+        );
+      });
+
+      if (_abortCapture || result?.abort) throw new Error("Capture Aborted");
+      if (!result || !result.success) {
+        throw new Error(result?.error || `${label} capture failed`);
+      }
+
+      if (result.dataUrl) {
+        blob = dataUrlToBlob(result.dataUrl);
+      }
+      if (!blob && result.blobUrl) {
+        fallbackBlobUrl = result.blobUrl;
+        try {
+          const response = await fetch(result.blobUrl);
+          blob = await response.blob();
+        } catch (err) {
+          try {
+            const bgResp = await new Promise((resolve) => {
+              chrome.runtime.sendMessage(
+                { type: "fetch-blob-url", blobUrl: result.blobUrl },
+                resolve,
+              );
+            });
+            if (bgResp?.success && bgResp.dataUrl) {
+              blob = dataUrlToBlob(bgResp.dataUrl);
+            }
+          } catch {}
         }
       }
     }
@@ -687,9 +856,9 @@ export async function captureStream({
     if (!blob) throw new Error("Could not process captured full-page image");
     setLastBlob(blob, fileExt);
 
-    if (result.blobUrl) {
+    if (fallbackBlobUrl) {
       try {
-        URL.revokeObjectURL(result.blobUrl);
+        URL.revokeObjectURL(fallbackBlobUrl);
       } catch {}
     }
 
@@ -722,11 +891,11 @@ export async function captureStream({
 
     // Full Page & Horizontal captures MUST always trigger file download
     await downloadBlob(blob, getSmartFilename(filenameType, fileExt), {
-      blobUrl: result.blobUrl,
+      blobUrl: fallbackBlobUrl,
     });
 
-    let clipOk = result.clipboardSuccess;
-    if ((destination === "clipboard" || destination === "both") && !clipOk) {
+    let clipOk = false;
+    if (destination === "clipboard" || destination === "both") {
       try {
         let clipBlob = blob;
         if (fileExt !== "png") {
