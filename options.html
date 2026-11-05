@@ -373,14 +373,14 @@
       .qs-header-title-stack {
         display: flex;
         flex-direction: column;
-        gap: 2.5px;
+        gap: 4px;
         width: 100%;
-        margin-bottom: 7px;
+        margin-bottom: 8px;
         position: relative;
       }
 
       .qs-notice-title {
-        font-size: 15.5px;
+        font-size: 16px;
         font-weight: 700;
         letter-spacing: -0.3px;
         color: var(--c-content);
@@ -389,9 +389,9 @@
       }
 
       .qs-notice-desc {
-        font-size: 11.5px;
-        line-height: 1.38;
-        color: color-mix(in srgb, var(--c-content) 72%, transparent);
+        font-size: 12px;
+        line-height: 1.45;
+        color: color-mix(in srgb, var(--c-content) 75%, transparent);
         margin: 0;
       }
 
@@ -399,31 +399,43 @@
       .qs-notice-tip {
         position: relative;
         z-index: 1;
-        border-radius: 13px;
-        padding: 7px 11px;
+        border-radius: 14px;
+        padding: 9px 13px;
         font-size: 11.5px;
-        line-height: 1.4;
+        line-height: 1.45;
         display: flex;
-        align-items: center;
-        gap: 8px;
+        align-items: flex-start;
+        gap: 9px;
         text-align: left;
-        margin-top: 1px;
+        margin-top: 4px;
+        margin-bottom: 4px;
         box-sizing: border-box;
         color: var(--c-content);
-        background-color: color-mix(in srgb, var(--c-action) 10%, color-mix(in srgb, var(--c-glass) 22%, transparent)) !important;
+        background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--c-action) 12%, transparent) 0%,
+          color-mix(in srgb, var(--c-glass) 22%, transparent) 100%
+        ) !important;
         border: none !important;
         box-shadow:
-          inset 0 0 0 1px color-mix(in srgb, var(--c-action) 30%, transparent),
-          inset 1.5px 1px 0px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 75%), transparent),
-          0 2px 6px rgba(0, 0, 0, 0.04);
+          inset 0 0 0 1px color-mix(in srgb, var(--c-action) 26%, transparent),
+          inset 1.5px 1.5px 0px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 85%), transparent),
+          0 2px 8px rgba(0, 0, 0, 0.04);
         transition: all 0.2s ease;
       }
       .qs-tip-icon {
         flex-shrink: 0;
         color: var(--c-action);
-        font-size: 12.5px;
+        font-size: 13px;
         line-height: 1;
-        filter: drop-shadow(0 0 5px var(--c-action));
+        margin-top: 1.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .qs-tip-text {
+        flex: 1;
+        font-weight: 500;
       }
 
       /* ----------------------------------------------------
@@ -804,7 +816,13 @@
 
         <!-- Refractive Callout Banner ("like that chrome policy thing") -->
         <div class="qs-notice-tip" id="notice-tip">
-          <span class="qs-tip-icon" id="notice-tip-icon">✦</span>
+          <span class="qs-tip-icon" id="notice-tip-icon">
+            <svg viewBox="0 0 24 24" width="13.5" height="13.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4"/>
+              <path d="M12 8h.01"/>
+            </svg>
+          </span>
           <span class="qs-tip-text" id="notice-tip-text">Ready to snap: Press Alt+X on any webpage to select area.</span>
         </div>
       </header>

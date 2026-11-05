@@ -74,10 +74,15 @@
       "resources": [
         "styles.css",
         "src/*",
+        "src/*.js",
         "src/capture/*",
+        "src/capture/*.js",
         "icons/*"
       ],
       "matches": [
+        "*://*/*",
+        "https://*/*",
+        "http://*/*",
         "<all_urls>"
       ]
     }

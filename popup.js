@@ -283,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
         '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="10" width="6" height="5" rx="1"/><path d="M10 10V8a2 2 0 1 1 4 0v2"/></svg>',
       title: "Browser Protected Page",
       desc: "Chrome security policies prevent extensions from running on system settings, extensions, and the Web Store.",
-      tip: "SwiftSelect is fully active on all regular websites! Shortcuts and settings configured below will apply everywhere.",
+      tip: "SwiftSelect is active! Preferences and hotkeys configured below apply across all regular web pages.",
       showPrefs: true,
       showShortcuts: true,
       showQuickActions: false,
