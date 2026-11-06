@@ -22,10 +22,10 @@ The popup (`popup.html` + `popup.js`) is a fourth context, but it simply sends m
 
 ## Module Graph
 
-The content script is the entry point on the page side. It uses dynamic `import()` to load all functional modules at runtime:
+The content script is bundled from `src/contentScript.js` into a standalone, CSP-safe `contentScript.js` using esbuild, eliminating cross-origin dynamic module loading and webpage CSP conflicts:
 
 ```
-contentScript.js
+src/contentScript.js
 ├── src/theme.js
 ├── src/ui.js
 │   ├── src/capture/region.js
@@ -42,7 +42,7 @@ contentScript.js
 └── src/capture/fullpage.js
 ```
 
-All modules under `src/` are ES modules declared as `web_accessible_resources` in the manifest. They are loaded via `chrome.runtime.getURL()` to get the extension-internal URL, then imported dynamically.
+All functional modules and CSS are pre-compiled into `contentScript.js` so that pages with strict Content Security Policies (such as YouTube, GitHub, and banking portals) run cleanly without unsafe cross-origin dynamic import attempts.
 
 <br>
 

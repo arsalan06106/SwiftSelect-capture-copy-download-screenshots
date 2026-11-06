@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SwiftSelect - Capture, Copy & Download Screenshots",
-  "version": "1.6.4",
+  "version": "1.6.6",
   "description": "The all-in-one tool to snap, scroll-capture, copy and download screenshots instantly.",
   "permissions": [
     "scripting",
@@ -73,24 +73,9 @@
     {
       "resources": [
         "styles.css",
-        "src/theme.js",
-        "src/ui.js",
-        "src/events.js",
-        "src/capture/region.js",
-        "src/capture/fullpage.js",
-        "src/capture/download.js",
-        "src/capture/annotate.js",
-        "src/capture/utils.js",
-        "src/*",
-        "src/*.js",
-        "src/capture/*",
-        "src/capture/*.js",
         "icons/*"
       ],
       "matches": [
-        "*://*/*",
-        "https://*/*",
-        "http://*/*",
         "<all_urls>"
       ]
     }

@@ -47,9 +47,9 @@ If the script was already injected (from a previous activation on the same page)
 
 <br>
 
-## Step 3 — Dynamic Module Loading
+## Step 3 — Self-Contained Module Loading
 
-On first injection, `contentScript.js` dynamically imports five modules:
+`contentScript.js` is bundled with all five functional modules and core stylesheet:
 
 1. `src/theme.js` — detects page luminance, loads saved theme preference
 2. `src/ui.js` — creates Shadow DOM hosts, builds the toolbar
@@ -57,7 +57,7 @@ On first injection, `contentScript.js` dynamically imports five modules:
 4. `src/capture/region.js` — visible-area and region capture logic
 5. `src/capture/fullpage.js` — scroll-and-stitch full-page capture
 
-Each module is loaded via `chrome.runtime.getURL("src/...")` to resolve the extension-internal path, then passed to `import()`. This works because the `src/*` directory is listed under `web_accessible_resources` in the manifest.
+Because all modules and styles are bundled into `contentScript.js`, the script runs synchronously and immediately inside the page's isolated world without triggering cross-origin dynamic import or fetch errors on pages with strict CSPs like YouTube.
 
 <br>
 

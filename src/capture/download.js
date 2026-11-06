@@ -120,7 +120,6 @@ export async function handleSaveAction(customExt = null) {
     const saveBtn = statusEl.querySelector(".qs-save-btn");
 
     if (textSpan && saveBtn) {
-      // True Fluid Morph using Web Animations API
       statusEl.getAnimations().forEach((anim) => {
         if (!anim.animationName) anim.cancel();
       });
@@ -128,31 +127,19 @@ export async function handleSaveAction(customExt = null) {
         if (!anim.animationName) anim.cancel();
       });
 
-      const oldWidth = statusEl.getBoundingClientRect().width;
-
       statusEl.classList.remove("qs-success");
       statusEl.classList.add("qs-saved");
       saveBtn.remove();
       textSpan.textContent = "Image Saved";
 
-      const newWidth = statusEl.getBoundingClientRect().width;
-
-      statusEl.animate(
-        [{ width: `${oldWidth}px` }, { width: `${newWidth}px` }],
-        {
-          duration: 350,
-          easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
-        },
-      );
-
       textSpan.animate(
         [
-          { opacity: 0, transform: "translateY(6px) scale(0.6)" },
-          { opacity: 1, transform: "translateY(0) scale(1)" },
+          { opacity: 0, transform: "scale(0.94)" },
+          { opacity: 1, transform: "scale(1)" },
         ],
         {
-          duration: 350,
-          easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+          duration: 180,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
         },
       );
 
@@ -163,12 +150,12 @@ export async function handleSaveAction(customExt = null) {
         });
         icon.animate(
           [
-            { opacity: 0, transform: "translateY(6px) scale(0.6)" },
-            { opacity: 1, transform: "translateY(0) scale(1)" },
+            { opacity: 0, transform: "scale(0.88)" },
+            { opacity: 1, transform: "scale(1)" },
           ],
           {
-            duration: 350,
-            easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+            duration: 180,
+            easing: "cubic-bezier(0.16, 1, 0.3, 1)",
           },
         );
       }
@@ -186,7 +173,7 @@ export async function handleSaveAction(customExt = null) {
             window.SwiftSelect.ui.statusHost.style.display = "none";
             statusEl.classList.remove("qs-hiding");
             window.SwiftSelect.ui.setCurrentStatus(null);
-          }, 300);
+          }, 180);
         }
       }, 2500),
     );

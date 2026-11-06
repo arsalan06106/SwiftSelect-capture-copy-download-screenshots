@@ -290,11 +290,6 @@ function buildAnnotationUI() {
   const css = getCachedCssText();
   if (css) {
     styleTag.textContent = css;
-  } else {
-    fetch(chrome.runtime.getURL("styles.css"))
-      .then((r) => r.text())
-      .then((t) => (styleTag.textContent = t))
-      .catch(() => {});
   }
   _annotateHost.appendChild(styleTag);
 

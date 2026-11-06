@@ -264,6 +264,7 @@ export function applyUnrollCSS(
   contentWidth,
   initialScrollTop = 0,
   mode = "full",
+  clientWidth = 0,
 ) {
   _originalScrollTop = window.scrollY || document.documentElement.scrollTop;
   _originalScrollLeft = window.scrollX || document.documentElement.scrollLeft;
@@ -348,10 +349,12 @@ export function applyUnrollCSS(
   _unrollStyle.setAttribute("data-swiftselect-unroll", "true");
 
   const heightCSS = contentHeight ? `height: ${contentHeight}px !important;` : "";
-  const widthCSS =
+  // Strictly lock width to clientWidth (or contentWidth if genuine horizontal scroll)
+  // so hiding the vertical scrollbar does not reflow/stretch responsive layouts or shift margins!
+  const effectiveWidth =
     contentWidth && contentWidth > window.innerWidth + 5
-      ? `width: ${contentWidth}px !important;`
-      : "";
+      ? contentWidth
+      : (clientWidth || document.documentElement.clientWidth || window.innerWidth);
   const innerScroller = _innerScrollContainer;
 
   if (innerScroller) {
@@ -405,13 +408,15 @@ export function applyUnrollCSS(
       overflow: hidden !important;
       min-height: 100vh !important;
       max-height: none !important;
-      min-width: 100vw !important;
-      max-width: none !important;
+      width: ${effectiveWidth}px !important;
+      min-width: ${effectiveWidth}px !important;
+      max-width: ${effectiveWidth}px !important;
+      box-sizing: border-box !important;
       ${heightCSS}
-      ${widthCSS}
     }
     body {
-      max-width: none !important;
+      width: ${effectiveWidth}px !important;
+      max-width: ${effectiveWidth}px !important;
       overflow: visible !important;
     }
     body > img {
@@ -495,7 +500,9 @@ export function handleUnrollPage(data = {}) {
     contentWidth,
     mode === "horizontal" ? initialScrollTop : 0,
     mode,
+    clientWidth,
   );
+  void document.documentElement.offsetHeight;
 
   const rect = document.documentElement.getBoundingClientRect();
   const bodyBg = window.getComputedStyle(document.body).backgroundColor;
@@ -683,6 +690,10 @@ export async function captureStream({
     const meta = handleUnrollPage({ mode });
     if (_abortCapture || meta?.abort) throw new Error("Capture Aborted");
 
+    // Allow browser compositor to settle after unroll styles
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 60));
+
     const { innerWidth, innerHeight, clientWidth, devicePixelRatio: dpr, cropRect } = meta;
     const rectHeight = meta.rect?.height || meta.scrollHeight || innerHeight;
     const rectWidth = meta.rect?.width || meta.scrollWidth || innerWidth;
@@ -766,22 +777,27 @@ export async function captureStream({
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       for (let yi = 0; yi < yPoints.length; yi++) {
-        const isLastRow = yi === yPoints.length - 1;
+        const startY = Math.round(yPoints[yi] * dpr);
+        const endY = (yi < yPoints.length - 1)
+          ? Math.round(yPoints[yi + 1] * dpr)
+          : rawCanvasHeight;
+        const sliceH = Math.max(0, endY - startY);
+
         for (let xi = 0; xi < xPoints.length; xi++) {
-          const isLastCol = xi === xPoints.length - 1;
           const idx = yi * xPoints.length + xi;
           const f = frames[idx];
           if (!f || !f.img) continue;
 
-          const dx = isLastCol ? Math.max(0, rawCanvasWidth - contentW) : f.dx;
-          const dy = isLastRow ? Math.max(0, rawCanvasHeight - contentH) : f.dy;
-          const drawW = Math.min(contentW, rawCanvasWidth - dx);
-          const drawH = Math.min(contentH, rawCanvasHeight - dy);
+          const startX = Math.round(xPoints[xi] * dpr);
+          const endX = (xi < xPoints.length - 1)
+            ? Math.round(xPoints[xi + 1] * dpr)
+            : rawCanvasWidth;
+          const sliceW = Math.max(0, endX - startX);
 
-          if (drawW > 0 && drawH > 0) {
-            const sw = Math.min(drawW, f.img.width);
-            const sh = Math.min(drawH, f.img.height);
-            ctx.drawImage(f.img, 0, 0, sw, sh, dx, dy, sw, sh);
+          if (sliceW > 0 && sliceH > 0) {
+            const sw = Math.min(sliceW, f.img.width);
+            const sh = Math.min(sliceH, f.img.height);
+            ctx.drawImage(f.img, 0, 0, sw, sh, startX, startY, sw, sh);
           }
         }
       }

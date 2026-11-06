@@ -5,6 +5,7 @@
 import {
   handleCaptureVisible,
   handleCaptureAndDownload,
+  handleTimedCapture,
 } from "./capture/region.js";
 import {
   handleCaptureFullPage,
@@ -20,6 +21,9 @@ import {
   isPageDark,
 } from "./theme.js";
 import { removeListeners } from "./events.js";
+import { openAnnotationEditor } from "./capture/annotate.js";
+import { handleSaveAction, getLastBlob } from "./capture/download.js";
+import stylesCss from "./styles.min.css";
 
 export let overlayHost = null;
 export let statusHost = null;
@@ -76,15 +80,15 @@ export function getFreezeFramePromise() {
 export let qsSheet = null;
 export let stylePromise = null;
 export let safetyListenersAdded = false;
-export let cachedCssText = "";
+export let cachedCssText = stylesCss;
 
 export async function loadStyles() {
   if (stylePromise) return stylePromise;
   stylePromise = (async () => {
     try {
-      const url = chrome.runtime.getURL("styles.css");
-      const response = await fetch(url);
-      cachedCssText = await response.text();
+      if (!cachedCssText) {
+        cachedCssText = stylesCss;
+      }
       qsSheet = new CSSStyleSheet();
       await qsSheet.replace(cachedCssText);
     } catch (err) {
@@ -144,25 +148,31 @@ export function makeShadowOverlay(
   }
 
   const shadow = host.attachShadow({ mode: "open" });
+  if (qsSheet) {
+    shadow.adoptedStyleSheets = [qsSheet];
+  }
   const el = document.createElement(tag);
   el.className = className;
   if (innerHTML) el.innerHTML = innerHTML;
-  el.style.opacity = "0"; // Second layer of flash protection
+  if (!qsSheet) {
+    el.style.opacity = "0"; // Second layer of flash protection
+  }
   shadow.appendChild(el);
 
   (async () => {
-    await loadStyles();
-    if (qsSheet) {
-      shadow.adoptedStyleSheets = [qsSheet];
+    if (!qsSheet) {
+      await loadStyles();
+      if (qsSheet) {
+        shadow.adoptedStyleSheets = [qsSheet];
+      }
+      setTimeout(() => {
+        if (el) el.style.opacity = "";
+      }, 0);
     }
     // Restore layout only if autoShow is requested
     if (autoShow) {
       host.style.display = "block";
     }
-    // Allow CSS to take over
-    setTimeout(() => {
-      if (el) el.style.opacity = "";
-    }, 0);
   })();
 
   return { host, el, shadow };
@@ -306,6 +316,7 @@ export async function ensureUi() {
     statusHost = host;
     statusEl = el;
     statusHost.style.display = "none";
+    statusEl.style.display = "none";
   }
 
   if (!highlighterHost || !highlighterHost.isConnected) {
@@ -467,12 +478,11 @@ export async function ensureUi() {
       e?.stopPropagation?.();
       handleCaptureFullPage();
     };
-    annotateBtn.onclick = async (e) => {
+    annotateBtn.onclick = (e) => {
       e?.preventDefault?.();
       e?.stopPropagation?.();
       window.SwiftSelect?.events?.cleanup?.();
       hideGuide(true);
-      const { openAnnotationEditor } = await import("./capture/annotate.js");
       openAnnotationEditor();
     };
 
@@ -628,14 +638,12 @@ export function ensureKeyGuide() {
   `;
 
   keyGuideEl.querySelectorAll(".qs-key-pill").forEach((pill) => {
-    pill.addEventListener("click", async (e) => {
+    pill.addEventListener("click", (e) => {
       e.stopPropagation();
       const k = pill.dataset.key;
       if (k === "t") {
-        const { handleTimedCapture } = await import("./capture/region.js");
         handleTimedCapture(3);
       } else if (k === "a") {
-        const { openAnnotationEditor } = await import("./capture/annotate.js");
         openAnnotationEditor();
       } else if (k === "escape") {
         cleanup();
@@ -854,8 +862,7 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     dlIcon.style.height = "20px";
     dlIcon.style.fill = "currentColor";
 
-    saveBtn.onclick = async () => {
-      const { handleSaveAction } = await import("./capture/download.js");
+    saveBtn.onclick = () => {
       handleSaveAction();
     };
     statusEl.appendChild(saveBtn);
@@ -895,9 +902,7 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     `;
     annotateBtn.appendChild(annSvg);
 
-    annotateBtn.onclick = async () => {
-      const { openAnnotationEditor } = await import("./capture/annotate.js");
-      const { getLastBlob } = await import("./capture/download.js");
+    annotateBtn.onclick = () => {
       const source = options?.sourceBlob || getLastBlob?.();
       if (source) {
         openAnnotationEditor(source);
@@ -909,33 +914,38 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
   }
 
 
+  applyElementTheme(statusEl, currentUserTheme);
   statusHost.style.display = "";
   statusEl.style.display = "flex";
   currentStatus = type;
-  void statusEl.offsetWidth;
-  applyElementTheme(statusEl, currentUserTheme);
+
+  if (!isUpdating && !noAnim) {
+    statusEl.style.animation = "none";
+    void statusEl.offsetWidth;
+    statusEl.style.animation = "";
+  }
 
   if (isUpdating) {
     statusEl.getAnimations().forEach(anim => { if (!anim.animationName) anim.cancel(); });
     const textSpan = statusEl.querySelector('span');
     if (textSpan) {
       textSpan.animate([
-        { opacity: 0 },
-        { opacity: 1 }
+        { opacity: 0, transform: "scale(0.94)" },
+        { opacity: 1, transform: "scale(1)" }
       ], {
-        duration: 140,
-        easing: "ease-out",
+        duration: 180,
+        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
       });
     }
 
     const icon = statusEl.querySelector('.qs-status-icon');
     if (icon) {
       icon.animate([
-        { opacity: 0 },
-        { opacity: 1 }
+        { opacity: 0, transform: "scale(0.88)" },
+        { opacity: 1, transform: "scale(1)" }
       ], {
-        duration: 140,
-        easing: "ease-out",
+        duration: 180,
+        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
       });
     }
   }
@@ -951,7 +961,7 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
           statusEl.classList.remove("qs-hiding");
           currentStatus = null;
         }
-      }, 200);
+      }, 180);
     }, timeout);
   }
 }

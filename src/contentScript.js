@@ -1,0 +1,87 @@
+/**
+ * main content script entry point (source)
+ */
+import * as theme from "./theme.js";
+import * as ui from "./ui.js";
+import * as events from "./events.js";
+import * as region from "./capture/region.js";
+import * as fullpage from "./capture/fullpage.js";
+
+if (typeof window !== "undefined" && window === window.top && !window.__swiftSelectInjected_v2) {
+  window.SwiftSelect = window.SwiftSelect || {};
+  window.__swiftSelectInjected_v2 = true;
+
+  window.SwiftSelect.theme = theme;
+  window.SwiftSelect.ui = ui;
+  window.SwiftSelect.events = events;
+  window.SwiftSelect.capture = { ...region, ...fullpage };
+  theme.init();
+
+  function getModules() {
+    return Promise.resolve({ theme, ui, events, region, fullpage });
+  }
+
+  // Synchronous listener registration so zero messages are dropped
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    getModules().then(({ theme, ui, events, region, fullpage }) => {
+      if (message.type === "start-selection") {
+        if (document.getElementById("swiftselect-annotate-root")) {
+          sendResponse({ success: true });
+          return;
+        }
+        ui.ensureUi();
+        events.addListeners();
+        sendResponse({ success: true });
+      } else if (
+        message.type === "capture-visible" ||
+        message.type === "capture-download"
+      ) {
+        region.handleCaptureVisible();
+        sendResponse({ success: true });
+      } else if (message.type === "capture-timer") {
+        region.handleTimedCapture(3);
+        sendResponse({ success: true });
+      } else if (message.type === "capture-horizontal") {
+        fullpage.handleCaptureHorizontal();
+        sendResponse({ success: true });
+      } else if (message.type === "capture-full") {
+        fullpage.handleCaptureFullPage();
+        sendResponse({ success: true });
+      } else if (message.type === "show-help-modal") {
+        ui.showShortcutsHelpModal();
+        sendResponse({ success: true });
+      } else if (message.type === "show-settings-modal") {
+        ui.showSettingsModal();
+        sendResponse({ success: true });
+      } else if (message.type === "fullpage-progress") {
+        const ps = ui.guideShadow?.querySelector(".qs-progress-text");
+        if (ps) {
+          ps.textContent = `${message.progress}%`;
+        }
+        const isDone = message.progress >= 100;
+        chrome.runtime.sendMessage({
+          type: "update-badge",
+          text: isDone ? "✓" : `${message.progress}%`,
+          color: isDone ? "#10B981" : "#BA4B5C",
+        });
+        sendResponse({ success: true });
+      } else if (message.type === "fullpage-action") {
+        const { action, data } = message;
+        if (action === "unroll-page") {
+          sendResponse(fullpage.handleUnrollPage(data));
+        } else if (action === "update-unroll") {
+          sendResponse(
+            fullpage.handleUpdateUnroll(data.scrollTop, data.scrollLeft),
+          );
+        } else if (action === "restore-unroll") {
+          fullpage.handleRestoreUnroll();
+          sendResponse({ success: true });
+        }
+      }
+    }).catch((err) => {
+      sendResponse({ success: false, error: err?.message });
+    });
+
+    return true; // Keep channel open for async response
+  });
+}

@@ -2,11 +2,12 @@
  * Event handling for SwiftSelect
  */
 
-import { captureAndCrop, handleCaptureVisible } from "./capture/region.js";
+import { captureAndCrop, handleCaptureVisible, handleTimedCapture } from "./capture/region.js";
 import {
   handleCaptureFullPage,
   handleCaptureHorizontal,
 } from "./capture/fullpage.js";
+import { openAnnotationEditor } from "./capture/annotate.js";
 
 export let dragging = false;
 export let isMoving = false;
@@ -483,12 +484,12 @@ export function onKeyDown(e) {
     }
     if ((isAlt && key === "t") || (isPlain && (key === "t" || key === "3"))) {
       e.preventDefault();
-      import("./capture/region.js").then((m) => m.handleTimedCapture(3));
+      handleTimedCapture(3);
       return;
     }
     if (isPlain && key === "a") {
       e.preventDefault();
-      import("./capture/annotate.js").then((m) => m.openAnnotationEditor());
+      openAnnotationEditor();
       return;
     }
     if (isPlain && (key === "," || key === "o")) {

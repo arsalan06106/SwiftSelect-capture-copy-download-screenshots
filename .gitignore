@@ -13,6 +13,7 @@ Desktop.ini
 /dist
 /build
 /out
+src/styles.min.css
 
 # Node dependencies and logs
 node_modules/

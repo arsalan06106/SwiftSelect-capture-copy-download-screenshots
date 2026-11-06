@@ -400,25 +400,27 @@ async function captureFullPage(
   ctx.fillRect(0, 0, rawCanvasWidth, rawCanvasHeight);
 
   for (let yi = 0; yi < yPoints.length; yi++) {
-    const isLastRow = yi === yPoints.length - 1;
+    const startY = Math.round(yPoints[yi] * dpr);
+    const endY = (yi < yPoints.length - 1)
+      ? Math.round(yPoints[yi + 1] * dpr)
+      : rawCanvasHeight;
+    const sliceH = Math.max(0, endY - startY);
+
     for (let xi = 0; xi < xPoints.length; xi++) {
-      const isLastCol = xi === xPoints.length - 1;
       const idx = yi * xPoints.length + xi;
       const f = frames[idx];
       if (!f || !f.bitmap) continue;
 
-      // On the final row / col, snap exactly to the canvas outer boundary to eliminate 1px gaps
-      const dx = isLastCol ? Math.max(0, rawCanvasWidth - contentW) : f.dx;
-      const dy = isLastRow ? Math.max(0, rawCanvasHeight - contentH) : f.dy;
-      const drawW = Math.min(contentW, rawCanvasWidth - dx);
-      const drawH = Math.min(contentH, rawCanvasHeight - dy);
+      const startX = Math.round(xPoints[xi] * dpr);
+      const endX = (xi < xPoints.length - 1)
+        ? Math.round(xPoints[xi + 1] * dpr)
+        : rawCanvasWidth;
+      const sliceW = Math.max(0, endX - startX);
 
-      if (drawW > 0 && drawH > 0) {
-        const bw = f.bitmap.width;
-        const bh = f.bitmap.height;
-        const sw = Math.min(drawW, bw);
-        const sh = Math.min(drawH, bh);
-        ctx.drawImage(f.bitmap, 0, 0, sw, sh, dx, dy, sw, sh);
+      if (sliceW > 0 && sliceH > 0) {
+        const sw = Math.min(sliceW, f.bitmap.width);
+        const sh = Math.min(sliceH, f.bitmap.height);
+        ctx.drawImage(f.bitmap, 0, 0, sw, sh, startX, startY, sw, sh);
       }
       f.bitmap.close();
     }

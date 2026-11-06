@@ -200,7 +200,6 @@ document.addEventListener("DOMContentLoaded", () => {
     showPrefs = false,
     showShortcuts = false,
     showQuickActions = false,
-    showRestrictedActions = false,
     actionText,
     onAction,
   }) {
@@ -244,10 +243,6 @@ document.addEventListener("DOMContentLoaded", () => {
       noticeQuickActions.style.display = showQuickActions ? "flex" : "none";
     }
 
-    if (noticeRestrictedActions) {
-      noticeRestrictedActions.style.display = showRestrictedActions ? "flex" : "none";
-    }
-
     if (noticeActionBtn) {
       if (actionText && onAction) {
         if (noticeActionText) noticeActionText.textContent = actionText;
@@ -271,7 +266,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showPrefs: true,
       showShortcuts: true,
       showQuickActions: false,
-      showRestrictedActions: true,
       actionText: "Configure Chrome Shortcuts",
       onAction: () => {
         chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
@@ -295,7 +289,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showPrefs: true,
       showShortcuts: true,
       showQuickActions: false,
-      showRestrictedActions: true,
       actionText: "Open Extension Settings",
       onAction: () => {
         chrome.tabs.create({
@@ -379,7 +372,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showPrefs: true,
       showShortcuts: true,
       showQuickActions: false,
-      showRestrictedActions: true,
       actionText: "Configure Chrome Shortcuts",
       onAction: () => {
         chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
@@ -401,7 +393,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showPrefs: false,
       showShortcuts: true,
       showQuickActions: false,
-      showRestrictedActions: true,
       actionText: "Customize Shortcuts in Chrome",
       onAction: () => {
         chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
