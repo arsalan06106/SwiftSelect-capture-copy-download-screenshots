@@ -625,23 +625,27 @@ export async function captureStream({
     );
     originalIcon = btn?.cloneNode(true);
 
-    if (window.SwiftSelect.ui.guideHost) {
+    if (window.SwiftSelect?.ui?.guideHost) {
       window.SwiftSelect.ui.guideHost.style.display = "none";
     }
-    if (window.SwiftSelect.ui.overlayHost) {
+    if (window.SwiftSelect?.ui?.overlayHost) {
       window.SwiftSelect.ui.overlayHost.style.display = "none";
     }
-    if (typeof window.SwiftSelect.ui.releaseFreeze === "function") {
+    if (typeof window.SwiftSelect?.ui?.releaseFreeze === "function") {
       window.SwiftSelect.ui.releaseFreeze();
     }
-    if (typeof window.SwiftSelect.ui.removeFlash === "function") {
+    if (typeof window.SwiftSelect?.ui?.removeFlash === "function") {
       window.SwiftSelect.ui.removeFlash();
     }
 
     const tCursor =
       "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=), auto";
-    document.documentElement.style.setProperty("cursor", tCursor, "important");
-    document.body.style.setProperty("cursor", tCursor, "important");
+    if (document.documentElement?.style) {
+      document.documentElement.style.setProperty("cursor", tCursor, "important");
+    }
+    if (document.body?.style) {
+      document.body.style.setProperty("cursor", tCursor, "important");
+    }
 
     await new Promise((r) => requestAnimationFrame(r));
     document.activeElement?.blur();
@@ -661,8 +665,8 @@ export async function captureStream({
 
     // Fast-path for single-viewport content: 100% native compositor snapshot
     if (isSinglePage) {
-      document.documentElement.style.cursor = "";
-      document.body.style.cursor = "";
+      if (document.documentElement?.style) document.documentElement.style.cursor = "";
+      if (document.body?.style) document.body.style.cursor = "";
       return handleCaptureVisible({ forceDownload: true, label });
     }
 
@@ -942,23 +946,23 @@ export async function captureStream({
       statusType = "saved";
     }
 
-    document.documentElement.style.cursor = "";
-    document.body.style.cursor = "";
-    window.SwiftSelect.ui.cleanup();
-    window.SwiftSelect.events.removeListeners();
+    if (document.documentElement?.style) document.documentElement.style.cursor = "";
+    if (document.body?.style) document.body.style.cursor = "";
+    window.SwiftSelect?.ui?.cleanup?.();
+    window.SwiftSelect?.events?.removeListeners?.();
     window.removeEventListener("keydown", onAbortKey, true);
 
-    window.SwiftSelect.ui.setStatus(statusMsg, 5000, statusType, false, {
+    window.SwiftSelect?.ui?.setStatus?.(statusMsg, 5000, statusType, false, {
       sourceBlob: blob,
     });
 
-    window.SwiftSelect.ui.updateBadge("✓", "#10B981");
-    setTimeout(() => window.SwiftSelect.ui.updateBadge(""), 1500);
+    window.SwiftSelect?.ui?.updateBadge?.("✓", "#10B981");
+    setTimeout(() => window.SwiftSelect?.ui?.updateBadge?.(""), 1500);
   } catch (err) {
     console.error(`${label} capture error:`, err);
     handleRestoreUnroll();
-    window.SwiftSelect.ui.updateBadge("ERR", "#EF4444");
-    setTimeout(() => window.SwiftSelect.ui.updateBadge(""), 2000);
+    window.SwiftSelect?.ui?.updateBadge?.("ERR", "#EF4444");
+    setTimeout(() => window.SwiftSelect?.ui?.updateBadge?.(""), 2000);
     if (btn) {
       btn.classList.remove("qs-loading");
       btn.classList.remove("qs-success");
@@ -970,10 +974,10 @@ export async function captureStream({
         );
       }
     }
-    document.documentElement.style.cursor = "";
-    document.body.style.cursor = "";
-    window.SwiftSelect.ui.setStatus("Capture Failed", 3000, "error");
-    if (window.SwiftSelect.ui.guideHost)
+    if (document.documentElement?.style) document.documentElement.style.cursor = "";
+    if (document.body?.style) document.body.style.cursor = "";
+    window.SwiftSelect?.ui?.setStatus?.("Capture Failed", 3000, "error");
+    if (window.SwiftSelect?.ui?.guideHost)
       window.SwiftSelect.ui.guideHost.style.display = "flex";
     window.removeEventListener("keydown", onAbortKey, true);
   }

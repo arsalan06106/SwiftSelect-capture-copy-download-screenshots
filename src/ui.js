@@ -986,10 +986,14 @@ export function updateSelection(rect) {
       overlay.classList.contains("qs-selecting") ||
       overlay.classList.contains("qs-snapping");
     if (!canRenderSelection) {
-      box.style.display = "none";
-      hudEl.style.display = "none";
-      curtains.forEach((c) => (c.style.display = "none"));
-      snapBlurPanels.forEach((panel) => (panel.style.display = "none"));
+      if (box) box.style.display = "none";
+      if (hudEl) hudEl.style.display = "none";
+      curtains.forEach((c) => {
+        if (c) c.style.display = "none";
+      });
+      snapBlurPanels.forEach((panel) => {
+        if (panel) panel.style.display = "none";
+      });
       return;
     }
 
@@ -1000,17 +1004,23 @@ export function updateSelection(rect) {
 
     const isVisible = r.width > 2 || r.height > 2;
     if (!isVisible) {
-      box.style.display = "none";
-      hudEl.style.display = "none";
-      curtains.forEach((c) => (c.style.display = "none"));
-      snapBlurPanels.forEach((panel) => (panel.style.display = "none"));
+      if (box) box.style.display = "none";
+      if (hudEl) hudEl.style.display = "none";
+      curtains.forEach((c) => {
+        if (c) c.style.display = "none";
+      });
+      snapBlurPanels.forEach((panel) => {
+        if (panel) panel.style.display = "none";
+      });
       return;
     }
 
-    box.style.display = "block";
-    box.style.width = r.width + "px";
-    box.style.height = r.height + "px";
-    box.style.transform = `translate3d(${x1}px, ${y1}px, 0)`;
+    if (box) {
+      box.style.display = "block";
+      box.style.width = r.width + "px";
+      box.style.height = r.height + "px";
+      box.style.transform = `translate3d(${x1}px, ${y1}px, 0)`;
+    }
 
     const gap = 10;
     const hudHeight = 24;
@@ -1029,13 +1039,15 @@ export function updateSelection(rect) {
       hudText += " · Move";
     }
     if (lastHudText !== hudText) {
-      hudEl.textContent = hudText;
+      if (hudEl) hudEl.textContent = hudText;
       lastHudText = hudText;
     }
-    hudEl.style.display = "block";
-    // Restore animation for fresh appearances (e.g. new drag)
-    hudEl.style.animation = "";
-    hudEl.style.transform = `translate3d(${hudLeft}px, ${hudTop}px, 0)`;
+    if (hudEl) {
+      hudEl.style.display = "block";
+      // Restore animation for fresh appearances (e.g. new drag)
+      hudEl.style.animation = "";
+      hudEl.style.transform = `translate3d(${hudLeft}px, ${hudTop}px, 0)`;
+    }
 
     const hudRect = {
       left: hudLeft,
@@ -1161,7 +1173,9 @@ export async function hideUiForCapture() {
       statusEl.style.display = "none";
       statusEl.classList.remove("qs-hiding");
     }
-    statusHost.style.display = "none";
+    if (statusHost) {
+      statusHost.style.display = "none";
+    }
     currentStatus = null;
   }
 
@@ -1405,7 +1419,7 @@ export function showShortcutsHelpModal() {
   `;
 
   host.appendChild(card);
-  document.body.appendChild(host);
+  (document.body || document.documentElement).appendChild(host);
   shortcutsModalHost = host;
 
   requestAnimationFrame(() => {
@@ -1499,7 +1513,7 @@ export function showColorPickerLoupe(x, y, hex) {
   `;
 
   host.style.animation = "qsLoupeSpringIn 1900ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards";
-  document.body.appendChild(host);
+  (document.body || document.documentElement).appendChild(host);
 
   setTimeout(() => {
     if (host && host.parentNode) host.parentNode.removeChild(host);
@@ -1644,7 +1658,7 @@ export async function showSettingsModal() {
   });
 
   host.appendChild(card);
-  document.body.appendChild(host);
+  (document.body || document.documentElement).appendChild(host);
   settingsModalHost = host;
 
   requestAnimationFrame(() => {

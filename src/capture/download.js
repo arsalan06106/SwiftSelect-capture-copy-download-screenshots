@@ -161,18 +161,22 @@ export async function handleSaveAction(customExt = null) {
       }
     }
 
-    if (window.SwiftSelect.ui.hideStatusTimer)
+    if (window.SwiftSelect?.ui?.hideStatusTimer)
       clearTimeout(window.SwiftSelect.ui.hideStatusTimer);
 
-    window.SwiftSelect.ui.setHideStatusTimer(
+    window.SwiftSelect?.ui?.setHideStatusTimer?.(
       setTimeout(() => {
         if (statusEl) {
           statusEl.classList.add("qs-hiding");
           setTimeout(() => {
-            statusEl.style.display = "none";
-            window.SwiftSelect.ui.statusHost.style.display = "none";
-            statusEl.classList.remove("qs-hiding");
-            window.SwiftSelect.ui.setCurrentStatus(null);
+            if (statusEl) {
+              statusEl.style.display = "none";
+              statusEl.classList.remove("qs-hiding");
+            }
+            if (window.SwiftSelect?.ui?.statusHost) {
+              window.SwiftSelect.ui.statusHost.style.display = "none";
+            }
+            window.SwiftSelect?.ui?.setCurrentStatus?.(null);
           }, 180);
         }
       }, 2500),

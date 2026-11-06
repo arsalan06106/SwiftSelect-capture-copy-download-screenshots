@@ -941,7 +941,7 @@ function buildAnnotationUI() {
   window.addEventListener("pointerup", onCanvasPointerUp);
   window.addEventListener("keydown", onAnnotateKeyDown, true);
 
-  document.body.appendChild(_annotateHost);
+  (document.body || document.documentElement).appendChild(_annotateHost);
 
   requestAnimationFrame(() => {
     if (_annotateHost) {
@@ -2564,9 +2564,11 @@ export function closeAnnotationEditor() {
     _annotateCanvas.style.transition =
       "transform 0.18s ease, opacity 0.18s ease";
   }
-  _annotateHost.style.opacity = "0";
-  _annotateHost.style.transition =
-    "opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1)";
+  if (_annotateHost) {
+    _annotateHost.style.opacity = "0";
+    _annotateHost.style.transition =
+      "opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1)";
+  }
 
   setTimeout(() => {
     if (_annotateHost && _annotateHost.parentNode) {

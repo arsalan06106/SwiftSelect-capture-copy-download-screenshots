@@ -69,8 +69,12 @@ export function init() {
     ],
   };
 
-  observer.observe(document.documentElement, config);
-  observer.observe(document.body, config);
+  if (document.documentElement) {
+    observer.observe(document.documentElement, config);
+  }
+  if (document.body) {
+    observer.observe(document.body, config);
+  }
 
   let scrollPending = false;
   const onScrollOrResize = () => {
