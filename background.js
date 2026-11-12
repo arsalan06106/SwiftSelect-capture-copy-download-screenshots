@@ -1,3 +1,17 @@
+/**
+ * SwiftSelect service worker.
+ *
+ * Owns everything a content script cannot do for itself: privileged capture
+ * calls, the offscreen document, native downloads, the gallery database and
+ * the toolbar action. It keeps no long-lived state; anything that must
+ * survive a worker restart lives in chrome.storage or IndexedDB.
+ */
+import { addCapture, applyRetention } from "./src/storage.js";
+import { DEFAULTS, getSettings, normalizeTheme } from "./src/settings.js";
+
+const QUICK_MENU = "popup.html";
+
+// Toolbar click with no popup attached: go straight to region selection.
 chrome.action.onClicked.addListener((tab) => {
   if (!tab?.id) return;
   const url = tab.url || "";
@@ -5,7 +19,6 @@ chrome.action.onClicked.addListener((tab) => {
     openExtensionIconPopup("restricted");
     return;
   }
-  chrome.action.setPopup({ tabId: tab.id, popup: "" }).catch(() => {});
   injectAndStart(tab, "start-selection");
 });
 
@@ -21,15 +34,93 @@ chrome.runtime.onConnect.addListener((port) => {
 
 async function openExtensionIconPopup(view = "restricted") {
   try {
-    await chrome.action.setPopup({ popup: `popup.html?view=${view}` });
+    await chrome.action.setPopup({ popup: `${QUICK_MENU}?view=${view}` });
     await chrome.action.openPopup();
   } catch (err) {
     console.warn("SwiftSelect: Could not open popup directly:", err);
-    try {
-      chrome.runtime.openOptionsPage();
-    } catch (e2) {}
+    openExtensionPage("gallery.html", { hash: "#settings" });
+  } finally {
+    applyActionMode();
   }
 }
+
+/** Focus an already open extension page, or open it in a new tab. */
+async function openExtensionPage(path, { hash = "", search = "" } = {}) {
+  const base = chrome.runtime.getURL(path);
+  const target = `${base}${search}${hash}`;
+  try {
+    const tabs = await chrome.tabs.query({ url: `${base}*` });
+    const existing = tabs.find((t) => t.id);
+    if (existing && !search) {
+      await chrome.tabs.update(existing.id, { active: true, ...(hash ? { url: target } : {}) });
+      if (typeof existing.windowId === "number") {
+        chrome.windows?.update?.(existing.windowId, { focused: true }).catch?.(() => {});
+      }
+      return existing;
+    }
+  } catch {}
+  return chrome.tabs.create({ url: target });
+}
+
+// ─── Toolbar action mode ─────────────────────────────────────────────
+// "menu": the icon opens the quick-action popup.
+// "region": the icon starts region selection in one click (no popup).
+
+let _actionClick = DEFAULTS.actionClick;
+
+function defaultPopup() {
+  return _actionClick === "menu" ? QUICK_MENU : "";
+}
+
+async function applyActionMode() {
+  const settings = await getSettings();
+  _actionClick = settings.actionClick;
+  await chrome.action.setPopup({ popup: defaultPopup() }).catch(() => {});
+  initAllTabs();
+}
+
+// ─── Last capturable tab ─────────────────────────────────────────────
+// The gallery and settings pages can start a capture, but they are not
+// capturable themselves. Remember the last normal web tab per window so the
+// capture has somewhere to go.
+
+function rememberTab(tab) {
+  if (!tab?.id || isRestrictedUrl(tab.url || "")) return;
+  chrome.storage.session
+    ?.set({ [`lastTab:${tab.windowId}`]: tab.id, lastTab: tab.id })
+    .catch(() => {});
+}
+
+async function findCaptureTarget(sender, explicitTabId) {
+  const usable = async (id) => {
+    if (typeof id !== "number") return null;
+    try {
+      const tab = await chrome.tabs.get(id);
+      return tab && !isRestrictedUrl(tab.url || "") ? tab : null;
+    } catch {
+      return null;
+    }
+  };
+
+  let tab = await usable(explicitTabId);
+  if (tab) return tab;
+
+  const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  tab = await usable(active?.id);
+  if (tab) return tab;
+
+  const windowId = sender?.tab?.windowId ?? active?.windowId;
+  const stored = (await chrome.storage.session?.get([`lastTab:${windowId}`, "lastTab"])) || {};
+  return (await usable(stored[`lastTab:${windowId}`])) || (await usable(stored.lastTab));
+}
+
+const CAPTURE_MODES = {
+  region: "start-selection",
+  visible: "capture-visible",
+  full: "capture-full",
+  horizontal: "capture-horizontal",
+  timer: "capture-timer",
+};
 
 function handleCommand(command, tab) {
   if (!tab?.id) return;
@@ -81,7 +172,7 @@ function updateTabBadge(tab) {
       tabId,
       title: "SwiftSelect - Browser Protected Page (Click for Info & Settings)",
     }).catch(() => {});
-    chrome.action.setPopup({ tabId, popup: "popup.html?view=restricted" }).catch(() => {});
+    chrome.action.setPopup({ tabId, popup: `${QUICK_MENU}?view=restricted` }).catch(() => {});
     return;
   }
 
@@ -95,11 +186,11 @@ function updateTabBadge(tab) {
           tabId,
           title: "File URL access required. Enable in extension settings.",
         }).catch(() => {});
-        chrome.action.setPopup({ tabId, popup: "popup.html?view=file-access" }).catch(() => {});
+        chrome.action.setPopup({ tabId, popup: `${QUICK_MENU}?view=file-access` }).catch(() => {});
       } else {
         chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
         chrome.action.setTitle({ tabId, title: "SwiftSelect (Click to Capture)" }).catch(() => {});
-        chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
+        chrome.action.setPopup({ tabId, popup: defaultPopup() }).catch(() => {});
       }
     });
     return;
@@ -107,13 +198,14 @@ function updateTabBadge(tab) {
 
   chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
   chrome.action.setTitle({ tabId, title: "SwiftSelect (Click to Capture)" }).catch(() => {});
-  chrome.action.setPopup({ tabId, popup: "" }).catch(() => {});
+  chrome.action.setPopup({ tabId, popup: defaultPopup() }).catch(() => {});
 }
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.tabs.get(activeInfo.tabId, (tab) => {
     if (!chrome.runtime.lastError && tab) {
       updateTabBadge(tab);
+      rememberTab(tab);
     }
   });
 });
@@ -125,6 +217,7 @@ chrome.tabs.onCreated.addListener((tab) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab) {
     updateTabBadge(tab);
+    if (tab.active && changeInfo.status === "complete") rememberTab(tab);
   }
 });
 
@@ -137,9 +230,53 @@ function initAllTabs() {
   });
 }
 
-chrome.runtime.onStartup.addListener(initAllTabs);
-chrome.runtime.onInstalled.addListener(initAllTabs);
-initAllTabs();
+// One-time settings migration from the 1.x schema.
+async function migrateSettings() {
+  const data = await chrome.storage.local.get(["userTheme", "settingsSchema", "retentionDays"]);
+  const schema = data.settingsSchema || 1;
+  if (schema >= 4) return;
+  const patch = { settingsSchema: 4 };
+  if (schema < 2) {
+    const theme = normalizeTheme(data.userTheme);
+    // "standard" was the flat legacy palette. 2.x is Liquid Glass throughout.
+    patch.userTheme = theme === "standard" ? "system" : theme;
+  }
+  if (schema < 3) {
+    // 2.1: one-click region capture is the default toolbar behaviour, and
+    // single-key shortcuts are opt-in.
+    patch.actionClick = "region";
+    patch.toolbarShortcuts = false;
+    patch.editorShortcuts = false;
+  }
+  // 2.2: captures older than three months move to Trash by default.
+  if (!Number(data.retentionDays)) patch.retentionDays = 90;
+  await chrome.storage.local.set(patch);
+}
+
+// Gallery retention: runs at start-up, after every capture and when the
+// retention settings change. Cheap: a single cursor pass, no image decoding.
+let _retentionTimer = null;
+function scheduleRetention(delay = 1500) {
+  clearTimeout(_retentionTimer);
+  _retentionTimer = setTimeout(async () => {
+    try {
+      await applyRetention(await getSettings());
+    } catch (err) {
+      console.debug("SwiftSelect: retention skipped", err);
+    }
+  }, delay);
+}
+
+chrome.runtime.onStartup.addListener(() => {
+  applyActionMode();
+  scheduleRetention();
+});
+chrome.runtime.onInstalled.addListener(async () => {
+  await migrateSettings().catch(() => {});
+  applyActionMode();
+  scheduleRetention();
+});
+applyActionMode();
 
 async function injectAndStart(tab, messageType) {
   try {
@@ -236,9 +373,100 @@ async function closeOffscreen() {
   }
 }
 
+// ─── Gallery ingest ──────────────────────────────────────────────────
+
+const pendingChunks = new Map();
+
+async function storeCapture(dataUrl, meta = {}, sender) {
+  try {
+    if (!dataUrl) throw new Error("No image data");
+    const blob = await (await fetch(dataUrl)).blob();
+    const record = await addCapture({
+      blob,
+      title: meta.title || sender?.tab?.title || "",
+      url: meta.url || sender?.tab?.url || "",
+      type: meta.type || "screenshot",
+      width: meta.width || 0,
+      height: meta.height || 0,
+    });
+    scheduleRetention(4000);
+    return { success: true, id: record.id };
+  } catch (err) {
+    console.warn("SwiftSelect: gallery save failed:", err);
+    return { success: false, error: err?.message || "Gallery save failed" };
+  }
+}
+
 // ─── Message Handler ─────────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // --- Gallery: store a capture handed over by a content script or page ---
+  if (message?.type === "gallery-save") {
+    storeCapture(message.dataUrl, message.meta, sender).then(sendResponse);
+    return true;
+  }
+
+  // --- Gallery: large captures arrive in ordered chunks ---
+  if (message?.type === "gallery-save-chunk") {
+    const { key, index, total, chunk, meta } = message;
+    let parts = pendingChunks.get(key);
+    if (!parts) {
+      parts = new Array(total);
+      pendingChunks.set(key, parts);
+      // Abandoned transfers must not pin memory.
+      setTimeout(() => pendingChunks.delete(key), 120000);
+    }
+    parts[index] = chunk;
+    if (index < total - 1) {
+      sendResponse({ success: true });
+      return false;
+    }
+    pendingChunks.delete(key);
+    if (parts.includes(undefined)) {
+      sendResponse({ success: false, error: "Incomplete transfer" });
+      return false;
+    }
+    storeCapture(parts.join(""), meta, sender).then(sendResponse);
+    return true;
+  }
+
+  // --- Navigation to the full-tab pages ---
+  if (message?.type === "open-gallery") {
+    openExtensionPage("gallery.html", { hash: "#all" });
+    sendResponse?.({ success: true });
+    return false;
+  }
+  if (message?.type === "open-settings") {
+    openExtensionPage("gallery.html", { hash: `#settings${message.hash ? `/${message.hash.replace(/^#/, "")}` : ""}` });
+    sendResponse?.({ success: true });
+    return false;
+  }
+  if (message?.type === "open-annotate") {
+    chrome.tabs.create({ url: chrome.runtime.getURL(`annotate.html?id=${encodeURIComponent(message.id)}`) });
+    sendResponse?.({ success: true });
+    return false;
+  }
+
+  // --- Capture requested by the popup, gallery or settings page ---
+  if (message?.type === "run-capture") {
+    (async () => {
+      const messageType = CAPTURE_MODES[message.mode];
+      if (!messageType) return sendResponse({ success: false, error: "Unknown capture mode" });
+      const tab = await findCaptureTarget(sender, message.tabId);
+      if (!tab) return sendResponse({ success: false, error: "no-target" });
+      // Answer first: the popup closes on this reply, which hands focus back
+      // to the page so the clipboard write succeeds there.
+      sendResponse({ success: true, tabId: tab.id });
+      if (!tab.active) {
+        await chrome.tabs.update(tab.id, { active: true }).catch(() => {});
+      }
+      // Let the popup close and the tab paint before it is captured.
+      await new Promise((r) => setTimeout(r, 180));
+      await injectAndStart(tab, messageType);
+    })();
+    return true;
+  }
+
   // --- Legacy: capture-visible-tab (used for region capture) ---
   if (message?.type === "capture-visible-tab") {
     const tab = sender?.tab;
@@ -485,8 +713,8 @@ function setupContextMenus() {
   chrome.storage.local.get(
     ["userTheme", "outputFormat", "outputDestination"],
     (data) => {
-      const currentTheme = data?.userTheme || "glass";
-      const currentFormat = data?.outputFormat || "jpg";
+      const currentTheme = normalizeTheme(data?.userTheme);
+      const currentFormat = ["png", "jpg", "webp"].includes(data?.outputFormat) ? data.outputFormat : "jpg";
       const currentDest = data?.outputDestination || "both";
 
       chrome.contextMenus.removeAll(() => {
@@ -555,6 +783,15 @@ function setupContextMenus() {
           contexts: ["action", "page"],
         });
 
+        safeCreateMenu({
+          id: "ss-format-webp",
+          parentId: "ss-format-parent",
+          title: "WebP (Smallest)",
+          type: "radio",
+          checked: currentFormat === "webp",
+          contexts: ["action", "page"],
+        });
+
         // Capture Destination Menu
         safeCreateMenu({
           id: "ss-dest-parent",
@@ -590,6 +827,15 @@ function setupContextMenus() {
         });
 
         safeCreateMenu({
+          id: "ss-dest-none",
+          parentId: "ss-dest-parent",
+          title: "Gallery Only",
+          type: "radio",
+          checked: currentDest === "none",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
           id: "ss-sep-theme",
           type: "separator",
           contexts: ["action", "page"],
@@ -602,27 +848,18 @@ function setupContextMenus() {
         });
 
         safeCreateMenu({
-          id: "ss-theme-glass",
+          id: "ss-theme-system",
           parentId: "ss-theme-parent",
-          title: "Liquid Glass (Modern)",
+          title: "System",
           type: "radio",
-          checked: currentTheme === "glass",
-          contexts: ["action", "page"],
-        });
-
-        safeCreateMenu({
-          id: "ss-theme-standard",
-          parentId: "ss-theme-parent",
-          title: "Standard Minimal",
-          type: "radio",
-          checked: currentTheme === "standard",
+          checked: currentTheme === "system",
           contexts: ["action", "page"],
         });
 
         safeCreateMenu({
           id: "ss-theme-light",
           parentId: "ss-theme-parent",
-          title: "Always Light",
+          title: "Light",
           type: "radio",
           checked: currentTheme === "light",
           contexts: ["action", "page"],
@@ -631,7 +868,7 @@ function setupContextMenus() {
         safeCreateMenu({
           id: "ss-theme-dark",
           parentId: "ss-theme-parent",
-          title: "Always Dark",
+          title: "Dark",
           type: "radio",
           checked: currentTheme === "dark",
           contexts: ["action", "page"],
@@ -644,6 +881,12 @@ function setupContextMenus() {
         });
 
         safeCreateMenu({
+          id: "ss-gallery",
+          title: "Open Gallery",
+          contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
           id: "ss-help",
           title: "Keyboard Shortcuts & Guide...",
           contexts: ["action", "page"],
@@ -651,7 +894,7 @@ function setupContextMenus() {
 
         safeCreateMenu({
           id: "ss-options",
-          title: "Options",
+          title: "Settings",
           contexts: ["action", "page"],
         });
 
@@ -673,44 +916,23 @@ chrome.runtime.onStartup.addListener(() => {
 setupContextMenus();
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local") {
-    if (changes.userTheme) {
-      const newTheme = changes.userTheme.newValue;
-      const itemIds = [
-        "ss-theme-glass",
-        "ss-theme-standard",
-        "ss-theme-light",
-        "ss-theme-dark",
-      ];
-      itemIds.forEach((id) => {
-        const match = id === `ss-theme-${newTheme}`;
-        chrome.contextMenus.update(id, { checked: match }).catch(() => {});
-      });
-    }
+  if (area !== "local") return;
+  const check = (id, checked) => chrome.contextMenus.update(id, { checked }).catch(() => {});
 
-    if (changes.outputFormat) {
-      const newFormat = changes.outputFormat.newValue;
-      chrome.contextMenus
-        .update("ss-format-jpg", { checked: newFormat === "jpg" })
-        .catch(() => {});
-      chrome.contextMenus
-        .update("ss-format-png", { checked: newFormat === "png" })
-        .catch(() => {});
-    }
-
-    if (changes.outputDestination) {
-      const newDest = changes.outputDestination.newValue;
-      chrome.contextMenus
-        .update("ss-dest-both", { checked: newDest === "both" })
-        .catch(() => {});
-      chrome.contextMenus
-        .update("ss-dest-clipboard", { checked: newDest === "clipboard" })
-        .catch(() => {});
-      chrome.contextMenus
-        .update("ss-dest-download", { checked: newDest === "download" })
-        .catch(() => {});
-    }
+  if (changes.userTheme) {
+    const theme = normalizeTheme(changes.userTheme.newValue);
+    ["system", "light", "dark"].forEach((t) => check(`ss-theme-${t}`, t === theme));
   }
+  if (changes.outputFormat) {
+    ["jpg", "png", "webp"].forEach((f) => check(`ss-format-${f}`, f === changes.outputFormat.newValue));
+  }
+  if (changes.outputDestination) {
+    ["both", "clipboard", "download", "none"].forEach((d) =>
+      check(`ss-dest-${d}`, d === changes.outputDestination.newValue),
+    );
+  }
+  if (changes.actionClick) applyActionMode();
+  if (changes.retentionDays || changes.trashDays) scheduleRetention(300);
 });
 
 function handleContextMenuClick(info, tab) {
@@ -731,12 +953,18 @@ function handleContextMenuClick(info, tab) {
     chrome.storage.local.set({ outputFormat: "jpg" });
   } else if (menuItemId === "ss-format-png") {
     chrome.storage.local.set({ outputFormat: "png" });
+  } else if (menuItemId === "ss-format-webp") {
+    chrome.storage.local.set({ outputFormat: "webp" });
   } else if (menuItemId === "ss-dest-both") {
     chrome.storage.local.set({ outputDestination: "both" });
   } else if (menuItemId === "ss-dest-clipboard") {
     chrome.storage.local.set({ outputDestination: "clipboard" });
   } else if (menuItemId === "ss-dest-download") {
     chrome.storage.local.set({ outputDestination: "download" });
+  } else if (menuItemId === "ss-dest-none") {
+    chrome.storage.local.set({ outputDestination: "none" });
+  } else if (menuItemId === "ss-gallery") {
+    openExtensionPage("gallery.html");
   } else if (menuItemId.startsWith("ss-theme-")) {
     const themeName = menuItemId.replace("ss-theme-", "");
     chrome.storage.local.set({ userTheme: themeName }, () => {
@@ -752,9 +980,9 @@ function handleContextMenuClick(info, tab) {
       });
     });
   } else if (menuItemId === "ss-options" || menuItemId === "ss-settings") {
-    openExtensionIconPopup("settings");
+    openExtensionPage("gallery.html", { hash: "#settings" });
   } else if (menuItemId === "ss-help" || menuItemId === "ss-shortcuts") {
-    openExtensionIconPopup("help");
+    openExtensionPage("gallery.html", { hash: "#settings/shortcuts" });
   }
 }
 

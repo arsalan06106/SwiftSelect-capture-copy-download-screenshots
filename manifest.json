@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SwiftSelect - Capture, Copy & Download Screenshots",
-  "version": "1.6.6",
+  "version": "2.0.0",
   "description": "The all-in-one tool to snap, scroll-capture, copy and download screenshots instantly.",
   "permissions": [
     "scripting",
@@ -11,6 +11,7 @@
     "offscreen",
     "tabCapture",
     "storage",
+    "unlimitedStorage",
     "contextMenus",
     "downloads"
   ],
@@ -22,19 +23,24 @@
     "type": "module"
   },
   "action": {
-    "default_title": "SwiftSelect (Click to Capture)",
+    "default_title": "SwiftSelect",
+    "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/icon48.png",
-      "32": "icons/icon128.png"
+      "16": "icons/app16.png",
+      "32": "icons/app32.png",
+      "48": "icons/app48.png",
+      "128": "icons/app128.png"
     }
   },
   "icons": {
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "icons/app16.png",
+    "32": "icons/app32.png",
+    "48": "icons/app48.png",
+    "128": "icons/app128.png"
   },
   "options_ui": {
-    "page": "options.html",
-    "open_in_tab": false
+    "page": "settings.html",
+    "open_in_tab": true
   },
   "commands": {
     "activate-selection": {
@@ -66,7 +72,7 @@
       "description": "Capture full page & download"
     },
     "capture-timer": {
-      "description": "3-second delayed capture"
+      "description": "Delayed capture (uses the delay from Settings, 3 seconds by default)"
     }
   },
   "web_accessible_resources": [

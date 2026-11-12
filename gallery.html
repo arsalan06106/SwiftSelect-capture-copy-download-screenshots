@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Swift Gallery</title>
+    <link rel="icon" href="icons/app32.png" />
+    <script src="src/pageTheme.js"></script>
+    <link rel="stylesheet" href="pages.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar glass" aria-label="Gallery navigation">
+        <div class="brand">
+          <span class="logo" aria-hidden="true"><img src="icons/icon128.png" alt="" /></span>
+          <div>
+            <div class="brand-name">SwiftSelect</div>
+            <div class="brand-sub">Swift Gallery</div>
+          </div>
+        </div>
+
+        <div class="sidebar-scroll">
+          <nav class="nav" id="nav" aria-label="Filters">
+            <div class="nav-label nav-types">Library</div>
+            <button type="button" class="nav-item" data-filter="all" aria-current="true">
+              <i data-icon="all"></i><span>All</span><b class="nav-count" data-count="all">0</b>
+            </button>
+            <button type="button" class="nav-item" data-filter="favorites" data-drop="favorite">
+              <i data-icon="favorites"></i><span>Favorites</span><b class="nav-count" data-count="favorites">0</b>
+            </button>
+            <button type="button" class="nav-item" data-filter="recent">
+              <i data-icon="recent"></i><span>Recent</span><b class="nav-count" data-count="recent">0</b>
+            </button>
+            <button type="button" class="nav-item" data-filter="earlier">
+              <i data-icon="earlier"></i><span>Earlier</span><b class="nav-count" data-count="earlier">0</b>
+            </button>
+
+            <div class="nav-label nav-types">Capture type</div>
+            <button type="button" class="nav-item nav-types" data-filter="region">
+              <i data-icon="region"></i><span>Region</span><b class="nav-count" data-count="region">0</b>
+            </button>
+            <button type="button" class="nav-item nav-types" data-filter="visible">
+              <i data-icon="visible"></i><span>Visible</span><b class="nav-count" data-count="visible">0</b>
+            </button>
+            <button type="button" class="nav-item nav-types" data-filter="fullpage">
+              <i data-icon="fullpage"></i><span>Full page</span><b class="nav-count" data-count="fullpage">0</b>
+            </button>
+            <button type="button" class="nav-item nav-types" data-filter="horizontal">
+              <i data-icon="horizontal"></i><span>Horizontal</span><b class="nav-count" data-count="horizontal">0</b>
+            </button>
+            <button type="button" class="nav-item nav-types" data-filter="annotated">
+              <i data-icon="annotated"></i><span>Annotated</span><b class="nav-count" data-count="annotated">0</b>
+            </button>
+
+            <div class="nav-sep nav-types"></div>
+            <button type="button" class="nav-item" data-filter="trash" data-drop="trash">
+              <i data-icon="trash"></i><span>Trash</span><b class="nav-count" data-count="trash">0</b>
+            </button>
+            <button type="button" class="nav-item" data-filter="settings">
+              <i data-icon="settings"></i><span>Settings</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="sidebar-foot">
+          <p class="telemetry" id="telemetry" aria-live="polite">Total <b>0</b> screenshots, occupying <b>0 KB</b> of space.</p>
+          <div class="meter" id="meter" role="presentation"><i></i></div>
+          <button type="button" class="btn btn-danger btn-block" id="clear-all" disabled>
+            <i data-icon="trash"></i>Clear All
+          </button>
+        </div>
+      </aside>
+
+      <main class="main" id="main">
+        <header class="topbar glass">
+          <label class="search">
+            <span class="sr-only">Search captures</span>
+            <i data-icon="search"></i>
+            <input class="input" id="search" type="search" placeholder="Search captures..." autocomplete="off" spellcheck="false" />
+            <span class="search-hint" aria-hidden="true"><kbd class="kbd">/</kbd></span>
+          </label>
+
+          <div class="topbar-title" aria-hidden="true">
+            <b>Settings</b><span>SwiftSelect <span id="version"></span></span>
+          </div>
+
+          <div class="topbar-spacer"></div>
+
+          <span class="sync" id="sync" role="status" aria-live="polite"><i></i><span id="sync-text">All changes saved</span></span>
+
+          <div class="capture-group" role="group" aria-label="Quick capture">
+            <button type="button" class="btn" data-capture="visible" data-tip="Capture the visible area" data-tip-pos="bottom">
+              <i data-icon="visible"></i><span>Visible</span>
+            </button>
+            <button type="button" class="btn" data-capture="full" data-tip="Capture the full page" data-tip-pos="bottom">
+              <i data-icon="fullpage"></i><span>Full page</span>
+            </button>
+            <button type="button" class="btn btn-primary" data-capture="region" data-tip="Select a region" data-tip-pos="bottom">
+              <i data-icon="region"></i><span>Region</span>
+            </button>
+          </div>
+
+          <div class="seg seg-icons" id="view-toggle" role="radiogroup" aria-label="View">
+            <button type="button" role="radio" data-view="grid" aria-checked="true" aria-label="Grid view" data-tip="Grid" data-tip-pos="bottom">
+              <i data-icon="grid"></i>
+            </button>
+            <button type="button" role="radio" data-view="list" aria-checked="false" aria-label="List view" data-tip="List" data-tip-pos="bottom">
+              <i data-icon="list"></i>
+            </button>
+          </div>
+
+          <button type="button" class="btn btn-icon" id="open-settings" aria-label="Settings" data-tip="Settings" data-tip-pos="bottom">
+            <i data-icon="settings"></i>
+          </button>
+        </header>
+
+        <section class="canvas" id="canvas" aria-labelledby="section-title">
+          <div class="canvas-head">
+            <h1 id="section-title">All Screenshots</h1>
+            <p id="section-count"></p>
+            <div class="canvas-actions" id="canvas-actions"></div>
+          </div>
+          <div class="canvas-note" id="canvas-note" hidden></div>
+          <div class="drop-import" aria-hidden="true"><i data-icon="download"></i><b>Drop images to add them to the gallery</b></div>
+
+          <div class="grid" id="grid"></div>
+
+          <div class="empty" id="empty" hidden>
+            <div class="empty-art" aria-hidden="true">
+              <div class="pane pane-1 glass"></div>
+              <div class="pane pane-2 glass"></div>
+              <div class="pane pane-3 glass" id="empty-glyph"></div>
+            </div>
+            <h2 id="empty-title">Time to fill this space!</h2>
+            <p id="empty-body"></p>
+            <button type="button" class="btn btn-primary btn-lg" id="empty-cta"></button>
+            <div class="empty-hint" id="empty-hint"></div>
+          </div>
+        </section>
+
+        <!-- Settings live in the same window as the captures they shape -->
+        <section class="canvas settings-canvas" id="settings-view" aria-label="Settings" hidden>
+          <div class="settings-shell">
+          <!-- 1. General -->
+          <section class="group glass" data-tone="slate" aria-labelledby="g-general">
+            <h2 class="group-title" id="g-general"><span class="tile tile-slate"><i data-icon="settings"></i></span>General</h2>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-language">Language</b>
+                <span>Dates and numbers follow this choice. Interface text is English.</span>
+              </div>
+              <div class="select" id="language" data-key="uiLanguage">
+                <button type="button" class="select-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="l-language language-value">
+                  <span id="language-value">Use browser language</span><i data-icon="chevron"></i>
+                </button>
+                <div class="select-menu glass glass-dense" role="listbox" aria-labelledby="l-language">
+                  <button type="button" class="select-option" role="option" data-value="auto">Use browser language<i data-icon="check"></i></button>
+                  <button type="button" class="select-option" role="option" data-value="en">English<i data-icon="check"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="row row-stack">
+              <div class="row-label">
+                <b id="l-theme">Theme</b>
+                <span>System follows your OS here, and adapts to each page's brightness in the capture toolbar.</span>
+              </div>
+              <div class="seg seg-full" role="radiogroup" aria-labelledby="l-theme" data-key="userTheme">
+                <button type="button" role="radio" data-value="system">
+                  <span class="seg-check"><svg viewBox="0 0 12 12"><path d="m2.5 6.2 2.3 2.3 4.7-5"/></svg></span><i data-icon="system"></i>System
+                </button>
+                <button type="button" role="radio" data-value="light">
+                  <span class="seg-check"><svg viewBox="0 0 12 12"><path d="m2.5 6.2 2.3 2.3 4.7-5"/></svg></span><i data-icon="sun"></i>Light
+                </button>
+                <button type="button" role="radio" data-value="dark">
+                  <span class="seg-check"><svg viewBox="0 0 12 12"><path d="m2.5 6.2 2.3 2.3 4.7-5"/></svg></span><i data-icon="moon"></i>Dark
+                </button>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-action">Toolbar icon click</b>
+                <span>Start a region capture in one click, or open the quick menu first.</span>
+              </div>
+              <div class="seg" role="radiogroup" aria-labelledby="l-action" data-key="actionClick">
+                <button type="button" role="radio" data-value="region"><i data-icon="region"></i>Region capture</button>
+                <button type="button" role="radio" data-value="menu"><i data-icon="list"></i>Quick menu</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. Capture & export -->
+          <section class="group glass" data-tone="blue" aria-labelledby="g-capture">
+            <h2 class="group-title" id="g-capture"><span class="tile tile-blue"><i data-icon="region"></i></span>Capture &amp; Export Preferences</h2>
+
+            <div class="row row-stack">
+              <div class="row-label">
+                <b id="l-format">Default format</b>
+                <span>Used for downloads and for the gallery. The clipboard always receives PNG.</span>
+              </div>
+              <div class="seg seg-full" role="radiogroup" aria-labelledby="l-format" data-key="outputFormat">
+                <button type="button" role="radio" data-value="png">PNG <small>Lossless</small></button>
+                <button type="button" role="radio" data-value="jpg">JPG</button>
+                <button type="button" role="radio" data-value="webp">WebP</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-quality">JPG / WebP quality</b>
+                <span id="quality-note">Higher is sharper and larger.</span>
+              </div>
+              <div class="quality" id="quality-wrap">
+                <input class="range" id="quality" type="range" min="0.5" max="1" step="0.01" aria-labelledby="l-quality" />
+                <output id="quality-value" for="quality">0.92</output>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-copy">Auto-copy screenshot to clipboard immediately after capture</b>
+                <span>Paste straight into chat, docs or an issue tracker.</span>
+              </div>
+              <button type="button" class="switch" role="switch" id="auto-copy" aria-labelledby="l-copy"></button>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-download">Auto-download screenshot file to disk</b>
+                <span>Saved to your Downloads folder. Full page and horizontal captures are always saved as files.</span>
+              </div>
+              <button type="button" class="switch" role="switch" id="auto-download" aria-labelledby="l-download"></button>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-flash">Shutter flash</b>
+                <span>A brief flash over the captured area confirms the shot.</span>
+              </div>
+              <button type="button" class="switch" role="switch" id="flash" data-bool="captureFlash" aria-labelledby="l-flash"></button>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-delay">Delay timer</b>
+                <span>Countdown before visible, full page and horizontal captures.</span>
+              </div>
+              <div class="seg" role="radiogroup" aria-labelledby="l-delay" data-key="captureDelay" data-type="number">
+                <button type="button" role="radio" data-value="0">Instant</button>
+                <button type="button" role="radio" data-value="3">3 sec</button>
+                <button type="button" role="radio" data-value="5">5 sec</button>
+              </div>
+            </div>
+
+            <div class="row row-stack">
+              <div class="row-inline">
+                <div class="row-label">
+                  <b id="l-template">Filename template</b>
+                  <span>Click a tag to insert it at the cursor.</span>
+                </div>
+                <div class="chips" id="template-chips">
+                  <button type="button" class="chip" data-tag="{date}">{date}</button>
+                  <button type="button" class="chip" data-tag="{time}">{time}</button>
+                  <button type="button" class="chip" data-tag="{title}">{title}</button>
+                  <button type="button" class="chip" data-tag="{url}">{url}</button>
+                  <button type="button" class="chip" data-tag="{type}">{type}</button>
+                </div>
+              </div>
+              <input class="input" id="template" type="text" spellcheck="false" autocomplete="off" aria-labelledby="l-template" />
+              <div class="preview-line"><span>Preview</span><code id="template-preview"></code></div>
+            </div>
+          </section>
+
+          <!-- 3. Gallery & storage -->
+          <section class="group glass" data-tone="violet" id="gallery" aria-labelledby="g-gallery">
+            <h2 class="group-title" id="g-gallery"><span class="tile tile-violet"><i data-icon="gallery"></i></span>Gallery &amp; Storage</h2>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-keep">Keep captures in the Gallery</b>
+                <span>Stored only on this device, in the extension's own database.</span>
+              </div>
+              <button type="button" class="switch" role="switch" id="save-gallery" aria-labelledby="l-keep"></button>
+            </div>
+
+            <div class="row row-stack">
+              <div class="row-label">
+                <b id="l-retention">Auto-delete screenshots</b>
+                <span>Older captures move to Trash on their own. Favorites are never auto-deleted.</span>
+              </div>
+              <div class="seg seg-full" role="radiogroup" aria-labelledby="l-retention" data-key="retentionDays" data-type="number">
+                <button type="button" role="radio" data-value="0">Keep forever</button>
+                <button type="button" role="radio" data-value="7">After 1 week</button>
+                <button type="button" role="radio" data-value="30">After 1 month</button>
+                <button type="button" role="radio" data-value="90">After 3 months</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-trash">Empty Trash automatically</b>
+                <span>How long deleted captures stay recoverable.</span>
+              </div>
+              <div class="seg" role="radiogroup" aria-labelledby="l-trash" data-key="trashDays" data-type="number">
+                <button type="button" role="radio" data-value="7">After 7 days</button>
+                <button type="button" role="radio" data-value="30">After 30 days</button>
+              </div>
+            </div>
+
+            <div class="storage-line">
+              <span id="storage-summary">Reading storage…</span>
+              <button type="button" class="btn btn-danger" id="empty-trash" hidden><i data-icon="trash"></i>Empty Trash</button>
+            </div>
+
+          </section>
+
+          <!-- 4. Shortcuts -->
+          <section class="group glass" data-tone="amber" id="shortcuts" aria-labelledby="g-shortcuts">
+            <h2 class="group-title" id="g-shortcuts"><span class="tile tile-amber"><i data-icon="keyboard"></i></span>Shortcuts</h2>
+
+            <div class="row row-stack">
+              <div class="row-label">
+                <b>Global shortcuts</b>
+                <span>Work on any web page. Change them in Chrome.</span>
+              </div>
+              <table class="shortcuts"><tbody id="global-shortcuts"></tbody></table>
+              <button type="button" class="link-row" id="open-shortcuts">
+                <i data-icon="keyboard"></i>
+                <div><b>Configure Global Chrome Shortcuts</b><span>Opens <code>chrome://extensions/shortcuts</code></span></div>
+                <i data-icon="external"></i>
+              </button>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-tkeys">Capture toolbar shortcuts</b>
+                <span>Single keys while the capture toolbar is open. <em>Off by default</em>, so typing never triggers a capture.</span>
+              </div>
+              <button type="button" class="switch" role="switch" id="toolbar-keys" data-bool="toolbarShortcuts" aria-labelledby="l-tkeys"></button>
+            </div>
+            <div class="shortcut-block" data-block="toolbarShortcuts">
+              <table class="shortcuts">
+                <tbody>
+                  <tr><td>Capture visible area</td><td><kbd class="kbd">V</kbd><kbd class="kbd">S</kbd></td></tr>
+                  <tr><td>Capture full page</td><td><kbd class="kbd">F</kbd></td></tr>
+                  <tr><td>Capture horizontal view</td><td><kbd class="kbd">H</kbd></td></tr>
+                  <tr><td>Delayed capture</td><td><kbd class="kbd">T</kbd></td></tr>
+                  <tr><td>Annotate the current view</td><td><kbd class="kbd">A</kbd></td></tr>
+                  <tr><td>Copy the colour under the cursor</td><td><kbd class="kbd">C</kbd></td></tr>
+                  <tr><td>Open Gallery</td><td><kbd class="kbd">G</kbd></td></tr>
+                  <tr><td>Open Settings</td><td><kbd class="kbd">,</kbd><kbd class="kbd">O</kbd></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
+                <b id="l-ekeys">Editor shortcuts</b>
+                <span>Tool keys, undo, redo, copy and save in the annotation editor. <kbd class="kbd">Esc</kbd> <kbd class="kbd">Enter</kbd> and <kbd class="kbd">Delete</kbd> always work.</span>
+              </div>
+              <button type="button" class="switch" role="switch" id="editor-keys" data-bool="editorShortcuts" aria-labelledby="l-ekeys"></button>
+            </div>
+            <div class="shortcut-block" data-block="editorShortcuts">
+              <table class="shortcuts">
+                <tbody>
+                  <tr><td>Select &amp; move</td><td><kbd class="kbd">V</kbd></td></tr>
+                  <tr><td>Pen / Highlighter</td><td><kbd class="kbd">P</kbd><kbd class="kbd">H</kbd></td></tr>
+                  <tr><td>Arrow / Rectangle / Ellipse</td><td><kbd class="kbd">A</kbd><kbd class="kbd">R</kbd><kbd class="kbd">O</kbd></td></tr>
+                  <tr><td>Step counter / Blur / Text</td><td><kbd class="kbd">S</kbd><kbd class="kbd">B</kbd><kbd class="kbd">T</kbd></td></tr>
+                  <tr><td>Crop / Toggle fill</td><td><kbd class="kbd">C</kbd><kbd class="kbd">F</kbd></td></tr>
+                  <tr><td>Thinner / Thicker stroke</td><td><kbd class="kbd">[</kbd><kbd class="kbd">]</kbd></td></tr>
+                  <tr><td>Duplicate selected shape</td><td><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">D</kbd></td></tr>
+                  <tr><td>Undo / Redo</td><td><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">Z</kbd> <kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">Y</kbd></td></tr>
+                  <tr><td>Copy / Download / Save to Gallery</td><td><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">C</kbd> <kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">S</kbd> <kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">G</kbd></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <footer class="settings-foot">
+            <span>Changes are saved as you make them and apply to open tabs straight away.</span>
+          </footer>
+          </div>
+        </section>
+
+        <!-- Drop targets, shown while a capture is being dragged -->
+        <p class="dock-hint" aria-hidden="true">Drop on a target · Esc cancels</p>
+        <div class="dock glass glass-dense" id="dock" aria-hidden="true">
+          <div class="dock-zone" data-drop="favorite"><i data-icon="star"></i><span>Add to Favorites</span></div>
+          <div class="dock-zone" data-drop="trash"><i data-icon="trash"></i><span>Move to Trash</span></div>
+        </div>
+
+        <!-- Bulk actions for a selection -->
+        <div class="bulk-bar glass glass-dense" id="bulk-bar" role="toolbar" aria-label="Selection">
+          <span class="bulk-count" id="bulk-count">0 selected</span>
+          <span id="bulk-live">
+            <button type="button" class="btn btn-quiet" data-bulk="favorite"><i data-icon="star"></i>Favorite</button>
+            <button type="button" class="btn btn-quiet" data-bulk="download"><i data-icon="download"></i>Download</button>
+            <button type="button" class="btn btn-quiet btn-danger" data-bulk="trash"><i data-icon="trash"></i>Move to Trash</button>
+          </span>
+          <span id="bulk-trash" hidden>
+            <button type="button" class="btn btn-quiet" data-bulk="restore"><i data-icon="restore"></i>Restore</button>
+            <button type="button" class="btn btn-quiet btn-danger" data-bulk="purge"><i data-icon="trash"></i>Delete forever</button>
+          </span>
+          <span class="bulk-sep"></span>
+          <button type="button" class="btn btn-icon btn-quiet" data-bulk="clear" aria-label="Clear selection" data-tip="Clear selection"><i data-icon="close"></i></button>
+        </div>
+      </main>
+    </div>
+
+    <div class="lightbox is-fit" id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+      <div class="lightbox-bar glass glass-dense">
+        <div class="lightbox-title">
+          <b id="lb-title"></b>
+          <a id="lb-url" target="_blank" rel="noopener noreferrer"></a>
+        </div>
+        <button type="button" class="btn btn-icon" id="lb-fav" aria-label="Favorite" data-tip="Favorite" data-tip-pos="bottom"><i data-icon="star"></i></button>
+        <button type="button" class="btn btn-icon" id="lb-fit" aria-label="Toggle fit" data-tip="Fit / actual size" data-tip-pos="bottom"><i data-icon="fit"></i></button>
+        <button type="button" class="btn" id="lb-copy"><i data-icon="copy"></i>Copy</button>
+        <button type="button" class="btn" id="lb-download"><i data-icon="download"></i>Download</button>
+        <button type="button" class="btn btn-primary" id="lb-annotate"><i data-icon="annotated"></i>Annotate</button>
+        <button type="button" class="btn btn-icon" id="lb-trash" aria-label="Move to Trash" data-tip="Move to Trash" data-tip-pos="bottom"><i data-icon="trash"></i></button>
+        <button type="button" class="btn btn-icon" id="lb-close" aria-label="Close preview"><i data-icon="close"></i></button>
+      </div>
+      <div class="lightbox-stage" id="lb-stage"><img id="lb-img" alt="" /></div>
+      <button type="button" class="btn btn-icon lb-nav prev glass" id="lb-prev" aria-label="Previous"><i data-icon="prev"></i></button>
+      <button type="button" class="btn btn-icon lb-nav next glass" id="lb-next" aria-label="Next"><i data-icon="next"></i></button>
+    </div>
+
+    <script type="module" src="gallery.js"></script>
+  </body>
+</html>

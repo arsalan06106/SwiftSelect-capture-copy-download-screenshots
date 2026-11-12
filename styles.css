@@ -133,9 +133,8 @@
   white-space: nowrap; /* Never wrap */
 
   transform-origin: center center;
-  animation: liquidExpand 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  opacity: 0;
-  will-change: transform, opacity;
+  animation: liquidExpand 320ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform;
 }
 
 @keyframes liquidExpand {
@@ -188,10 +187,10 @@
   border-style: solid;
   transition:
     transform 120ms cubic-bezier(0.2, 0, 0, 1),
-    background-color 150ms ease,
-    color 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+    background-color 90ms ease,
+    color 90ms ease,
+    border-color 90ms ease,
+    box-shadow 90ms ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -352,7 +351,7 @@
   opacity: 0;
   animation: liquidSlideUp 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
-  transition: background-color 200ms ease, border-color 200ms ease;
+  transition: background-color 108ms ease, border-color 108ms ease;
 }
 
 @keyframes liquidSlideUp {
@@ -367,7 +366,7 @@
 }
 
 .qs-status:not(.qs-hiding):not(.no-anim) > * {
-  animation: qsStatusPop 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: qsStatusPop 340ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes qsStatusPop {
@@ -451,11 +450,11 @@
   margin-left: 8px;
   transition:
     transform 120ms ease,
-    background-color 150ms ease,
-    color 150ms ease,
-    border-color 150ms ease,
-    box-shadow 150ms ease,
-    opacity 140ms ease;
+    background-color 90ms ease,
+    color 90ms ease,
+    border-color 90ms ease,
+    box-shadow 90ms ease,
+    opacity 87ms ease;
   padding: 0;
   min-width: 40px;
   pointer-events: auto; /* Fix clickability */
@@ -516,23 +515,6 @@
 .qs-guide-btn:active {
   background: rgba(0, 0, 0, 0.05);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Download Button (Right) - Initial Inverse State */
-.qs-segmented .qs-guide-btn:last-child {
-  background: var(--qs-standard-fill, #1f1f1f);
-  color: var(--qs-standard-fill-text, #ffffff);
-  border-color: var(--qs-standard-fill, #1f1f1f);
-}
-/* Download Button Hover - Inverts back to Menu Background */
-.qs-segmented .qs-guide-btn:last-child:hover {
-  background: var(--qs-standard-bg-hover, #f0f1f3) !important;
-  color: var(--qs-standard-text, #1f1f1f) !important;
-  border-color: var(--qs-standard-fill, #1f1f1f) !important;
-}
-.qs-segmented .qs-guide-btn:last-child:active {
-  background: #000000 !important;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Full Page Button specific override needed? 
@@ -626,23 +608,6 @@
 .qs-theme-dark .qs-guide-btn:not(.qs-theme-toggle):active {
   background: rgba(255, 255, 255, 0.15) !important;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
-}
-
-/* Download Button (Dark) - Initial Inverse State (White) */
-.qs-theme-dark .qs-segmented .qs-guide-btn:last-child {
-  background: var(--qs-standard-fill, #ffffff);
-  color: var(--qs-standard-fill-text, #1a1a1a);
-  border-color: var(--qs-standard-fill, #ffffff);
-}
-/* Download Button Hover (Dark) - Invert back to Dark */
-.qs-theme-dark .qs-segmented .qs-guide-btn:last-child:hover {
-  background: var(--qs-standard-bg, #1a1a1a) !important;
-  color: var(--qs-standard-text, #ffffff) !important;
-  border-color: var(--qs-standard-fill, #ffffff) !important;
-}
-.qs-theme-dark .qs-segmented .qs-guide-btn:last-child:active {
-  background: #cccccc !important;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* Fix Specificity for Standalone Buttons (like Full Page) in Dark Mode 
@@ -954,7 +919,7 @@
   background: transparent;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  transition: all 200ms cubic-bezier(0.34, 1.2, 0.64, 1) !important;
+  transition: all 108ms cubic-bezier(0.34, 1.2, 0.64, 1) !important;
 }
 
 .qs-snapping .qs-box {
@@ -965,11 +930,11 @@
   background: rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  transition: all 200ms cubic-bezier(0.34, 1.2, 0.64, 1) !important;
+  transition: all 108ms cubic-bezier(0.34, 1.2, 0.64, 1) !important;
 }
 
 .qs-snapping .qs-hud {
-  transition: transform 200ms cubic-bezier(0.34, 1.2, 0.64, 1) !important;
+  transition: transform 108ms cubic-bezier(0.34, 1.2, 0.64, 1) !important;
 }
 
 /* DARK VARIANT SELECTION BOX */
@@ -1042,10 +1007,10 @@
       ) !important;
 
   transition:
-    transform 140ms cubic-bezier(0.2, 0, 0, 1),
-    background-color 160ms ease,
-    color 160ms ease,
-    box-shadow 160ms ease !important;
+    transform 87ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 94ms ease,
+    color 94ms ease,
+    box-shadow 94ms ease !important;
   will-change: transform;
 }
 
@@ -1064,7 +1029,6 @@
     var(--c-glass) 46%,
     transparent
   ) !important;
-  transform: translate3d(0, -1px, 0) scale(1.018);
 }
 
 /* Active State (Click Compress) */
@@ -1194,8 +1158,8 @@
   opacity: 0;
   transform: translate3d(-50%, 8px, 0) scale(0.96);
   transition:
-    opacity 200ms cubic-bezier(0.2, 0, 0, 1),
-    transform 220ms cubic-bezier(0.2, 0, 0, 1);
+    opacity 108ms cubic-bezier(0.2, 0, 0, 1),
+    transform 115ms cubic-bezier(0.2, 0, 0, 1);
   box-sizing: border-box;
   white-space: normal;
   line-height: 1.45;
@@ -1393,7 +1357,7 @@
   transform: translate3d(0, 0, 0);
   will-change: transform;
   transform-origin: 0 0;
-  animation: hudMaterialize 240ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: hudMaterialize 240ms cubic-bezier(0.25, 1.15, 0.5, 1) both;
 }
 .qs-theme-dark.qs-hud {
   background: #1a1a1a;
@@ -1474,7 +1438,7 @@
   pointer-events: none;
   opacity: 0;
   border-radius: 8px;
-  animation: qs-flash-anim 360ms ease-out forwards;
+  animation: qs-flash-anim 164ms ease-out forwards;
 }
 .qs-flash.qs-flash-fullscreen {
   border-radius: 0 !important;
@@ -1967,7 +1931,7 @@
   50% { transform: translate(-2px, -2px) scale(1.06); }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .cursor-arrow {
-  animation: selectCursorNudge 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: selectCursorNudge 0.4s cubic-bezier(0.25, 1.15, 0.5, 1);
 }
 
 @keyframes arrowShoot {
@@ -1975,7 +1939,7 @@
   50% { transform: translate(2px, -2px); }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .arrow-head {
-  animation: arrowShoot 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: arrowShoot 0.45s cubic-bezier(0.25, 1.15, 0.5, 1);
 }
 
 @keyframes rectPulse {
@@ -1992,7 +1956,7 @@
   50% { transform: scale(1.16); }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .counter-ring {
-  animation: counterBadgePop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: counterBadgePop 0.45s cubic-bezier(0.25, 1.15, 0.5, 1);
   transform-origin: center;
 }
 
@@ -2013,7 +1977,7 @@
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .pen-body,
 .qs-annotate-toolbar .qs-guide-btn:hover .pen-tip {
-  animation: penScribble 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: penScribble 0.5s cubic-bezier(0.25, 1.15, 0.5, 1);
   transform-origin: 3px 21px;
 }
 
@@ -2029,7 +1993,7 @@
   }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-brush {
-  animation: brushSweep 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: brushSweep 0.48s cubic-bezier(0.25, 1.15, 0.5, 1);
   transform-origin: 5px 19px;
 }
 
@@ -2039,10 +2003,10 @@
   50% { transform: translate(1px, 1px); }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .crop-bracket-1 {
-  animation: cropBracketSnap 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cropBracketSnap 0.35s cubic-bezier(0.25, 1.15, 0.5, 1);
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .crop-bracket-2 {
-  animation: cropBracketSnap 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) reverse;
+  animation: cropBracketSnap 0.35s cubic-bezier(0.25, 1.15, 0.5, 1) reverse;
 }
 
 @keyframes undoNudge {
@@ -2050,7 +2014,7 @@
   50% { transform: rotate(-12deg); }
 }
 .qs-annotate-toolbar .qs-guide-btn:not(:disabled):hover .tool-icon-undo {
-  animation: undoNudge 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: undoNudge 0.35s cubic-bezier(0.25, 1.15, 0.5, 1);
   transform-origin: center;
 }
 
@@ -2059,7 +2023,7 @@
   50% { transform: rotate(12deg); }
 }
 .qs-annotate-toolbar .qs-guide-btn:not(:disabled):hover .tool-icon-redo {
-  animation: redoNudge 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: redoNudge 0.35s cubic-bezier(0.25, 1.15, 0.5, 1);
   transform-origin: center;
 }
 
@@ -2068,7 +2032,7 @@
   50% { transform: translateY(-2px) rotate(-8deg); }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .trash-lid {
-  animation: trashLidLift 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: trashLidLift 0.35s cubic-bezier(0.25, 1.15, 0.5, 1);
   transform-origin: 4px 6px;
 }
 
@@ -2079,7 +2043,7 @@
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-copy,
 .qs-annotate-toolbar .qs-guide-btn:hover .copy-card-1 {
-  animation: copyCardShift 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: copyCardShift 0.4s cubic-bezier(0.25, 1.15, 0.5, 1);
   transform-origin: center;
 }
 
@@ -2089,7 +2053,7 @@
   70% { transform: scale(0.96) translateY(0.5px); }
 }
 .qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-text {
-  animation: textTypePop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: textTypePop 0.42s cubic-bezier(0.25, 1.15, 0.5, 1);
   transform-origin: center;
 }
 
@@ -2211,8 +2175,8 @@
   user-select: none;
   pointer-events: auto;
   opacity: 0;
-  animation: liquidKeyGuideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  animation: liquidKeyGuideIn 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transition: opacity 108ms ease, transform 108ms ease;
 }
 
 @keyframes liquidKeyGuideIn {
@@ -2237,7 +2201,7 @@
   color: rgba(255, 255, 255, 0.75);
   cursor: pointer;
   background: transparent;
-  transition: all 0.16s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 94ms cubic-bezier(0.25, 1.15, 0.5, 1);
 }
 
 .qs-key-pill kbd {
@@ -2335,7 +2299,7 @@
   font-family: "Google Sans", "DM Sans", -apple-system, sans-serif;
   color: #ffffff;
   user-select: none;
-  animation: liquidCountdownIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: liquidCountdownIn 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes liquidCountdownIn {
@@ -2379,7 +2343,7 @@
   stroke-width: 4.5;
   stroke-linecap: round;
   stroke-dasharray: 188.5;
-  transition: stroke-dashoffset 0.85s linear;
+  transition: stroke-dashoffset 240ms linear;
 }
 
 .qs-countdown-num {
@@ -2427,7 +2391,7 @@
   background: rgba(255, 255, 255, 0.1);
   font-size: 12px;
   font-weight: 700;
-  transition: all 0.15s;
+  transition: all 90ms;
 }
 
 .qs-countdown-cancel:hover {
@@ -2509,13 +2473,13 @@
 .qs-annotate-toolbar {
   top: 20px !important;
   bottom: auto !important;
-  animation: qsAnnotateToolbarIn 260ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+  animation: qsAnnotateToolbarIn 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 .qs-crop-controls {
   bottom: 24px !important;
   top: auto !important;
-  animation: qsCropControlsIn 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+  animation: qsCropControlsIn 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
 .qs-annotate-tools,
@@ -2688,111 +2652,228 @@
 
 /* Custom Stroke & Style Options Popover — High Density Liquid Glass Modal Card */
 .qs-stroke-popover {
-  position: absolute;
-  top: calc(100% + 12px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 264px;
-  padding: 16px 18px 16px 18px;
+  all: initial;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483650;
+  width: 280px;
+  padding: 16px 16px 14px;
   box-sizing: border-box;
-  background-color: color-mix(
-    in srgb,
-    var(--c-bg) 88%,
-    color-mix(in srgb, var(--c-glass) 60%, transparent)
-  ) !important;
-  backdrop-filter: blur(36px) saturate(var(--saturation)) !important;
-  -webkit-backdrop-filter: blur(36px) saturate(var(--saturation)) !important;
-  border: none !important;
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 35%), transparent),
-    inset 2px 2px 2px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent),
-    inset -1px -1px 2px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 15%), transparent),
-    0 16px 40px -4px rgba(0, 0, 0, 0.28),
-    0 4px 12px rgba(0, 0, 0, 0.14) !important;
-  border-radius: 20px;
-  z-index: 1000;
-  color: var(--c-content) !important;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  animation: qsStrokePopoverIn 180ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  pointer-events: auto !important;
+  gap: 14px;
+  font-family: "Google Sans", "DM Sans", system-ui, -apple-system, sans-serif;
+  color: var(--c-content);
+  border-radius: 22px;
+  background-color: color-mix(in srgb, var(--c-bg) 72%, transparent);
+  backdrop-filter: blur(28px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(28px) saturate(var(--saturation));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 10%), transparent),
+    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent),
+    inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent),
+    inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent),
+    0 18px 44px -12px rgba(0, 0, 0, 0.42),
+    0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateX(-50%);
+  transform-origin: 50% 0;
+  animation: qsPopIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: auto;
   user-select: none;
 }
 
-@keyframes qsStrokePopoverIn {
+.qs-stroke-popover.qs-pop-up {
+  transform-origin: 50% 100%;
+}
+
+@keyframes qsPopIn {
   from {
     opacity: 0;
-    transform: translate3d(-50%, -8px, 0) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(-50%, 0, 0) scale(1);
+    transform: translateX(-50%) translateY(-6px) scale(0.94);
   }
 }
 
-.qs-stroke-popover .qs-slider-group {
+.qs-stroke-popover.qs-pop-up {
+  animation-name: qsPopInUp;
+}
+
+@keyframes qsPopInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.94);
+  }
+}
+
+/* Dark tone variables for the detached popover */
+.qs-stroke-popover.qs-theme-glass-dark {
+  --c-content: #e1e1e1;
+  --c-action: #03d5ff;
+  --c-bg: #1b1b1d;
+  --glass-reflex-dark: 2;
+  --glass-reflex-light: 0.3;
+}
+
+.qs-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.qs-pop-chip {
+  min-width: 36px;
+  padding: 3px 9px;
+  border-radius: 99em;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 500;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--c-content) 9%, transparent);
+}
+
+.qs-pop-preview {
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--c-bg) 55%, transparent), color-mix(in srgb, var(--c-bg) 55%, transparent)),
+    repeating-conic-gradient(color-mix(in srgb, var(--c-content) 7%, transparent) 0 25%, transparent 0 50%) 0 0 / 14px 14px;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--c-content) 7%, transparent);
+  overflow: hidden;
+}
+
+.qs-pop-preview svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.qs-pop-preview-path {
+  transition:
+    stroke-width 87ms ease,
+    stroke 87ms ease,
+    stroke-opacity 87ms ease;
+}
+
+.qs-pop-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.qs-stroke-popover .qs-slider-header {
+.qs-pop-label {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--c-content) 72%, transparent);
+}
+
+.qs-pop-hint {
   font-size: 11px;
-  color: var(--c-content) !important;
-  opacity: 0.82;
-  font-weight: 600;
+  color: color-mix(in srgb, var(--c-content) 45%, transparent);
+}
+
+.qs-pop-slider {
+  position: relative;
+  height: 24px;
+}
+
+/* Thickness: a wedge that fills up to the thumb */
+.qs-pop-track {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 50%;
+  pointer-events: none;
+}
+
+.qs-pop-track-width {
+  height: 14px;
+  margin-top: -7px;
+  clip-path: polygon(0 62%, 100% 0, 100% 100%, 0 100%);
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--c-content) var(--pct, 10%),
+    color-mix(in srgb, var(--c-content) 16%, transparent) var(--pct, 10%)
+  );
+}
+
+/* Opacity: the current colour fading out over a checkerboard */
+.qs-pop-track-opacity {
+  height: 10px;
+  margin-top: -5px;
+  border-radius: 99em;
+  overflow: hidden;
+  background: repeating-conic-gradient(#cfcfd4 0 25%, #fff 0 50%) 0 0 / 8px 8px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-content) 14%, transparent);
+}
+
+.qs-pop-track-opacity i {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--swatch, #000));
 }
 
 .qs-stroke-popover input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 24px;
+  margin: 0;
+  padding: 0;
   background: transparent;
   outline: none;
   cursor: pointer;
-  margin: 0;
-  padding: 0;
-  border: none;
   touch-action: none;
-  user-select: none;
 }
 
 .qs-stroke-popover input[type="range"]::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 6px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--c-content) 18%, transparent);
+  height: 24px;
+  background: transparent;
   border: none;
 }
 
 .qs-stroke-popover input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
   border-radius: 50%;
-  background: var(--c-action);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 1px #ffffff;
-  cursor: pointer;
-  margin-top: -6px;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  background: #fff;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 4px 10px rgba(0, 0, 0, 0.14);
+  cursor: grab;
+  transition: transform 108ms cubic-bezier(0.25, 1.15, 0.5, 1);
 }
 
-.qs-stroke-popover input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.18);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), inset 0 1px 1px #ffffff;
+.qs-stroke-popover input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.1);
 }
 
-.qs-stroke-popover input[type="range"]::-webkit-slider-thumb:active {
-  transform: scale(1.24);
+.qs-stroke-popover input[type="range"]:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(0.92);
 }
 
-
+.qs-stroke-popover input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--c-action) 40%, transparent),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
 
 /* Palette Row */
 .qs-annotate-toolbar .qs-palette-row {
@@ -2922,3 +3003,1656 @@
 }
 
 
+
+/* =========================================
+   10. SWIFTSELECT 2.0 ADDITIONS
+   Editor drag handle, confirm state, popover flip
+   and solid fallbacks. The glass itself is untouched.
+   ========================================= */
+
+/* Drag handle */
+.qs-annotate-grip {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 36px !important;
+  margin: 0 -2px 0 0 !important;
+  border-radius: 9px !important;
+  color: var(--c-content) !important;
+  opacity: 0.42;
+  cursor: grab !important;
+  flex-shrink: 0 !important;
+  touch-action: none;
+  transition:
+    opacity 94ms ease,
+    background-color 94ms ease,
+    transform 129ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.qs-annotate-grip svg {
+  width: 10px !important;
+  height: 18px !important;
+  fill: currentColor !important;
+  stroke: none !important;
+  pointer-events: none;
+}
+
+.qs-annotate-grip:hover {
+  opacity: 0.85;
+  background-color: color-mix(in srgb, var(--c-glass) 24%, transparent);
+}
+
+.qs-annotate-toolbar.qs-dragging {
+  cursor: grabbing !important;
+}
+
+.qs-annotate-toolbar.qs-dragging .qs-annotate-grip {
+  cursor: grabbing !important;
+  opacity: 1;
+  transform: scale(0.92);
+}
+
+
+
+/* "Click again to confirm" state on the clear button */
+.qs-annotate-toolbar .qs-guide-btn.circle.qs-armed svg {
+  color: #e5484d !important;
+  stroke: #e5484d !important;
+}
+
+/* Icon micro-motion for the new tools */
+@keyframes qsHighlighterSwipe {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  50% {
+    transform: translateX(2px) rotate(-6deg);
+  }
+}
+
+.qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-highlighter {
+  animation: qsHighlighterSwipe 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: 50% 80%;
+}
+
+@keyframes qsFillPop {
+  0% {
+    transform: scale(0.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-fill rect:last-child {
+  animation: qsFillPop 360ms cubic-bezier(0.25, 1.15, 0.5, 1);
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+}
+
+.qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-gallery circle {
+  animation: counterBadgePop 0.45s cubic-bezier(0.25, 1.15, 0.5, 1);
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+}
+
+/* Physical press response */
+.qs-annotate-toolbar .qs-guide-btn.circle:active:not(:disabled),
+.qs-crop-controls .qs-guide-btn:active:not(:disabled) {
+  transform: scale(0.97) !important;
+  transition: transform 80ms ease !important;
+}
+
+/* Solid fallbacks: browsers without backdrop-filter, and users who ask the
+   OS for reduced transparency, get an opaque tinted surface. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .qs-theme-glass.qs-guide,
+  .qs-theme-glass.qs-status,
+  .qs-theme-glass.qs-hud,
+  .qs-theme-glass.qs-annotate-toolbar,
+  .qs-theme-glass.qs-crop-controls,
+  .qs-stroke-popover {
+    background-color: color-mix(in srgb, var(--c-bg) 96%, var(--c-glass)) !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .qs-theme-glass.qs-guide,
+  .qs-theme-glass.qs-status,
+  .qs-theme-glass.qs-hud,
+  .qs-theme-glass.qs-annotate-toolbar,
+  .qs-theme-glass.qs-crop-controls,
+  .qs-stroke-popover {
+    background-color: color-mix(in srgb, var(--c-bg) 96%, var(--c-glass)) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .qs-annotate-toolbar {
+    gap: 6px !important;
+  }
+
+  .qs-annotate-tools,
+  .qs-annotate-history,
+  .qs-annotate-actions {
+    gap: 3px !important;
+  }
+}
+
+
+/* =========================================
+   11. SWIFTSELECT 2.1 · PRESS PHYSICS, SHEEN, ICON MOTION
+   ========================================= */
+
+/* Hover no longer jumps. The surface catches light where the pointer is,
+   and a press compresses, then springs back with a little overshoot. */
+.qs-theme-glass .qs-guide-btn:not(.qs-theme-toggle),
+.qs-theme-glass .qs-save-btn {
+  transition:
+    transform 208ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 108ms ease,
+    color 108ms ease,
+    box-shadow 108ms ease !important;
+}
+
+/* Hover light: a soft wash from above and a brighter top lip, no pointer
+   tracking. Fades over 220 ms so the surface settles after the icon moves. */
+.qs-theme-glass .qs-guide-btn:not(.qs-theme-toggle)::after,
+.qs-theme-glass .qs-save-btn::after,
+.qs-annotate-toolbar .qs-guide-btn::after,
+.qs-annotate-toolbar .qs-stroke-tune-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  opacity: 0;
+  transition: opacity 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.qs-theme-glass .qs-guide-btn:not(.qs-theme-toggle):hover::after,
+.qs-theme-glass .qs-save-btn:hover::after,
+.qs-annotate-toolbar .qs-guide-btn:hover::after,
+.qs-annotate-toolbar .qs-stroke-tune-btn:hover::after {
+  opacity: 1;
+}
+
+.qs-theme-glass-dark .qs-guide-btn:not(.qs-theme-toggle)::after,
+.qs-theme-glass-dark .qs-save-btn::after,
+.qs-theme-glass-dark.qs-annotate-toolbar .qs-guide-btn::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.qs-theme-glass-dark .qs-guide-btn:not(.qs-theme-toggle):hover::after,
+.qs-theme-glass-dark.qs-annotate-toolbar .qs-guide-btn:hover::after {
+  opacity: 1;
+}
+
+.qs-annotate-toolbar .qs-stroke-tune-btn {
+  position: relative;
+}
+
+/* Gallery button in the capture toolbar */
+.qs-guide-buttons > .qs-gallery-btn {
+  min-width: 48px !important;
+  padding: 0 !important;
+}
+
+.qs-gallery-btn svg {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+.qs-gallery-btn svg,
+.qs-gallery-btn svg * {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+}
+
+.qs-gallery-btn .gal-sun,
+.qs-gallery-btn .gal-hills {
+  transition: transform 208ms cubic-bezier(0.25, 1.15, 0.5, 1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.qs-gallery-btn:hover .gal-sun {
+  transform: translate(1px, -1.5px) scale(1.15);
+}
+
+.qs-gallery-btn:hover .gal-hills {
+  transform: translateX(-1px);
+}
+
+/* Editor: icons that had no motion */
+.qs-annotate-toolbar .tool-icon-close,
+.qs-annotate-toolbar .tool-icon-arrow .arrow-shaft {
+  transition: transform 184ms cubic-bezier(0.25, 1.15, 0.5, 1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-close {
+  transform: rotate(90deg);
+}
+
+@keyframes qsShaftDraw {
+  0% {
+    stroke-dasharray: 20;
+    stroke-dashoffset: 20;
+  }
+  100% {
+    stroke-dasharray: 20;
+    stroke-dashoffset: 0;
+  }
+}
+
+.qs-annotate-toolbar .qs-guide-btn:hover .arrow-shaft {
+  animation: qsShaftDraw 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes qsCountUp {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  45% {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(4px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.qs-annotate-toolbar .qs-guide-btn:hover .counter-num {
+  animation: qsCountUp 480ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes qsTuneSlide {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  40% {
+    transform: translateX(2.5px);
+  }
+  70% {
+    transform: translateX(-1px);
+  }
+}
+
+.qs-annotate-toolbar .qs-stroke-tune-btn:hover svg {
+  animation: qsTuneSlide 480ms cubic-bezier(0.25, 1.15, 0.5, 1);
+}
+
+@keyframes qsSaveDrop {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(2.5px);
+  }
+  65% {
+    transform: translateY(-0.5px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-save {
+  animation: qsSaveDrop 460ms cubic-bezier(0.25, 1.15, 0.5, 1);
+}
+
+.qs-annotate-toolbar .qs-guide-btn:hover .tool-icon-clear .trash-lid {
+  animation: trashLidLift 0.35s cubic-bezier(0.25, 1.15, 0.5, 1);
+  transform-box: fill-box;
+  transform-origin: left bottom;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qs-theme-glass .qs-guide-btn:not(.qs-theme-toggle),
+  .qs-theme-glass .qs-save-btn {
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ═══ Editor: tool tiles, style chip and the style panel ═══════════════════ */
+
+/* The active tool is a solid colour tile: the clearest possible "you are
+   here", readable on any page behind the glass. */
+.qs-annotate-toolbar .qs-guide-btn.circle.active {
+  color: #fff !important;
+  background: linear-gradient(160deg, #4f93ff, #1f5bf0) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    0 3px 10px -3px rgba(31, 91, 240, 0.65) !important;
+  transform: none !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle.active svg {
+  color: #fff !important;
+  stroke: #fff !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle.active svg [fill="currentColor"] {
+  fill: #fff !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle.active::after {
+  display: none !important;
+}
+
+.qs-annotate-toolbar.qs-theme-glass-dark .qs-guide-btn.circle.active {
+  background: linear-gradient(160deg, #3fb7ff, #1673f0) !important;
+}
+
+.qs-annotate-sep {
+  display: block !important;
+  flex-shrink: 0 !important;
+  width: 1px !important;
+  height: 22px !important;
+  margin: 0 1px !important;
+  border-radius: 1px !important;
+  background: color-mix(in srgb, var(--c-content) 16%, transparent) !important;
+}
+
+.qs-annotate-toolbar {
+  gap: 6px !important;
+  padding: 7px 8px !important;
+}
+
+/* Style chip: a ring in the current colour whose weight follows the stroke,
+   a solid disc when fill is on. */
+.qs-annotate-toolbar .qs-style-chip .qs-style-swatch {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: var(--ring, 3px) solid var(--sw, #ff3333);
+  background: transparent;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--c-content) 18%, transparent),
+    0 1px 3px rgba(0, 0, 0, 0.25);
+  transition:
+    border-width 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.qs-annotate-toolbar .qs-style-chip.is-filled .qs-style-swatch {
+  background: var(--sw, #ff3333);
+}
+
+.qs-annotate-toolbar .qs-style-chip.is-open {
+  background-color: color-mix(in srgb, var(--c-content) 10%, transparent) !important;
+}
+
+.qs-annotate-toolbar .qs-style-chip.is-disabled {
+  opacity: 0.4 !important;
+  pointer-events: none !important;
+}
+
+/* The panel */
+.qs-stroke-popover {
+  width: 264px;
+  padding: 14px;
+  gap: 12px;
+  border-radius: 20px;
+  background-color: color-mix(in srgb, var(--c-bg) 66%, transparent);
+  animation: qsPopIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes qsPopIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px) scale(0.97);
+  }
+}
+
+@keyframes qsPopInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px) scale(0.97);
+  }
+}
+
+.qs-pop-head {
+  font-size: 13px;
+}
+
+.qs-pop-tool {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 99em;
+  color: #fff;
+  background: linear-gradient(160deg, #4f93ff, #1f5bf0);
+}
+
+.qs-pop-preview {
+  height: 58px;
+}
+
+.qs-pop-preview-box {
+  transition:
+    fill 120ms ease,
+    stroke 120ms ease,
+    stroke-width 120ms ease;
+}
+
+.qs-pop-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qs-pop-sec[hidden] {
+  display: none;
+}
+
+.qs-pop-swatches {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+
+.qs-pop-swatch {
+  all: unset;
+  position: relative;
+  box-sizing: border-box;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  cursor: pointer;
+  background: var(--sw);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.18);
+  transition:
+    transform 90ms ease,
+    box-shadow 90ms ease;
+}
+
+.qs-pop-swatch:hover {
+  transform: scale(1.1);
+}
+
+.qs-pop-swatch:active {
+  transform: scale(0.92);
+}
+
+.qs-pop-swatch[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--c-bg) 90%, white),
+    0 0 0 4px var(--sw),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.qs-pop-custom {
+  background:
+    radial-gradient(circle, var(--sw) 0 38%, transparent 40%),
+    conic-gradient(#ff3b30, #ff9500, #ffcc00, #34c759, #00c7be, #007aff, #af52de, #ff2d55, #ff3b30);
+}
+
+.qs-pop-custom[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--c-bg) 90%, white),
+    0 0 0 4px color-mix(in srgb, var(--c-content) 50%, transparent);
+}
+
+.qs-pop-custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+
+/* Outline / Filled */
+.qs-pop-seg {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c-content) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-content) 6%, transparent);
+}
+
+.qs-pop-seg::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--c-bg) 30%, white);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.14),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  transition: transform 94ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.qs-stroke-popover.qs-theme-glass-dark .qs-pop-seg::before {
+  background: color-mix(in srgb, #fff 16%, transparent);
+}
+
+.qs-pop-seg.is-on::before {
+  transform: translateX(100%);
+}
+
+.qs-pop-seg button {
+  all: unset;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 30px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  color: color-mix(in srgb, var(--c-content) 70%, transparent);
+  transition: color 120ms ease;
+}
+
+.qs-pop-seg button[aria-checked="true"] {
+  color: var(--c-content);
+}
+
+.qs-pop-seg b {
+  font-weight: inherit;
+}
+
+.qs-pop-seg-ic {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  border: 2px solid var(--sw);
+}
+
+.qs-pop-seg-ic.is-filled {
+  background: var(--sw);
+}
+
+/* Size presets */
+.qs-pop-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.qs-pop-presets button {
+  all: unset;
+  display: grid;
+  place-items: center;
+  height: 30px;
+  border-radius: 10px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--c-content) 6%, transparent);
+  transition:
+    background-color 90ms ease,
+    transform 90ms ease;
+}
+
+.qs-pop-presets button:hover {
+  background: color-mix(in srgb, var(--c-content) 11%, transparent);
+}
+
+.qs-pop-presets button:active {
+  transform: scale(0.94);
+}
+
+.qs-pop-presets i {
+  width: var(--d);
+  height: var(--d);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--c-content) 55%, transparent);
+}
+
+.qs-pop-presets button[aria-pressed="true"] {
+  background: linear-gradient(160deg, #4f93ff, #1f5bf0);
+  box-shadow: 0 2px 8px -2px rgba(31, 91, 240, 0.6);
+}
+
+.qs-pop-presets button[aria-pressed="true"] i {
+  background: #fff;
+}
+
+.qs-stroke-popover input[type="range"]::-webkit-slider-thumb {
+  transition: transform 90ms ease;
+}
+
+/* ═══ Capture toolbar: each action wears its colour ════════════════════════ */
+.qs-guide-buttons .qs-guide-btn[data-action="capture-visible"] {
+  --qs-ta: #4fd8e8;
+  --qs-tb: #0f8fe0;
+}
+.qs-guide-buttons .qs-guide-btn[data-action="capture-horizontal"] {
+  --qs-ta: #ffab5c;
+  --qs-tb: #f2600c;
+}
+.qs-guide-buttons .qs-guide-btn[data-action="capture-full"] {
+  --qs-ta: #b18aff;
+  --qs-tb: #6a45f0;
+}
+.qs-guide-buttons .qs-guide-btn[data-action="annotate"] {
+  --qs-ta: #ff86ba;
+  --qs-tb: #ec3f86;
+}
+.qs-guide-buttons .qs-guide-btn.qs-gallery-btn {
+  --qs-ta: #9aa3b5;
+  --qs-tb: #5d6679;
+}
+
+.qs-guide-buttons .qs-guide-btn:is([data-action^="capture-"], [data-action="annotate"], .qs-gallery-btn) > svg {
+  box-sizing: border-box !important;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 6.5px !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  background: linear-gradient(160deg, var(--qs-ta), var(--qs-tb)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    0 3px 8px -3px color-mix(in srgb, var(--qs-tb) 70%, transparent) !important;
+  overflow: visible !important;
+}
+
+.qs-guide-buttons .qs-guide-btn:is([data-action="capture-visible"], [data-action="capture-full"], [data-action="annotate"]) {
+  padding-left: 8px !important;
+}
+
+.qs-guide-buttons .qs-guide-btn.qs-gallery-btn > svg {
+  fill: none !important;
+}
+
+.qs-guide-buttons .qs-guide-btn:is([data-action^="capture-"], [data-action="annotate"], .qs-gallery-btn) > svg :is(path, circle, rect) {
+  color: #fff !important;
+}
+
+/* Inherited text properties cross the shadow boundary. A page that paints
+   gradient text (-webkit-text-fill-color: transparent on body) would make
+   every label in our UI invisible. Pin them. */
+:is(.qs-guide, .qs-status, .qs-annotate-toolbar, .qs-crop-controls, .qs-stroke-popover, .qs-hud, .qs-custom-tooltip),
+:is(.qs-guide, .qs-status, .qs-annotate-toolbar, .qs-crop-controls, .qs-stroke-popover, .qs-hud, .qs-custom-tooltip) * {
+  -webkit-text-fill-color: currentColor !important;
+  -webkit-text-stroke: 0 !important;
+  text-shadow: none;
+  visibility: inherit;
+}
+
+.qs-guide.qs-dragging {
+  cursor: grabbing !important;
+  transition: none !important;
+}
+
+.qs-guide.qs-dragging * {
+  cursor: grabbing !important;
+  pointer-events: none !important;
+}
+
+
+/* Toolbar buttons settle rather than snap */
+.qs-guide-btn,
+.qs-save-btn,
+.qs-crop-controls button {
+  transition-property: background-color, box-shadow, color, transform, opacity !important;
+  transition-duration: 220ms !important;
+  transition-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1) !important;
+}
+
+.qs-guide-btn:active,
+.qs-save-btn:active {
+  transition-duration: 110ms !important;
+}
+
+/* Status pill: tinted by outcome, with a coloured tile for its icon */
+.qs-status {
+  --qs-tone-a: #8b93ff;
+  --qs-tone-b: #4b4fe6;
+}
+.qs-status.qs-success {
+  --qs-tone-a: #4cd98a;
+  --qs-tone-b: #11a65a;
+}
+.qs-status.qs-saved {
+  --qs-tone-a: #5b9bff;
+  --qs-tone-b: #2453f0;
+}
+.qs-status.qs-error {
+  --qs-tone-a: #ff7a7a;
+  --qs-tone-b: #e5323b;
+}
+
+.qs-theme-glass.qs-status {
+  background-image: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--qs-tone-a) 26%, transparent),
+    color-mix(in srgb, var(--qs-tone-a) 8%, transparent) 55%,
+    transparent
+  ) !important;
+}
+
+.qs-theme-glass:not(.qs-theme-glass-dark).qs-status {
+  color: #1c1d2b !important;
+  background-color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.qs-theme-glass.qs-theme-glass-dark.qs-status {
+  color: #fff !important;
+  background-color: rgba(28, 30, 38, 0.82) !important;
+}
+
+.qs-status .qs-status-icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  flex-shrink: 0 !important;
+  border-radius: 50% !important;
+  background: linear-gradient(160deg, var(--qs-tone-a), var(--qs-tone-b)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 3px 8px -3px color-mix(in srgb, var(--qs-tone-b) 70%, transparent) !important;
+  --qs-icon-fill: #fff;
+  --qs-icon-stroke: var(--qs-tone-b);
+}
+
+.qs-status .qs-status-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+  color: #fff !important;
+}
+
+/* Crop bar */
+.qs-crop-controls {
+  gap: 8px !important;
+  padding: 6px 8px !important;
+  color: #1c1d2b !important;
+}
+
+.qs-crop-controls.qs-theme-glass-dark {
+  color: #fff !important;
+}
+
+.qs-crop-controls .qs-crop-ratios {
+  display: flex !important;
+  gap: 2px !important;
+  padding: 3px !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, currentColor 8%, transparent) !important;
+  box-shadow: inset 0 0 0 0.5px color-mix(in srgb, currentColor 10%, transparent) !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-ratio-btn {
+  height: 30px !important;
+  min-width: 0 !important;
+  padding: 0 12px !important;
+  border-radius: 999px !important;
+  font: 600 12.5px/1 ui-monospace, "SF Mono", Menlo, monospace !important;
+  letter-spacing: -0.02em !important;
+  color: inherit !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  opacity: 0.82;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-ratio-btn[data-ratio="free"] {
+  font-family: "Google Sans", system-ui, sans-serif !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-ratio-btn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 9%, transparent) !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-ratio-btn.active {
+  opacity: 1;
+  color: #fff !important;
+  background: linear-gradient(160deg, #4f93ff, #1f5bf0) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 3px 8px -3px rgba(31, 91, 240, 0.7) !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-ratio-btn.active::after {
+  display: none !important;
+}
+
+.qs-crop-controls .qs-crop-actions {
+  display: flex !important;
+  gap: 4px !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-apply-btn,
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-cancel-btn {
+  height: 34px !important;
+  padding: 0 14px 0 12px !important;
+  gap: 7px !important;
+  border-radius: 999px !important;
+  font: 600 13px/1 "Google Sans", system-ui, sans-serif !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-apply-btn {
+  color: #fff !important;
+  background: linear-gradient(160deg, #4cd98a, #11a65a) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 4px 12px -4px rgba(17, 166, 90, 0.7) !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-apply-btn svg {
+  stroke: #fff !important;
+  color: #fff !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-cancel-btn {
+  color: inherit !important;
+  background: color-mix(in srgb, currentColor 8%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.qs-crop-controls .qs-guide-btn.pill.qs-crop-cancel-btn:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent) !important;
+}
+
+.qs-crop-controls .qs-crop-cancel-btn svg {
+  stroke: currentColor !important;
+  color: inherit !important;
+}
+
+.qs-crop-controls .qs-crop-dim {
+  height: 30px !important;
+  padding: 0 12px 0 10px !important;
+  border-radius: 999px !important;
+  color: inherit !important;
+  background: color-mix(in srgb, currentColor 8%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.qs-crop-controls .qs-crop-dim-val {
+  font: 600 12.5px/1 ui-monospace, "SF Mono", Menlo, monospace !important;
+  color: inherit !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.qs-crop-controls .qs-crop-unit {
+  font: italic 500 11px/1 "Google Sans", system-ui, sans-serif !important;
+  opacity: 0.6 !important;
+  color: inherit !important;
+}
+
+.qs-crop-controls .qs-crop-meta-icon,
+.qs-crop-controls .qs-crop-dim svg {
+  stroke: currentColor !important;
+  color: inherit !important;
+  opacity: 0.7;
+}
+
+.qs-crop-controls .qs-tool-sep {
+  background: color-mix(in srgb, currentColor 16%, transparent) !important;
+}
+
+/* Style panel: option rows (line style, arrow heads, typeface) */
+.qs-pop-opts {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--n, 3), 1fr);
+  padding: 3px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c-content) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-content) 6%, transparent);
+}
+
+.qs-pop-opts::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / var(--n, 3));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--c-bg) 30%, white);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.14),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  transition: transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.qs-stroke-popover.qs-theme-glass-dark .qs-pop-opts::before {
+  background: color-mix(in srgb, #fff 16%, transparent);
+}
+
+.qs-pop-opts button {
+  all: unset;
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 30px;
+  cursor: pointer;
+  font-size: 15px;
+  color: color-mix(in srgb, var(--c-content) 60%, transparent);
+  transition: color 160ms ease;
+}
+
+.qs-pop-opts button[aria-pressed="true"],
+.qs-pop-opts button:hover {
+  color: var(--c-content);
+}
+
+.qs-pop-opts svg {
+  display: block;
+}
+
+.qs-pop-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.qs-pop-toggles button {
+  all: unset;
+  display: grid;
+  place-items: center;
+  height: 30px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: 15px/1 Georgia, serif;
+  color: var(--c-content);
+  background: color-mix(in srgb, var(--c-content) 6%, transparent);
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.qs-pop-toggles button:hover {
+  background: color-mix(in srgb, var(--c-content) 11%, transparent);
+}
+
+.qs-pop-toggles button[aria-pressed="true"] {
+  color: #fff;
+  background: linear-gradient(160deg, #4f93ff, #1f5bf0);
+  box-shadow: 0 2px 8px -2px rgba(31, 91, 240, 0.6);
+}
+
+.qs-pop-sec[data-sec="text"] {
+  gap: 6px;
+}
+
+/* Status, size readout, key guide: one surface each, so it carries both
+   the glass and the contrast. */
+.qs-theme-glass:not(.qs-theme-glass-dark):is(.qs-status, .qs-hud, .qs-key-guide) {
+  color: #171826 !important;
+  background-color: rgba(255, 255, 255, 0.7) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(190%) !important;
+  backdrop-filter: blur(22px) saturate(190%) !important;
+}
+
+.qs-theme-glass.qs-theme-glass-dark:is(.qs-status, .qs-hud, .qs-key-guide) {
+  color: #fff !important;
+  background-color: rgba(24, 26, 34, 0.72) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(170%) !important;
+  backdrop-filter: blur(22px) saturate(170%) !important;
+}
+
+.qs-theme-glass.qs-status {
+  padding: 8px 18px 8px 8px !important;
+  gap: 10px !important;
+  font-size: 14.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px color-mix(in srgb, var(--qs-tone-b) 22%, transparent),
+    0 12px 32px -12px color-mix(in srgb, var(--qs-tone-b) 45%, rgba(0, 0, 0, 0.35)) !important;
+}
+
+.qs-status .qs-status-icon {
+  width: 30px !important;
+  height: 30px !important;
+}
+
+.qs-status .qs-status-glyph {
+  width: 17px !important;
+  height: 17px !important;
+  color: #fff !important;
+  stroke: #fff !important;
+  overflow: visible;
+}
+
+/* The glyph springs in after its tile. Transform-only, so it is visible
+   even when the animation does not run. */
+.qs-status .qs-status-glyph {
+  transform-origin: 50% 50%;
+  animation: qsGlyphIn 460ms cubic-bezier(0.34, 1.5, 0.64, 1) 110ms both;
+}
+
+@keyframes qsGlyphIn {
+  from {
+    transform: scale(0.3) rotate(-25deg);
+  }
+}
+
+
+.qs-status .qs-status-icon {
+  animation: qsTilePop 420ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+@keyframes qsTilePop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* Editor style chip: colour disc + line weights + caret, so it reads as a
+   menu of options and not just a colour swatch. */
+.qs-annotate-toolbar .qs-guide-btn.circle.qs-style-chip {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 8px 0 7px !important;
+  gap: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  border-radius: 999px !important;
+}
+
+.qs-style-chip .qs-style-lines {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2.5px;
+}
+
+.qs-style-chip .qs-style-lines i {
+  display: block;
+  height: 1.5px;
+  width: 11px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.qs-style-chip .qs-style-lines i:nth-child(2) {
+  height: 2.5px;
+}
+
+.qs-style-chip .qs-style-lines i:nth-child(3) {
+  height: 3.5px;
+}
+
+.qs-style-chip .qs-style-caret {
+  width: 10px !important;
+  height: 10px !important;
+  opacity: 0.6;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.qs-style-chip.is-open .qs-style-caret {
+  transform: rotate(180deg);
+}
+
+.qs-style-chip:hover .qs-style-lines i:nth-child(1) {
+  animation: qsLineW 520ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.qs-style-chip:hover .qs-style-lines i:nth-child(2) {
+  animation: qsLineW 520ms cubic-bezier(0.34, 1.4, 0.64, 1) 60ms;
+}
+.qs-style-chip:hover .qs-style-lines i:nth-child(3) {
+  animation: qsLineW 520ms cubic-bezier(0.34, 1.4, 0.64, 1) 120ms;
+}
+
+@keyframes qsLineW {
+  40% {
+    width: 6px;
+  }
+}
+
+.qs-pop-preview {
+  transition: background-color 200ms ease;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle.qs-style-chip > .qs-style-swatch {
+  flex: 0 0 auto !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle.qs-style-chip > svg.qs-style-caret {
+  flex: 0 0 auto !important;
+  width: 9px !important;
+  height: 9px !important;
+  margin: 0 !important;
+  transform: none;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle.qs-style-chip.is-open > svg.qs-style-caret {
+  transform: rotate(180deg) !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle.qs-style-chip > .qs-style-lines {
+  display: flex !important;
+  flex: 0 0 auto !important;
+}
+
+
+/* ═══ Capture toolbar: liquid glass all the way down ══════════════════════
+   The shell's blur and tint live on .qs-glass-surface (its first child), not
+   on the shell. That keeps the shell from becoming a backdrop root, so every
+   pill can be real liquid glass too: its own blur, a light tint, the same
+   reflex edges as the shell. Contrast comes from the double blur and a tint
+   matched to the theme, not from painting the pills opaque. */
+
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass {
+  isolation: isolate !important;
+  background: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  animation: qsShellIn 340ms cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+
+@keyframes qsShellIn {
+  from {
+    transform: translate3d(0, -10px, 0) scale(0.94);
+  }
+}
+
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls) > .qs-glass-surface,
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls) > .qs-guide-buttons {
+  animation: qsFadeIn 260ms ease both;
+}
+
+@keyframes qsFadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass > .qs-glass-surface {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background-color: color-mix(in srgb, #ffffff 26%, transparent);
+  background-image: linear-gradient(
+    115deg,
+    rgba(91, 155, 255, 0.14),
+    rgba(177, 138, 255, 0.08) 45%,
+    rgba(255, 134, 186, 0.1)
+  );
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: inset 0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 10%),
+        transparent
+      ),
+    inset 1.8px 3px 0px -2px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 90%),
+        transparent
+      ),
+    inset -2px -2px 0px -2px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 80%),
+        transparent
+      ),
+    inset -3px -8px 1px -6px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 60%),
+        transparent
+      ),
+    inset -0.3px -1px 4px 0px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 12%),
+        transparent
+      ),
+    inset -1.5px 2.5px 0px -2px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 20%),
+        transparent
+      ),
+    inset 0px 3px 4px -2px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 20%),
+        transparent
+      ),
+    inset 2px -6.5px 1px -4px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
+        transparent
+      ),
+    0px 1px 5px 0px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
+        transparent
+      ),
+    0px 6px 16px 0px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 8%),
+        transparent
+      );
+}
+
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark > .qs-glass-surface {
+  background-color: color-mix(in srgb, #12141b 40%, transparent);
+}
+
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle) {
+  color: #161725 !important;
+  background-color: color-mix(in srgb, #ffffff 40%, transparent) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(170%) brightness(1.06) !important;
+  backdrop-filter: blur(12px) saturate(170%) brightness(1.06) !important;
+  box-shadow: inset 0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 10%),
+        transparent
+      ),
+    inset 2px 1px 0px -1px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 90%),
+        transparent
+      ),
+    inset -1.5px -1px 0px -1px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 80%),
+        transparent
+      ),
+    inset -2px -6px 1px -5px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 60%),
+        transparent
+      ),
+    inset -1px 2px 3px -1px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 20%),
+        transparent
+      ),
+    inset 0px -4px 1px -2px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
+        transparent
+      ),
+    0px 3px 6px 0px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 8%),
+        transparent
+      ) !important;
+}
+
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle):hover {
+  background-color: color-mix(in srgb, #ffffff 58%, transparent) !important;
+}
+
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle) {
+  color: #fff !important;
+  background-color: color-mix(in srgb, #0e1016 44%, transparent) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(160%) brightness(0.88) !important;
+  backdrop-filter: blur(12px) saturate(160%) brightness(0.88) !important;
+}
+
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle):hover {
+  background-color: color-mix(in srgb, #262a36 52%, transparent) !important;
+}
+
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls) .qs-guide-btn span {
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+
+
+/* ═══ Status message: tinted liquid glass ═════════════════════════════════
+   The outcome tints the glass (green copied, blue saved, red error, slate
+   cancelled, indigo info, or the picked colour itself), the tile repeats it
+   at full strength, and the actions are small glass buttons that light up in
+   their own colour. */
+.qs-status[data-kind="success"] { --qs-tone-a: #4cd98a; --qs-tone-b: #11a65a; }
+.qs-status[data-kind="saved"] { --qs-tone-a: #5b9bff; --qs-tone-b: #2453f0; }
+.qs-status[data-kind="error"] { --qs-tone-a: #ff7a7a; --qs-tone-b: #e5323b; }
+.qs-status[data-kind="cancel"] { --qs-tone-a: #a3abbd; --qs-tone-b: #5d6679; }
+.qs-status[data-kind="timer"] { --qs-tone-a: #ff86ba; --qs-tone-b: #ec3f86; }
+.qs-status[data-kind="info"] { --qs-tone-a: #8b93ff; --qs-tone-b: #4b4fe6; }
+.qs-status[data-kind="color"] { --qs-tone-a: #a3abbd; --qs-tone-b: #5d6679; }
+
+.qs-status.qs-theme-glass[data-kind] {
+  height: 46px !important;
+  min-height: 0 !important;
+  padding: 0 18px 0 7px !important;
+  gap: 11px !important;
+  font-size: 14.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  color: #161725 !important;
+  background-color: color-mix(in srgb, var(--qs-tone-a) 16%, rgba(255, 255, 255, 0.46)) !important;
+  background-image: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--qs-tone-a) 22%, transparent),
+    transparent 60%
+  ) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
+  backdrop-filter: blur(24px) saturate(200%) !important;
+  box-shadow:
+    inset 0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 10%),
+        transparent
+      ),
+    inset 1.8px 3px 0px -2px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 90%),
+        transparent
+      ),
+    inset -2px -2px 0px -2px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 80%),
+        transparent
+      ),
+    inset -3px -8px 1px -6px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 60%),
+        transparent
+      ),
+    inset -0.3px -1px 4px 0px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 12%),
+        transparent
+      ),
+    inset -1.5px 2.5px 0px -2px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 20%),
+        transparent
+      ),
+    inset 0px 3px 4px -2px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 20%),
+        transparent
+      ),
+    inset 2px -6.5px 1px -4px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
+        transparent
+      ),
+    0px 1px 5px 0px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
+        transparent
+      ),
+    0px 6px 16px 0px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 8%),
+        transparent
+      ),
+    inset 0 0 0 1px color-mix(in srgb, var(--qs-tone-b) 18%, transparent),
+    0 14px 30px -14px color-mix(in srgb, var(--qs-tone-b) 50%, transparent) !important;
+}
+
+.qs-status.qs-theme-glass.qs-theme-glass-dark[data-kind] {
+  color: #fff !important;
+  background-color: color-mix(in srgb, var(--qs-tone-a) 14%, rgba(18, 20, 28, 0.58)) !important;
+}
+
+.qs-status.qs-theme-glass[data-kind]:has(.qs-save-btn) {
+  padding-right: 7px !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] > span {
+  padding-right: 2px;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-status-icon {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.qs-status[data-kind="color"] .qs-status-icon {
+  background: var(--qs-swatch) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.85),
+    0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 3px 8px -3px rgba(0, 0, 0, 0.4) !important;
+}
+
+.qs-status[data-kind="color"] .qs-status-glyph {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+/* Action buttons on the status: glass circles with a hairline divider */
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #161725 !important;
+  background-color: color-mix(in srgb, #ffffff 46%, transparent) !important;
+  box-shadow: inset 0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 10%),
+        transparent
+      ),
+    inset 2px 1px 0px -1px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 90%),
+        transparent
+      ),
+    inset -1.5px -1px 0px -1px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 80%),
+        transparent
+      ),
+    inset -2px -6px 1px -5px
+      color-mix(
+        in srgb,
+        var(--c-light) calc(var(--glass-reflex-light) * 60%),
+        transparent
+      ),
+    inset -1px 2px 3px -1px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 20%),
+        transparent
+      ),
+    inset 0px -4px 1px -2px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
+        transparent
+      ),
+    0px 3px 6px 0px
+      color-mix(
+        in srgb,
+        var(--c-dark) calc(var(--glass-reflex-dark) * 8%),
+        transparent
+      ) !important;
+  transition:
+    background 220ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    color 220ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 160ms ease !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn:first-of-type {
+  margin-left: 5px !important;
+  position: relative;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn:first-of-type::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn + .qs-save-btn {
+  margin-left: 2px !important;
+}
+
+.qs-status.qs-theme-glass.qs-theme-glass-dark[data-kind] .qs-save-btn {
+  color: #fff !important;
+  background-color: color-mix(in srgb, #ffffff 12%, transparent) !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn:hover {
+  color: #fff !important;
+  background: linear-gradient(160deg, #5b9bff, #2453f0) !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn.qs-status-annotate-btn:hover {
+  background: linear-gradient(160deg, #ff86ba, #ec3f86) !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn:active {
+  transform: scale(0.92);
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn svg {
+  width: 17px !important;
+  height: 17px !important;
+  margin: 0 !important;
+}
+
+/* Outcome glyphs are strokes on every theme (older rules filled status svgs
+   and switched strokes off, which blanked the cross and the "!"). */
+.qs-status.qs-status .qs-status-icon svg.qs-status-glyph,
+.qs-theme-glass.qs-status .qs-status-icon svg.qs-status-glyph,
+.qs-theme-dark .qs-status .qs-status-icon svg.qs-status-glyph {
+  fill: none !important;
+  stroke: #fff !important;
+  color: #fff !important;
+}
+
+/* Status message at its original, roomier size (76 px), with every part
+   scaled to match: 46 px tile and buttons, 16 px text, even insets. */
+.qs-status.qs-theme-glass[data-kind] {
+  height: auto !important;
+  min-height: 76px !important;
+  padding: 0 28px 0 15px !important;
+  gap: 14px !important;
+  font-size: 16px !important;
+}
+
+.qs-status.qs-theme-glass[data-kind]:has(.qs-save-btn) {
+  padding-right: 15px !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-status-icon {
+  width: 46px !important;
+  height: 46px !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-status-icon svg.qs-status-glyph {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn svg {
+  width: 21px !important;
+  height: 21px !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn:first-of-type {
+  margin-left: 8px !important;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn:first-of-type::before {
+  left: -12px;
+  top: 12px;
+  bottom: 12px;
+}
+
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn + .qs-save-btn {
+  margin-left: 4px !important;
+}
+
+.qs-status .qs-status-text {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.qs-status .qs-status-text b {
+  font: inherit !important;
+  font-weight: 600 !important;
+  color: inherit !important;
+}
+
+.qs-status .qs-status-text small {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  font-variant-numeric: tabular-nums !important;
+  color: inherit !important;
+  opacity: 0.62 !important;
+}

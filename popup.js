@@ -1,465 +1,246 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const noticeView = document.getElementById("notice-view");
-  const noticeGlow = document.getElementById("notice-glow");
-  const noticeIcon = document.getElementById("notice-icon");
-  const noticeTitle = document.getElementById("notice-title");
-  const noticeDesc = document.getElementById("notice-desc");
-  const noticeBadge = document.getElementById("notice-badge");
-  const noticeTip = document.getElementById("notice-tip");
-  const noticeTipText = document.getElementById("notice-tip-text");
-  const noticeActionBtn = document.getElementById("notice-action-btn");
-  const noticeActionText = document.getElementById("notice-action-text");
-  const noticeCloseBtn = document.getElementById("notice-close-btn");
-  const noticeFooterText = document.getElementById("notice-footer-text");
-  const noticePrefs = document.getElementById("notice-prefs");
-  const noticeShortcuts = document.getElementById("notice-shortcuts");
-  const noticeQuickActions = document.getElementById("notice-quick-actions");
-  const btnQuickVisible = document.getElementById("btn-quick-visible");
-  const btnQuickFull = document.getElementById("btn-quick-full");
+/**
+ * Toolbar popup.
+ *
+ * Normally a quick-action menu. On pages Chrome will not let extensions
+ * capture, it becomes a clear notice with a way out: capture the last
+ * normal tab in this window instead. The popup never captures anything
+ * itself; it asks the service worker and closes, so it cannot end up in
+ * the screenshot.
+ */
+import { getSettings } from "./src/settings.js";
+import { listCaptures } from "./src/storage.js";
+import { icon, hydrateIcons, enableSheen, formatNumber, send } from "./src/pageKit.js";
 
-  function applyThemeMode(theme) {
-    const activeTheme = theme || "light";
-    document.documentElement.setAttribute("data-theme", activeTheme);
-    // Light is default for menus; dark is active only when explicitly selected
-    const isDark = activeTheme === "dark";
-    document.body.classList.add("qs-theme-glass");
-    if (isDark) {
-      document.body.classList.add("dark-theme", "qs-theme-glass-dark");
-      document.body.classList.remove("light-theme");
-    } else {
-      document.body.classList.add("light-theme");
-      document.body.classList.remove("dark-theme", "qs-theme-glass-dark");
+const $ = (id) => document.getElementById(id);
+
+function isRestrictedUrl(url) {
+  if (!url) return true;
+  return (
+    /^(chrome|edge|about|chrome-extension|view-source|devtools):/i.test(url) ||
+    url.startsWith("https://chrome.google.com/webstore") ||
+    url.startsWith("https://chromewebstore.google.com")
+  );
+}
+
+function pageName(url) {
+  if (!url) return "This page";
+  if (url.startsWith("chrome-extension://")) return "An extension page";
+  if (/chromewebstore\.google\.com|chrome\.google\.com\/webstore/.test(url)) return "The Chrome Web Store";
+  const m = /^(chrome|edge|about|devtools|view-source):\/*([^/?#]*)/i.exec(url);
+  return m ? `${m[1]}://${m[2]}` : "This page";
+}
+
+/** Last normal tab in this window, remembered by the service worker. */
+async function lastCapturableTab(windowId) {
+  try {
+    const stored = (await chrome.storage.session.get([`lastTab:${windowId}`, "lastTab"])) || {};
+    for (const id of [stored[`lastTab:${windowId}`], stored.lastTab]) {
+      if (typeof id !== "number") continue;
+      const tab = await chrome.tabs.get(id).catch(() => null);
+      if (tab && !isRestrictedUrl(tab.url || "")) return tab;
     }
+  } catch {}
+  return null;
+}
+
+function hostOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url || "";
   }
+}
 
-  // Pre-seed theme: default to light liquid glass for these menus
-  document.body.classList.add("qs-theme-glass", "light-theme");
-  document.body.classList.remove("dark-theme", "qs-theme-glass-dark");
+async function showNotice({ glyph, title, sub, body, actions }) {
+  $("notice-glyph").innerHTML = icon(glyph);
+  $("notice-title").textContent = title;
+  $("notice-sub").textContent = sub;
+  $("notice-body").textContent = body;
+  $("notice-actions").replaceChildren(...actions);
+  $("notice").hidden = false;
+  $("actions").hidden = true;
+}
 
-  // Sync theme preference from storage (defaults to light for these menus)
-  chrome.storage.local.get(["userTheme", "outputFormat", "outputDestination"], (data) => {
-    const theme = data?.userTheme || "light";
-    applyThemeMode(theme);
+function cta({ iconName, title, detail, onClick }) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "notice-cta";
+  b.innerHTML = `${icon(iconName)}<span><b></b><small></small></span>${icon("arrow")}`;
+  b.querySelector("b").textContent = title;
+  b.querySelector("small").textContent = detail;
+  b.onclick = onClick;
+  return b;
+}
 
-    // Set active states on preference toggles
-    const activeFormat = data?.outputFormat || "jpg";
-    const activeDest = data?.outputDestination || "both";
-    const activeTheme = theme;
+function link(text, onClick) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "notice-link";
+  b.textContent = text;
+  b.onclick = onClick;
+  return b;
+}
 
-    document.querySelectorAll("#pref-format-toggle .qs-toggle-btn").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.format === activeFormat);
-    });
+function keysToHtml(shortcut) {
+  return shortcut
+    .split("+")
+    .map((k) => `<kbd class="kbd">${k.trim().replace(/[<>&]/g, "")}</kbd>`)
+    .join("");
+}
 
-    document.querySelectorAll("#pref-dest-toggle .qs-toggle-btn").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.dest === activeDest);
-    });
+async function toPng(blob) {
+  if (blob.type === "image/png") return blob;
+  const bmp = await createImageBitmap(blob);
+  const c = document.createElement("canvas");
+  c.width = bmp.width;
+  c.height = bmp.height;
+  c.getContext("2d").drawImage(bmp, 0, 0);
+  bmp.close();
+  return new Promise((r) => c.toBlob(r, "image/png"));
+}
 
-    document.querySelectorAll("#pref-theme-toggle .qs-toggle-btn").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.theme === activeTheme);
-    });
+async function renderRecent() {
+  let records = [];
+  try {
+    records = (await listCaptures()).filter((r) => !r.deletedAt);
+  } catch {}
+  if (records.length) {
+    $("gallery-count").textContent = formatNumber(records.length);
+    $("gallery-count").hidden = false;
+  }
+  const latest = records.slice(0, 3);
+  if (!latest.length) return;
+
+  const gridEl = $("recent-grid");
+  latest.forEach((r) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "recent-item";
+    b.title = r.title || "Capture";
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = URL.createObjectURL(r.thumb || r.blob);
+    const overlay = document.createElement("i");
+    overlay.innerHTML = icon("copy");
+    b.append(img, overlay);
+    b.onclick = async () => {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": toPng(r.blob) })]);
+        overlay.innerHTML = icon("check");
+        b.classList.add("is-copied");
+        setTimeout(() => {
+          overlay.innerHTML = icon("copy");
+          b.classList.remove("is-copied");
+        }, 1300);
+      } catch {
+        b.title = "Clipboard unavailable";
+      }
+    };
+    gridEl.appendChild(b);
   });
+  $("recent").hidden = false;
+}
 
-  // Keep in real-time sync with storage changes across tabs/windows
-  if (chrome.storage && chrome.storage.onChanged) {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "local") return;
-      if (changes.userTheme) {
-        const newTheme = changes.userTheme.newValue || "glass";
-        applyThemeMode(newTheme);
-        document.querySelectorAll("#pref-theme-toggle .qs-toggle-btn").forEach((btn) => {
-          btn.classList.toggle("active", btn.dataset.theme === newTheme);
-        });
-      }
-      if (changes.outputFormat) {
-        const newFormat = changes.outputFormat.newValue || "jpg";
-        document.querySelectorAll("#pref-format-toggle .qs-toggle-btn").forEach((btn) => {
-          btn.classList.toggle("active", btn.dataset.format === newFormat);
-        });
-      }
-      if (changes.outputDestination) {
-        const newDest = changes.outputDestination.newValue || "both";
-        document.querySelectorAll("#pref-dest-toggle .qs-toggle-btn").forEach((btn) => {
-          btn.classList.toggle("active", btn.dataset.dest === newDest);
-        });
-      }
-    });
-  }
+async function init() {
+  hydrateIcons();
 
-  function flashSavedBadge() {
-    const textEl = document.getElementById("sync-pill-text");
-    const dotEl = document.querySelector(".qs-sync-dot");
-    if (!textEl) return;
-    textEl.textContent = "Saved ✓";
-    textEl.style.color = "#10B981";
-    if (dotEl) {
-      dotEl.style.background = "#10B981";
-      dotEl.style.transform = "scale(1.35)";
-    }
-    setTimeout(() => {
-      textEl.textContent = "Auto-saved";
-      textEl.style.color = "";
-      if (dotEl) {
-        dotEl.style.transform = "";
-      }
-    }, 1200);
-  }
-
-  // Preference Toggle Handlers
-  const formatToggle = document.getElementById("pref-format-toggle");
-  if (formatToggle) {
-    formatToggle.addEventListener("click", (e) => {
-      const btn = e.target.closest(".qs-toggle-btn");
-      if (!btn) return;
-      const format = btn.dataset.format;
-      formatToggle.querySelectorAll(".qs-toggle-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      chrome.storage.local.set({ outputFormat: format }, () => flashSavedBadge());
-    });
-  }
-
-  const destToggle = document.getElementById("pref-dest-toggle");
-  if (destToggle) {
-    destToggle.addEventListener("click", (e) => {
-      const btn = e.target.closest(".qs-toggle-btn");
-      if (!btn) return;
-      const dest = btn.dataset.dest;
-      destToggle.querySelectorAll(".qs-toggle-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      chrome.storage.local.set({ outputDestination: dest }, () => flashSavedBadge());
-    });
-  }
-
-  const themeToggle = document.getElementById("pref-theme-toggle");
-  if (themeToggle) {
-    themeToggle.addEventListener("click", (e) => {
-      const btn = e.target.closest(".qs-toggle-btn");
-      if (!btn) return;
-      const theme = btn.dataset.theme;
-      themeToggle.querySelectorAll(".qs-toggle-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-
-      applyThemeMode(theme);
-
-      chrome.storage.local.set({ userTheme: theme }, () => {
-        flashSavedBadge();
-        chrome.tabs.query({}, (tabs) => {
-          tabs.forEach((t) => {
-            if (t.id) chrome.tabs.sendMessage(t.id, { type: "apply-theme", theme }).catch(() => {});
-          });
-        });
-      });
-    });
-  }
-
-  // OS detection for keyboard shortcuts hint
-  const isMac =
-    typeof navigator !== "undefined" &&
-    /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent);
-  const modKey = isMac ? "Ctrl" : "Alt";
-
-  if (noticeFooterText) {
-    noticeFooterText.innerHTML = `Press <kbd>${modKey}</kbd>+<kbd>X</kbd> on any webpage`;
-  }
-
-  // Set shortcuts table text if element exists
-  const scSelect = document.getElementById("sc-select");
-  const scVisible = document.getElementById("sc-visible");
-  const scTimer = document.getElementById("sc-timer");
-  const scHorizontal = document.getElementById("sc-horizontal");
-  const scFull = document.getElementById("sc-full");
-  if (scSelect) scSelect.textContent = `${modKey} + X`;
-  if (scVisible) scVisible.textContent = `${modKey} + S`;
-  if (scTimer) scTimer.textContent = `${modKey} + T`;
-  if (scHorizontal) scHorizontal.textContent = `${modKey} + H`;
-  if (scFull) scFull.textContent = `${modKey} + F`;
-
-  // Dismiss listeners
-  if (noticeCloseBtn) {
-    noticeCloseBtn.onclick = () => window.close();
-  }
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") window.close();
-  });
-
-  // Restore normal popup action on close/hide
+  // Lets the worker restore the per-tab action state when the popup closes.
   try {
     chrome.runtime.connect({ name: "popup-lifecycle" });
   } catch {}
 
-  window.addEventListener("pagehide", () => {
-    chrome.runtime.sendMessage({ type: "restore-tab-action" }).catch(() => {});
+  const view = new URLSearchParams(location.search).get("view");
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const url = tab?.url || "";
+
+  const goGallery = async () => {
+    await send({ type: "open-gallery" });
+    window.close();
+  };
+
+  if (view === "file-access" || (url.startsWith("file://") && !(await chrome.extension.isAllowedFileSchemeAccess()))) {
+    showNotice({
+      glyph: "lock",
+      title: "File access is off",
+      sub: "Local files need one permission",
+      body: "Turn on “Allow access to file URLs” for SwiftSelect, then reload this file to capture it.",
+      actions: [
+        cta({
+          iconName: "settings",
+          title: "Allow file access",
+          detail: "Opens SwiftSelect's extension details",
+          onClick: () => {
+            chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` });
+            window.close();
+          },
+        }),
+      ],
+    });
+  } else if (view === "restricted" || isRestrictedUrl(url)) {
+    const target = await lastCapturableTab(tab?.windowId);
+    const actions = [];
+    if (target) {
+      actions.push(
+        cta({
+          iconName: "tab",
+          title: "Capture your last tab",
+          detail: `${target.title || hostOf(target.url)} · ${hostOf(target.url)}`,
+          onClick: async () => {
+            await send({ type: "run-capture", mode: "region", tabId: target.id });
+            window.close();
+          },
+        }),
+      );
+    }
+    actions.push(link("Open Gallery instead", goGallery));
+    showNotice({
+      glyph: "lock",
+      title: "Can't capture this page",
+      sub: pageName(url),
+      body: "Chrome protects its own pages and the Web Store from every extension. Switch to a normal web page and SwiftSelect works as usual.",
+      actions,
+    });
+  }
+
+  // Live key bindings, exactly as Chrome has them.
+  try {
+    const commands = await chrome.commands.getAll();
+    for (const cmd of commands) {
+      const row = document.querySelector(`.action[data-command="${cmd.name}"] .action-keys`);
+      if (row && cmd.shortcut) row.innerHTML = keysToHtml(cmd.shortcut);
+    }
+  } catch {}
+
+  getSettings().then((s) => {
+    $("timer-label").textContent = `Delayed Capture (${s.captureDelay || 3}s)`;
   });
 
-  function showNotice({
-    badge = "Preferences",
-    iconType = "settings",
-    iconSvg,
-    title,
-    desc,
-    tip,
-    showPrefs = false,
-    showShortcuts = false,
-    showQuickActions = false,
-    actionText,
-    onAction,
-  }) {
-    if (noticeView) noticeView.style.display = "flex";
-    if (noticeBadge) noticeBadge.textContent = badge;
+  renderRecent();
 
-    if (noticeGlow) {
-      noticeGlow.className = `qs-notice-glow ${iconType}`;
-    }
-
-    if (noticeIcon) {
-      noticeIcon.className = `qs-notice-icon-wrapper ${iconType}`;
-      noticeIcon.innerHTML = iconSvg;
-    }
-
-    if (noticeTitle) noticeTitle.textContent = title;
-    if (noticeDesc) noticeDesc.textContent = desc;
-
-    if (noticeTip) {
-      if (tip) {
-        if (noticeTipText) {
-          noticeTipText.textContent = tip.replace(/^✦\s*/, "");
-        } else {
-          noticeTip.textContent = tip;
-        }
-        noticeTip.style.display = "flex";
-      } else {
-        noticeTip.style.display = "none";
-      }
-    }
-
-    if (noticePrefs) {
-      noticePrefs.style.display = showPrefs ? "flex" : "none";
-    }
-
-    if (noticeShortcuts) {
-      noticeShortcuts.style.display = showShortcuts ? "flex" : "none";
-    }
-
-    if (noticeQuickActions) {
-      noticeQuickActions.style.display = showQuickActions ? "flex" : "none";
-    }
-
-    if (noticeActionBtn) {
-      if (actionText && onAction) {
-        if (noticeActionText) noticeActionText.textContent = actionText;
-        noticeActionBtn.style.display = "inline-flex";
-        noticeActionBtn.onclick = onAction;
-      } else {
-        noticeActionBtn.style.display = "none";
-      }
-    }
-  }
-
-  function renderRestrictedView() {
-    showNotice({
-      badge: "Chrome Policy",
-      iconType: "warning",
-      iconSvg:
-        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="10" width="6" height="5" rx="1"/><path d="M10 10V8a2 2 0 1 1 4 0v2"/></svg>',
-      title: "Browser Protected Page",
-      desc: "Chrome security policies prevent extensions from running on system settings, extensions, and the Web Store.",
-      tip: "SwiftSelect is active! Preferences and hotkeys configured below apply across all regular web pages.",
-      showPrefs: true,
-      showShortcuts: true,
-      showQuickActions: false,
-      actionText: "Configure Chrome Shortcuts",
-      onAction: () => {
-        chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-        window.close();
-      },
+  document.querySelectorAll(".action").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      await send({ type: "run-capture", mode: btn.dataset.mode, tabId: tab?.id });
+      window.close();
     });
-    if (noticeFooterText) {
-      noticeFooterText.innerHTML = `Active on all regular websites • <kbd>${modKey}</kbd>+<kbd>X</kbd>`;
-    }
-  }
-
-  function renderFileAccessView() {
-    showNotice({
-      badge: "File Permission",
-      iconType: "file",
-      iconSvg:
-        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><rect x="9" y="13" width="6" height="5" rx="1"/><path d="M10 13v-1.5a2 2 0 1 1 4 0V13"/></svg>',
-      title: "Local File Access",
-      desc: "To capture locally opened HTML or PDF files, Chrome requires explicit permission enabled in extension settings.",
-      tip: "Turn on \"Allow access to file URLs\" in the extension settings tab.",
-      showPrefs: true,
-      showShortcuts: true,
-      showQuickActions: false,
-      actionText: "Open Extension Settings",
-      onAction: () => {
-        chrome.tabs.create({
-          url: `chrome://extensions/?id=${chrome.runtime.id}`,
-        });
-        window.close();
-      },
-    });
-  }
-
-  function isRestrictedUrl(url) {
-    if (!url) return true;
-    return (
-      url.startsWith("chrome://") ||
-      url.startsWith("edge://") ||
-      url.startsWith("about:") ||
-      url.startsWith("chrome-extension://") ||
-      url.startsWith("view-source:") ||
-      url.startsWith("devtools://") ||
-      url.startsWith("https://chrome.google.com/webstore") ||
-      url.startsWith("https://chromewebstore.google.com")
-    );
-  }
-
-  function sendMessageToTab(tabId, type, closeWindow = true) {
-    chrome.tabs.sendMessage(tabId, { type }, (response) => {
-      if (chrome.runtime.lastError) {
-        if (
-          chrome.runtime.lastError.message.includes(
-            "Receiving end does not exist",
-          )
-        ) {
-          chrome.scripting.executeScript(
-            {
-              target: { tabId },
-              files: ["contentScript.js"],
-            },
-            () => {
-              if (chrome.runtime.lastError) {
-                console.error("Injection failed:", chrome.runtime.lastError);
-                return;
-              }
-              setTimeout(() => {
-                chrome.tabs.sendMessage(tabId, { type });
-                if (closeWindow) window.close();
-              }, 150);
-            },
-          );
-        } else {
-          console.error("Message failed:", chrome.runtime.lastError);
-        }
-      } else {
-        if (closeWindow) window.close();
-      }
-    });
-  }
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const viewParam = urlParams.get("view");
-
-  if (viewParam === "restricted") {
-    renderRestrictedView();
-    return;
-  }
-
-  if (viewParam === "file-access") {
-    renderFileAccessView();
-    return;
-  }
-
-  if (viewParam === "settings" || viewParam === "options" || window.location.pathname.endsWith("options.html")) {
-    document.body.classList.add("options-mode");
-    showNotice({
-      badge: "Preferences",
-      iconType: "settings",
-      iconSvg:
-        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
-      title: "SwiftSelect Settings",
-      desc: "Customize default export format, destination and appearance.",
-      tip: "Changes save automatically and sync across your browser sessions.",
-      showPrefs: true,
-      showShortcuts: true,
-      showQuickActions: false,
-      actionText: "Configure Chrome Shortcuts",
-      onAction: () => {
-        chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-        window.close();
-      },
-    });
-    return;
-  }
-
-  if (viewParam === "help") {
-    showNotice({
-      badge: "Shortcuts",
-      iconType: "help",
-      iconSvg:
-        '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-      title: "Keyboard Shortcuts & Guide",
-      desc: "Use quick hotkeys on any webpage to snap and save instantly.",
-      tip: null,
-      showPrefs: false,
-      showShortcuts: true,
-      showQuickActions: false,
-      actionText: "Customize Shortcuts in Chrome",
-      onAction: () => {
-        chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-        window.close();
-      },
-    });
-    return;
-  }
-
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const tab = tabs[0];
-    if (!tab || !tab.url) return;
-
-    if (isRestrictedUrl(tab.url)) {
-      renderRestrictedView();
-      return;
-    }
-
-    if (tab.url.startsWith("file://")) {
-      chrome.extension.isAllowedFileSchemeAccess((isAllowed) => {
-        if (!isAllowed) {
-          renderFileAccessView();
-          return;
-        }
-
-        initSupportedTab(tab.id);
-      });
-      return;
-    }
-
-    initSupportedTab(tab.id);
   });
 
-  function initSupportedTab(tabId) {
-    const isMacPlatform =
-      typeof navigator !== "undefined" &&
-      /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent);
-    const shortcut = isMacPlatform ? "Ctrl+X" : "Alt+X";
+  $("open-settings").addEventListener("click", async () => {
+    await send({ type: "open-settings" });
+    window.close();
+  });
+  $("open-gallery").addEventListener("click", goGallery);
+  $("recent-all").addEventListener("click", goGallery);
 
-    const brandIconSvg =
-      '<img src="icons/icon48.png" width="22" height="22" alt="SwiftSelect" style="display:block;border-radius:5px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.18));" />';
+  // Arrow keys move between actions (no single-key shortcuts here).
+  const actionEls = [...document.querySelectorAll(".action")];
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    if ($("actions").hidden) return;
+    e.preventDefault();
+    const i = actionEls.indexOf(document.activeElement);
+    const next = e.key === "ArrowDown" ? (i + 1) % actionEls.length : (i - 1 + actionEls.length) % actionEls.length;
+    actionEls[next].focus();
+  });
+}
 
-    showNotice({
-      badge: "SwiftSelect",
-      iconType: "brand",
-      iconSvg: brandIconSvg,
-      title: "SwiftSelect",
-      desc: "Instant area capture, copy & full page screenshot.",
-      tip: `Ready to snap: Press ${shortcut} on any webpage to select area.`,
-      showPrefs: true,
-      showShortcuts: false,
-      showQuickActions: true,
-      actionText: `Start Area Capture (${shortcut})`,
-      onAction: () => {
-        sendMessageToTab(tabId, "start-selection", true);
-      },
-    });
-
-    if (btnQuickVisible) {
-      btnQuickVisible.onclick = () => {
-        sendMessageToTab(tabId, "capture-visible", true);
-      };
-    }
-    if (btnQuickFull) {
-      btnQuickFull.onclick = () => {
-        sendMessageToTab(tabId, "capture-full", true);
-      };
-    }
-  }
-});
+init();

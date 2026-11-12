@@ -6,6 +6,20 @@ import * as ui from "./ui.js";
 import * as events from "./events.js";
 import * as region from "./capture/region.js";
 import * as fullpage from "./capture/fullpage.js";
+import { getOutputSettings, getOutputSettingsSync } from "./capture/utils.js";
+
+/**
+ * Run a capture now, or after the countdown the user chose in Settings.
+ * Region selection is interactive and is never delayed.
+ */
+async function afterDelay(ui, run) {
+  const { delay } = await getOutputSettings();
+  if (delay > 0 && ui.startTimedCountdown) {
+    ui.startTimedCountdown(delay, run);
+  } else {
+    run();
+  }
+}
 
 if (typeof window !== "undefined" && window === window.top && !window.__swiftSelectInjected_v2) {
   window.SwiftSelect = window.SwiftSelect || {};
@@ -36,16 +50,16 @@ if (typeof window !== "undefined" && window === window.top && !window.__swiftSel
         message.type === "capture-visible" ||
         message.type === "capture-download"
       ) {
-        region.handleCaptureVisible();
+        afterDelay(ui, () => region.handleCaptureVisible());
         sendResponse({ success: true });
       } else if (message.type === "capture-timer") {
-        region.handleTimedCapture(3);
+        region.handleTimedCapture(getOutputSettingsSync().delay || 3);
         sendResponse({ success: true });
       } else if (message.type === "capture-horizontal") {
-        fullpage.handleCaptureHorizontal();
+        afterDelay(ui, () => fullpage.handleCaptureHorizontal());
         sendResponse({ success: true });
       } else if (message.type === "capture-full") {
-        fullpage.handleCaptureFullPage();
+        afterDelay(ui, () => fullpage.handleCaptureFullPage());
         sendResponse({ success: true });
       } else if (message.type === "show-help-modal") {
         ui.showShortcutsHelpModal();

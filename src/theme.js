@@ -2,29 +2,28 @@
  * Theme management for SwiftSelect
  */
 
-export let currentUserTheme = "glass";
+/**
+ * Stored values: "system" (glass, tone follows the page), "light",
+ * "dark". "glass" is the pre-2.0 name for "system" and
+ * "standard" is the legacy flat palette, still honoured if present.
+ */
+export let currentUserTheme = "system";
+
+function _normalizeTheme(value) {
+  if (value === "light" || value === "dark" || value === "standard") return value;
+  return "system";
+}
 
 export function init() {
   if (chrome.storage && chrome.storage.local) {
-    chrome.storage.local.get(["userTheme", "glassThemeMigrated"], (data) => {
-      if (!data.glassThemeMigrated) {
-        currentUserTheme = "glass";
-        applyTheme("glass");
-        chrome.storage.local.set({
-          userTheme: "glass",
-          glassThemeMigrated: true,
-        });
-      } else if (data.userTheme) {
-        currentUserTheme = data.userTheme;
-        applyTheme(currentUserTheme);
-      } else {
-        applyTheme(currentUserTheme);
-      }
+    chrome.storage.local.get(["userTheme"], (data) => {
+      currentUserTheme = _normalizeTheme(data?.userTheme);
+      applyTheme(currentUserTheme);
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === "local" && changes.userTheme) {
-        currentUserTheme = changes.userTheme.newValue || "glass";
+        currentUserTheme = _normalizeTheme(changes.userTheme.newValue);
         applyTheme(currentUserTheme);
       }
     });
@@ -33,7 +32,7 @@ export function init() {
   if (chrome.runtime && chrome.runtime.onMessage) {
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg?.type === "apply-theme" && msg.theme) {
-        currentUserTheme = msg.theme;
+        currentUserTheme = _normalizeTheme(msg.theme);
         applyTheme(currentUserTheme);
       }
     });
@@ -97,11 +96,8 @@ export function init() {
 }
 
 export function handleThemeToggle() {
-  if (currentUserTheme === "glass") {
-    currentUserTheme = "standard";
-  } else {
-    currentUserTheme = "glass";
-  }
+  const order = ["system", "light", "dark"];
+  currentUserTheme = order[(order.indexOf(_normalizeTheme(currentUserTheme)) + 1) % order.length];
   applyTheme(currentUserTheme);
   chrome.storage.local.set({ userTheme: currentUserTheme });
 }
@@ -142,12 +138,12 @@ export function applyTheme(theme = currentUserTheme) {
   const isDarkSite =
     theme === "dark" ? true : theme === "light" ? false : isPageDark();
 
-  if (theme === "standard" || theme === "light" || theme === "dark") {
+  if (theme === "standard") {
     _applyStandardPalette(decorative, isDarkSite);
     if (isDarkSite) {
       decorative.forEach((el) => el.classList.add("qs-theme-dark"));
     }
-  } else if (theme === "glass") {
+  } else {
     if (isDarkSite) {
       decorative.forEach((el) =>
         el.classList.add("qs-theme-glass", "qs-theme-glass-dark")
@@ -195,12 +191,13 @@ export function applyElementTheme(
     "qs-theme-glass-dark",
   );
 
-  if (theme === "standard" || theme === "light" || theme === "dark") {
+  if (theme === "standard") {
     _applyStandardPalette([el], isDark);
     if (isDark) {
       el.classList.add("qs-theme-dark");
     }
-  } else if (theme === "glass") {
+  } else {
+    // system / light / dark are all Liquid Glass; only the tone differs.
     if (isDark) {
       el.classList.add("qs-theme-glass", "qs-theme-glass-dark");
     } else {

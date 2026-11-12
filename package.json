@@ -1,8 +1,12 @@
 {
   "name": "swiftselect",
-  "version": "1.6.6",
+  "version": "2.2.0",
   "type": "module",
   "scripts": {
-    "build": "npx --yes esbuild styles.css --minify --outfile=src/styles.min.css && npx --yes esbuild src/contentScript.js --bundle --minify --format=iife --loader:.css=text --target=chrome100 --outfile=contentScript.js"
+    "build:css": "npx --yes esbuild styles.css --minify --outfile=src/styles.min.css",
+    "build:content": "npx --yes esbuild src/contentScript.js --bundle --minify --format=iife --loader:.css=text --target=chrome100 --outfile=contentScript.js",
+    "build:annotate": "npx --yes esbuild src/annotatePage.js --bundle --minify --format=iife --loader:.css=text --target=chrome100 --outfile=annotatePage.js",
+    "build": "npm run build:css && npm run build:content && npm run build:annotate",
+    "check": "node --check background.js && node --check offscreen.js && node --check popup.js && node --check gallery.js && node --check options.js && node --check src/storage.js && node --check src/settings.js && node --check src/pageTheme.js"
   }
 }

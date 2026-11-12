@@ -1,11 +1,10 @@
 import {
   loadImage,
   toggleCursor,
-  getOutputSettings,
   detectStandaloneMediaOrActiveBounds,
   writeImageBlobToClipboard,
 } from "./utils.js";
-import { setLastBlob, handleSaveAction } from "./download.js";
+import { deliverCanvas } from "./deliver.js";
 
 export { writeImageBlobToClipboard };
 
@@ -71,7 +70,11 @@ export async function handleCaptureVisible(options = {}) {
     window.SwiftSelect?.theme?.setTabScreenshot?.(resp.dataUrl);
 
     const img = await loadImage(resp.dataUrl);
-    const dpr = window.devicePixelRatio || 1;
+    // Scale from the snapshot itself, not devicePixelRatio: browser zoom,
+    // emulated displays and some capture paths hand back an image whose
+    // pixel density differs from the reported ratio.
+    const measured = img.width / window.innerWidth;
+    const dpr = Number.isFinite(measured) && measured > 0 ? measured : window.devicePixelRatio || 1;
 
     // Detect standalone media or active bounded area
     const mediaInfo = detectStandaloneMediaOrActiveBounds();
@@ -109,102 +112,8 @@ export async function handleCaptureVisible(options = {}) {
     ctx.fillRect(0, 0, safeCropW, safeCropH);
     ctx.drawImage(img, cropX, cropY, safeCropW, safeCropH, 0, 0, safeCropW, safeCropH);
 
-    const { format, destination } = await getOutputSettings();
-    const ext = format === "png" ? "png" : "jpg";
-    const forceDownload = !!options?.forceDownload;
-
-    let exportBlob = null;
-    let clipboardSuccess = false;
-
-    if (destination === "clipboard" && !forceDownload) {
-      exportBlob = await new Promise((res, rej) =>
-        canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
-      );
-      setLastBlob(exportBlob, "png");
-      clipboardSuccess = await writeImageBlobToClipboard(exportBlob);
-
-      if (!clipboardSuccess) {
-        // Fallback: download if copy fails
-        handleSaveAction("png");
-        window.SwiftSelect.ui.setStatus(
-          "Saved (Clipboard Blocked)",
-          5000,
-          "saved",
-          false,
-          { sourceBlob: exportBlob },
-        );
-        return;
-      }
-
-      window.SwiftSelect.ui.triggerFlash();
-      window.SwiftSelect.ui.setStatus("Copied to Clipboard", 5000, "success", false, {
-        sourceBlob: exportBlob,
-      });
-      return;
-    }
-
-    if (destination === "download" || (destination === "clipboard" && forceDownload)) {
-      exportBlob = await new Promise((res, rej) =>
-        canvas.toBlob(
-          (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-          format === "png" ? "image/png" : "image/jpeg",
-          format === "png" ? 1.0 : 0.98,
-        ),
-      );
-      setLastBlob(exportBlob, ext);
-      handleSaveAction(ext);
-
-      if (destination === "clipboard" && forceDownload) {
-        let clipBlob = exportBlob;
-        if (format !== "png") {
-          clipBlob = await new Promise((res, rej) =>
-            canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
-          );
-        }
-        if (clipBlob) {
-          clipboardSuccess = await writeImageBlobToClipboard(clipBlob);
-        }
-      }
-
-      window.SwiftSelect.ui.triggerFlash();
-      const statusMsg =
-        destination === "clipboard" && forceDownload
-          ? clipboardSuccess
-            ? "Copied & Saved"
-            : "Image Saved"
-          : "Image Saved";
-
-      window.SwiftSelect.ui.setStatus(statusMsg, 5000, "saved", false, {
-        sourceBlob: exportBlob,
-      });
-      return;
-    }
-
-    // destination === "both"
-    if (format === "png") {
-      exportBlob = await new Promise((res, rej) =>
-        canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
-      );
-      setLastBlob(exportBlob, "png");
-      clipboardSuccess = await writeImageBlobToClipboard(exportBlob);
-      handleSaveAction("png");
-    } else {
-      const pngBlob = await new Promise((res, rej) =>
-        canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
-      );
-      clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
-
-      exportBlob = await new Promise((res, rej) =>
-        canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/jpeg", 0.92),
-      );
-      setLastBlob(exportBlob, "jpg");
-      handleSaveAction("jpg");
-    }
-
-    window.SwiftSelect.ui.triggerFlash();
-    const statusMsg = clipboardSuccess ? "Copied & Saved" : "Image Saved";
-    window.SwiftSelect.ui.setStatus(statusMsg, 5000, "saved", false, {
-      sourceBlob: exportBlob,
+    await deliverCanvas(canvas, {
+      type: options?.type || "visible",
     });
   } catch (err) {
     console.error("handleCaptureVisible error:", err);
@@ -254,7 +163,11 @@ export async function captureAndCrop(viewRect, shouldFlash = false) {
     }
 
     const img = await loadImage(dataUrl);
-    const dpr = window.devicePixelRatio || 1;
+    // Scale from the snapshot itself, not devicePixelRatio: browser zoom,
+    // emulated displays and some capture paths hand back an image whose
+    // pixel density differs from the reported ratio.
+    const measured = img.width / window.innerWidth;
+    const dpr = Number.isFinite(measured) && measured > 0 ? measured : window.devicePixelRatio || 1;
     const sx = Math.round(viewRect.left * dpr);
     const sy = Math.round(viewRect.top * dpr);
     const sw = Math.round(viewRect.width * dpr);
@@ -271,91 +184,10 @@ export async function captureAndCrop(viewRect, shouldFlash = false) {
     ctx.fillRect(0, 0, safeSw, safeSh);
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, safeSw, safeSh);
 
-    const { format, destination } = await getOutputSettings();
-    const ext = format === "png" ? "png" : "jpg";
-
-    let exportBlob = null;
-    let clipboardSuccess = false;
-
-    if (destination === "clipboard") {
-      exportBlob = await new Promise((res, rej) =>
-        canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
-      );
-      setLastBlob(exportBlob, "png");
-      clipboardSuccess = await writeImageBlobToClipboard(exportBlob);
-
-      if (!clipboardSuccess) {
-        // Fallback: download if copy fails during selection
-        handleSaveAction("png");
-        window.SwiftSelect.ui.setStatus(
-          "Saved (Clipboard Blocked)",
-          5000,
-          "saved",
-          false,
-          { sourceBlob: exportBlob },
-        );
-        return;
-      }
-
-      if (shouldFlash) {
-        window.SwiftSelect.ui.triggerFlash?.(viewRect);
-      }
-
-      window.SwiftSelect.ui.setStatus("Copied to Clipboard", 5000, "success", false, {
-        sourceBlob: exportBlob,
-      });
-      return;
-    }
-
-    if (destination === "download") {
-      exportBlob = await new Promise((res, rej) =>
-        canvas.toBlob(
-          (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-          format === "png" ? "image/png" : "image/jpeg",
-          format === "png" ? 1.0 : 0.98,
-        ),
-      );
-      setLastBlob(exportBlob, ext);
-      handleSaveAction(ext);
-    } else {
-      // destination === "both"
-      if (format === "png") {
-        exportBlob = await new Promise((res, rej) =>
-          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
-        );
-        setLastBlob(exportBlob, "png");
-        clipboardSuccess = await writeImageBlobToClipboard(exportBlob);
-        handleSaveAction("png");
-      } else {
-        const pngBlob = await new Promise((res, rej) =>
-          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png"),
-        );
-        clipboardSuccess = await writeImageBlobToClipboard(pngBlob);
-
-        exportBlob = await new Promise((res, rej) =>
-          canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/jpeg", 0.98),
-        );
-        setLastBlob(exportBlob, "jpg");
-        handleSaveAction("jpg");
-      }
-    }
-
-    if (shouldFlash) {
-      window.SwiftSelect.ui.triggerFlash?.(viewRect);
-    }
-
-    let statusMsg = "Selection Captured";
-    let statusType = "saved";
-    if (destination === "both") {
-      statusMsg = clipboardSuccess ? "Copied & Saved" : "Image Saved";
-      statusType = "saved";
-    } else if (destination === "download") {
-      statusMsg = "Image Saved";
-      statusType = "saved";
-    }
-
-    window.SwiftSelect.ui.setStatus(statusMsg, 5000, statusType, false, {
-      sourceBlob: exportBlob,
+    await deliverCanvas(canvas, {
+      type: "region",
+      flash: shouldFlash,
+      flashRect: viewRect,
     });
   } catch (err) {
     console.error("captureAndCrop error:", err);

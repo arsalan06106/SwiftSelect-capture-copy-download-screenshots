@@ -21,6 +21,7 @@ import {
   isPageDark,
 } from "./theme.js";
 import { removeListeners } from "./events.js";
+import { getOutputSettingsSync } from "./capture/utils.js";
 import { openAnnotationEditor } from "./capture/annotate.js";
 import { handleSaveAction, getLastBlob } from "./capture/download.js";
 import stylesCss from "./styles.min.css";
@@ -231,6 +232,105 @@ export function removeCrosshairCursor() {
   } catch {}
 }
 
+// ─── Movable capture toolbar ─────────────────────────────────────────
+// Press anywhere on the toolbar and move more than a few pixels to drag it;
+// a press that does not move is still a click. No grip needed. The spot is
+// remembered as a fraction of the window, so it survives reloads and window
+// resizes. Double-click the empty glass to send it home.
+
+let _guidePos = null;
+try {
+  chrome.storage?.local?.get?.(["toolbarPosition"], (d) => {
+    if (d?.toolbarPosition && typeof d.toolbarPosition.x === "number") {
+      _guidePos = d.toolbarPosition;
+      if (guideEl?.isConnected) applyGuidePos(guideEl);
+    }
+  });
+} catch {}
+
+function applyGuidePos(el) {
+  if (!_guidePos) {
+    el.style.removeProperty("left");
+    el.style.removeProperty("top");
+    el.style.removeProperty("right");
+    return;
+  }
+  const r = el.getBoundingClientRect();
+  const w = r.width || 400;
+  const h = r.height || 64;
+  const left = Math.max(8, Math.min(window.innerWidth - w - 8, _guidePos.x * window.innerWidth));
+  const top = Math.max(8, Math.min(window.innerHeight - h - 8, _guidePos.y * window.innerHeight));
+  el.style.setProperty("left", `${Math.round(left)}px`, "important");
+  el.style.setProperty("top", `${Math.round(top)}px`, "important");
+  el.style.setProperty("right", "auto", "important");
+}
+
+function makeGuideDraggable(el) {
+  let drag = null;
+  let suppressClick = false;
+  const stop = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+  el.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    suppressClick = false;
+    const r = el.getBoundingClientRect();
+    drag = { sx: e.clientX, sy: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, w: r.width, h: r.height, id: e.pointerId, active: false };
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    if (!drag.active) {
+      if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 6) return;
+      drag.active = true;
+      try {
+        el.setPointerCapture(drag.id);
+      } catch {}
+      el.classList.add("qs-dragging");
+      hideCustomTooltip();
+    }
+    stop(e);
+    const left = Math.max(8, Math.min(window.innerWidth - drag.w - 8, e.clientX - drag.ox));
+    const top = Math.max(8, Math.min(window.innerHeight - drag.h - 8, e.clientY - drag.oy));
+    _guidePos = { x: left / window.innerWidth, y: top / window.innerHeight };
+    applyGuidePos(el);
+  });
+  const end = (e) => {
+    if (!drag) return;
+    const wasDragging = drag.active;
+    drag = null;
+    el.classList.remove("qs-dragging");
+    if (!wasDragging) return;
+    suppressClick = true;
+    stop(e);
+    try {
+      chrome.storage.local.set({ toolbarPosition: _guidePos });
+    } catch {}
+  };
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", end);
+  // The click that ends a drag is not a button press.
+  el.addEventListener(
+    "click",
+    (e) => {
+      if (!suppressClick) return;
+      suppressClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+    },
+    true,
+  );
+  el.addEventListener("dblclick", (e) => {
+    if (e.target.closest?.("button")) return;
+    _guidePos = null;
+    applyGuidePos(el);
+    try {
+      chrome.storage.local.remove("toolbarPosition");
+    } catch {}
+  });
+  requestAnimationFrame(() => applyGuidePos(el));
+}
+
 export async function ensureUi() {
   if (document.getElementById("swiftselect-annotate-root")) {
     return;
@@ -351,6 +451,7 @@ export async function ensureUi() {
     const buttonsSet = document.createElement("div");
     buttonsSet.className = "qs-guide-buttons";
     guideEl.appendChild(buttonsSet);
+    makeGuideDraggable(guideEl);
 
     const segmented = document.createElement("div");
     segmented.className = "qs-segmented";
@@ -478,6 +579,23 @@ export async function ensureUi() {
       e?.stopPropagation?.();
       handleCaptureFullPage();
     };
+    // Gallery: the quick menu is no longer the default, so the toolbar is
+    // where the gallery has to be one click away.
+    const galleryBtn = document.createElement("button");
+    galleryBtn.className = "qs-guide-btn qs-gallery-btn";
+    galleryBtn.dataset.action = "gallery";
+    galleryBtn.setAttribute("aria-label", "Open Gallery");
+    galleryBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect class="gal-frame" x="3" y="4" width="18" height="16" rx="3"/><circle class="gal-sun" cx="8.5" cy="9.5" r="1.6"/><path class="gal-hills" d="m4 17 5-4.5 3.5 3L16 12l4.5 4.5"/></svg>';
+    buttonsSet.appendChild(galleryBtn);
+    galleryBtn.onclick = (e) => {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      window.SwiftSelect?.events?.cleanup?.();
+      cleanup();
+      openGallery();
+    };
+
     annotateBtn.onclick = (e) => {
       e?.preventDefault?.();
       e?.stopPropagation?.();
@@ -492,7 +610,7 @@ export async function ensureUi() {
     const keyS = isMac ? "Ctrl+S" : "Alt+S";
     const keyH = isMac ? "Ctrl+H" : "Alt+H";
     const keyF = isMac ? "Ctrl+F" : "Alt+F";
-    const keyA = isMac ? "Ctrl+A" : "Alt+A";
+    const keyA = getOutputSettingsSync().toolbarShortcuts ? "A" : "";
 
     attachTooltip(
       visibleBtn,
@@ -513,6 +631,12 @@ export async function ensureUi() {
       keyF,
     );
     attachTooltip(
+      galleryBtn,
+      "Gallery",
+      "Every capture you have taken, ready to copy, download or annotate.",
+      getOutputSettingsSync().toolbarShortcuts ? "G" : "",
+    );
+    attachTooltip(
       annotateBtn,
       "Annotate Editor",
       "Draw arrows, boxes, step counters, and blur sensitive text.",
@@ -526,11 +650,34 @@ export async function ensureUi() {
       hideCustomTooltip();
       return;
     }
+    // Theme first, then reflow: if the reflow came first the browser would
+    // compute the unthemed colours and animate from them (a visible flash).
+    applyElementTheme(guideEl, currentUserTheme);
     guideHost.style.display = "flex";
     guideEl.classList.remove("qs-hiding");
     void guideEl.offsetWidth;
-    applyElementTheme(guideEl, currentUserTheme);
   }
+}
+
+/**
+ * Pointer-tracked specular highlight for glass buttons: the light sits where
+ * the pointer is, the way a real glass surface catches it. Writes two CSS
+ * variables per move, nothing else.
+ */
+export function trackSheen(root, selector = ".qs-guide-btn, .qs-save-btn, .qs-stroke-tune-btn") {
+  if (!root || root._qsSheen) return;
+  root._qsSheen = true;
+  root.addEventListener(
+    "pointermove",
+    (e) => {
+      const btn = e.target?.closest?.(selector);
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      btn.style.setProperty("--qs-mx", `${Math.round(e.clientX - r.left)}px`);
+      btn.style.setProperty("--qs-my", `${Math.round(e.clientY - r.top)}px`);
+    },
+    { passive: true },
+  );
 }
 
 export let menuTooltipEl = null;
@@ -800,67 +947,79 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
   const iconEl = document.createElement("div");
   iconEl.className = "qs-status-icon";
 
-  let iconSvg = null;
-  let hasCustomStroke = false;
-  if (type === "info" || (!type && !msg.includes("Copied"))) {
-    iconSvg = createSvg("0 0 24 24", {
-      d: "M21.17,15.4l-5.91-9.85C14.48,4.25,13.3,3.51,12,3.51S9.52,4.25,8.74,5.54L2.83,15.4c-0.44,0.73-0.66,1.49-0.66,2.21c0,0.57,0.14,1.13,0.42,1.62C3.23,20.35,4.47,21,6,21h12c1.53,0,2.77-0.65,3.41-1.77c0.28-0.49,0.42-1.02,0.42-1.58C21.84,16.91,21.62,16.14,21.17,15.4z M12,8.45c0.85,0,1.55,0.7,1.55,1.55c0,0.85-0.69,1.55-1.55,1.55c-0.85,0-1.55-0.7-1.55-1.55C10.45,9.14,11.14,8.45,12,8.45z M13.69,16.91c-0.03,0.04-0.8,0.92-2.07,0.92l-0.15,0c-0.51-0.03-0.93-0.25-1.18-0.63c-0.31-0.47-0.36-1.11-0.12-1.82l0.41-1.22c0.23-0.68,0.01-0.79-0.11-0.85l-0.14-0.02c-0.25,0-0.6,0.15-0.71,0.21c-0.1,0.05-0.23,0.03-0.31-0.07c-0.07-0.1-0.07-0.23,0.01-0.32c0.03-0.04,0.87-0.99,2.22-0.91c0.51,0.03,0.93,0.25,1.18,0.63c0.32,0.47,0.36,1.11,0.12,1.83l-0.41,1.22c-0.23,0.68-0.01-0.79,0.11,0.85l0.14,0.02c0.25,0,0.6-0.15,0.71-0.2c0.11-0.06,0.23-0.03,0.31,0.07C13.77,16.69,13.77,16.82,13.69,16.91z",
-    });
-  }
-
-  if (type === "error") {
-    iconSvg = createSvg("0 0 51.976 51.976", {
-      d: "M44.373,7.603c-10.137-10.137-26.632-10.138-36.77,0c-10.138,10.138-10.137,26.632,0,36.77s26.632,10.138,36.77,0C54.51,34.235,54.51,17.74,44.373,7.603z M36.241,36.241c-0.781,0.781-2.047,0.781-2.828,0l-7.425-7.425l-7.778,7.778c-0.781,0.781-2.047,0.781-2.828,0c-0.781-0.781-0.781-2.047,0-2.828l7.778-7.778l-7.425-7.425c-0.781-0.781-0.781-2.048,0-2.828c0.781-0.781,2.047-0.781,2.828,0l7.425,7.425l7.071-7.071c0.781-0.781,2.047-0.781,2.828,0c0.781,0.781,0.781,2.047,0,2.828l-7.071,7.071l7.425,7.425C37.022,34.194,37.022,35.46,36.241,36.241z",
-    });
-  } else if (type === "success" || type === "saved") {
-    iconSvg = createSvg("0 0 16 16", {
-      d: "m1.75 9.75 2.5 2.5m3.5-4 2.5-2.5m-4.5 4 2.5 2.5 6-6.5",
-    });
-    iconSvg.setAttribute("fill", "none");
-    iconSvg.setAttribute("stroke", "var(--qs-icon-fill)");
-    iconSvg.setAttribute("stroke-linecap", "round");
-    iconSvg.setAttribute("stroke-linejoin", "round");
-    iconSvg.setAttribute("stroke-width", "1.5");
-    hasCustomStroke = true;
-  }
-
-  if (iconSvg) {
-    if (hasCustomStroke) {
-      iconSvg.style.width = "28px";
-      iconSvg.style.height = "28px";
-      iconSvg.style.paddingBottom = "2px";
-    } else {
-      iconSvg.style.width = "100%";
-      iconSvg.style.height = "100%";
-      if (iconSvg.getAttribute("stroke") && !iconSvg.getAttribute("fill")) {
-        iconSvg.style.fill = "none";
-        iconSvg.style.stroke = "currentColor";
-      } else {
-        iconSvg.style.fill = "currentColor";
-      }
-    }
-    iconEl.appendChild(iconSvg);
-  }
+  // One stroke glyph per outcome, drawn white on a tile in the outcome's
+  // colour. The kind also tints the pill's glass (see data-kind in CSS).
+  const GLYPHS = {
+    success: "M5.5 12.5l4.2 4.2L18.5 7.5",
+    saved: "M12 4.5v10M7.8 10.6L12 14.8l4.2-4.2M5.5 19h13",
+    error: "M12 6v8M12 18.4v.01",
+    cancel: "M7.5 7.5l9 9M16.5 7.5l-9 9",
+    color: "M5.5 12.5l4.2 4.2L18.5 7.5",
+    timer: "M12 8v4.5l3 1.8M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z",
+    info: "M12 11v6M12 7.4v.01",
+  };
+  const colorMatch = /#[0-9a-f]{6}\b/i.exec(msg);
+  const kind =
+    type === "error"
+      ? "error"
+      : /cancel|abort/i.test(msg)
+        ? "cancel"
+        : colorMatch && /colou?r/i.test(msg)
+          ? "color"
+          : type === "success" || type === "saved"
+            ? type
+            : /timer|second/i.test(msg)
+              ? "timer"
+              : "info";
+  statusEl.dataset.kind = kind;
+  if (kind === "color") iconEl.style.setProperty("--qs-swatch", colorMatch[0]);
+  else iconEl.style.removeProperty("--qs-swatch");
+  const iconSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  iconSvg.setAttribute("viewBox", "0 0 24 24");
+  iconSvg.setAttribute("class", `qs-status-glyph is-${kind}`);
+  iconSvg.setAttribute("fill", "none");
+  iconSvg.setAttribute("stroke", "currentColor");
+  iconSvg.setAttribute("stroke-width", "2.6");
+  iconSvg.setAttribute("stroke-linecap", "round");
+  iconSvg.setAttribute("stroke-linejoin", "round");
+  const glyphPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  glyphPath.setAttribute("d", GLYPHS[kind]);
+  iconSvg.appendChild(glyphPath);
+  iconEl.appendChild(iconSvg);
 
   statusEl.appendChild(iconEl);
   const textSpan = document.createElement("span");
-  textSpan.textContent = msg;
+  textSpan.className = "qs-status-text";
+  const title = document.createElement("b");
+  title.textContent = msg;
+  textSpan.appendChild(title);
+  if (options?.detail) {
+    const detail = document.createElement("small");
+    detail.textContent = options.detail;
+    textSpan.appendChild(detail);
+  }
   statusEl.appendChild(textSpan);
 
-  if (type === "success") {
+  // Offer Download only when the capture has not already been saved as a file.
+  if (type === "success" && (options?.downloaded || kind === "color")) {
+    statusEl.classList.add("qs-success");
+    timeout = 5000;
+  } else if (type === "success") {
     statusEl.classList.add("qs-success");
     const saveBtn = document.createElement("button");
     saveBtn.className = "qs-save-btn";
     saveBtn.title = "Save Screenshot";
-    saveBtn.style.marginLeft = "8px";
-    const dlIcon = createSvg("0 0 24 24", [
-      { class: "dl-arrow", d: "M19 9h-4V3H9v6H5l7 7 7-7z" },
-      { class: "dl-bar", d: "M5 18v2h14v-2H5z" },
-    ]);
+    saveBtn.title = "Download";
+    // Stroke icon, same weight as the annotate pen beside it.
+    const dlIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    dlIcon.setAttribute("viewBox", "0 0 24 24");
+    dlIcon.setAttribute("fill", "none");
+    dlIcon.setAttribute("stroke", "currentColor");
+    dlIcon.setAttribute("stroke-width", "2");
+    dlIcon.setAttribute("stroke-linecap", "round");
+    dlIcon.setAttribute("stroke-linejoin", "round");
+    dlIcon.innerHTML = '<path class="dl-arrow" d="M12 4v10.5M7.5 10L12 14.5 16.5 10"/><path class="dl-bar" d="M5 19.5h14"/>';
     saveBtn.appendChild(dlIcon);
-    dlIcon.style.width = "20px";
-    dlIcon.style.height = "20px";
-    dlIcon.style.fill = "currentColor";
 
     saveBtn.onclick = () => {
       handleSaveAction();
@@ -881,13 +1040,12 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     (typeof document !== "undefined" &&
       !!document.getElementById("swiftselect-annotate-root"));
 
-  if ((type === "success" || type === "saved") && !isAnnotateActive) {
+  if ((type === "success" || type === "saved") && !isAnnotateActive && kind !== "color") {
     const annotateBtn = document.createElement("button");
     annotateBtn.className = "qs-save-btn qs-status-annotate-btn";
-    annotateBtn.title = "Annotate Screenshot (A)";
-    annotateBtn.style.marginLeft = "6px";
+    annotateBtn.title = "Annotate";
     const annSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    annSvg.setAttribute("viewBox", "-4 -4 32 32");
+    annSvg.setAttribute("viewBox", "0 0 24 24");
     annSvg.setAttribute("class", "ann-icon-svg");
     annSvg.setAttribute("fill", "none");
     annSvg.setAttribute("stroke", "currentColor");
@@ -1314,7 +1472,7 @@ export function showShortcutsHelpModal() {
     font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     color: #f4f4f5;
     opacity: 0;
-    transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.14s cubic-bezier(0.16, 1, 0.3, 1);
   `;
 
   const card = document.createElement("div");
@@ -1340,7 +1498,7 @@ export function showShortcutsHelpModal() {
     padding: 24px 26px;
     box-sizing: border-box;
     transform: translate3d(0, 16px, 0) scale(0.92);
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+    transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.12s ease;
   `;
 
   card.innerHTML = `
@@ -1522,184 +1680,18 @@ export function showColorPickerLoupe(x, y, hex) {
 
 export let settingsModalHost = null;
 
+/**
+ * Settings live on a dedicated full-tab page. The in-page entry points
+ * (gear button, "," and "O" hotkeys, context menu) all land here.
+ */
 export async function showSettingsModal() {
-  if (settingsModalHost) {
-    settingsModalHost.remove();
-    settingsModalHost = null;
-  }
+  try {
+    chrome.runtime.sendMessage({ type: "open-settings" }, () => void chrome.runtime.lastError);
+  } catch {}
+}
 
-  const { outputFormat = "jpg", outputDestination = "both", userTheme = "glass" } =
-    await new Promise((res) => {
-      chrome.storage.local.get(
-        ["outputFormat", "outputDestination", "userTheme"],
-        res,
-      );
-    });
-
-  const host = document.createElement("div");
-  host.id = "qs-settings-modal-root";
-  host.style.cssText = `
-    all: initial;
-    position: fixed;
-    inset: 0;
-    z-index: 2147483647;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(10, 10, 14, 0.65);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    user-select: none;
-    font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #f4f4f5;
-    opacity: 0;
-    transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  `;
-
-  const card = document.createElement("div");
-  card.style.cssText = `
-    width: 440px;
-    max-width: 92vw;
-    background-color: color-mix(in srgb, var(--c-glass, #bbbbbc) 12%, rgba(27, 27, 29, 0.94));
-    border: none;
-    border-radius: 20px;
-    box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, #fff calc(0.3 * 10%), transparent),
-      inset 1.8px 3px 0px -2px color-mix(in srgb, #fff calc(0.3 * 90%), transparent),
-      inset -2px -2px 0px -2px color-mix(in srgb, #fff calc(0.3 * 80%), transparent),
-      inset -3px -8px 1px -6px color-mix(in srgb, #fff calc(0.3 * 60%), transparent),
-      inset -0.3px -1px 4px 0px color-mix(in srgb, #000 calc(2 * 12%), transparent),
-      inset -1.5px 2.5px 0px -2px color-mix(in srgb, #000 calc(2 * 20%), transparent),
-      inset 0px 3px 4px -2px color-mix(in srgb, #000 calc(2 * 20%), transparent),
-      inset 2px -6.5px 1px -4px color-mix(in srgb, #000 calc(2 * 10%), transparent),
-      0px 1px 5px 0px color-mix(in srgb, #000 calc(2 * 10%), transparent),
-      0px 20px 48px 0px rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
-    padding: 24px 26px;
-    box-sizing: border-box;
-    transform: translate3d(0, 16px, 0) scale(0.92);
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
-  `;
-
-  card.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.14);">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div style="width: 36px; height: 36px; border-radius: 12px; background: #BA4B5C; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(186,75,92,0.45);">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </div>
-        <div>
-          <div style="font-size: 16px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">SwiftSelect Settings</div>
-          <div style="font-size: 12px; color: rgba(255,255,255,0.65);">Capture format, destination & appearance</div>
-        </div>
-      </div>
-      <button class="qs-modal-close" style="all: initial; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,0.7); background: color-mix(in srgb, var(--c-glass, #bbbbbc) 28%, transparent); transition: all 0.15s ease;" title="Close (Esc)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-
-    <div style="display: flex; flex-direction: column; gap: 18px;">
-      <!-- Export Format -->
-      <div>
-        <div style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px;">Export Format</div>
-        <div class="qs-settings-segmented" data-key="outputFormat" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.08);">
-          <button data-val="jpg" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputFormat === "jpg" ? "700" : "600"}; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputFormat === "jpg" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">JPG (Small)</button>
-          <button data-val="png" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputFormat === "png" ? "700" : "600"}; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputFormat === "png" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">PNG (Lossless)</button>
-        </div>
-      </div>
-
-      <!-- Destination -->
-      <div>
-        <div style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px;">Capture Destination</div>
-        <div class="qs-settings-segmented" data-key="outputDestination" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.08);">
-          <button data-val="both" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputDestination === "both" ? "700" : "600"}; padding: 7px 10px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputDestination === "both" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Both</button>
-          <button data-val="clipboard" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputDestination === "clipboard" ? "700" : "600"}; padding: 7px 10px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputDestination === "clipboard" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Copy Only</button>
-          <button data-val="download" style="all: initial; flex: 1; text-align: center; font-size: 12px; font-weight: ${outputDestination === "download" ? "700" : "600"}; padding: 7px 10px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${outputDestination === "download" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Save Only</button>
-        </div>
-      </div>
-
-      <!-- Theme -->
-      <div>
-        <div style="font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); margin-bottom: 8px;">Appearance Theme</div>
-        <div class="qs-settings-segmented" data-key="userTheme" style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.08);">
-          <button data-val="glass" style="all: initial; flex: 1; text-align: center; font-size: 11.5px; font-weight: ${userTheme === "glass" ? "700" : "600"}; padding: 7px 8px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${userTheme === "glass" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Liquid Glass</button>
-          <button data-val="standard" style="all: initial; flex: 1; text-align: center; font-size: 11.5px; font-weight: ${userTheme === "standard" ? "700" : "600"}; padding: 7px 8px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${userTheme === "standard" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Standard</button>
-          <button data-val="dark" style="all: initial; flex: 1; text-align: center; font-size: 11.5px; font-weight: ${userTheme === "dark" ? "700" : "600"}; padding: 7px 8px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${userTheme === "dark" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Dark</button>
-          <button data-val="light" style="all: initial; flex: 1; text-align: center; font-size: 11.5px; font-weight: ${userTheme === "light" ? "700" : "600"}; padding: 7px 8px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); ${userTheme === "light" ? "background: #ffffff; color: #18181b; box-shadow: 0 3px 10px rgba(0,0,0,0.3);" : "color: rgba(255,255,255,0.75);"}">Light</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  card.querySelectorAll(".qs-settings-segmented").forEach((group) => {
-    const key = group.dataset.key;
-    group.querySelectorAll("button").forEach((btn) => {
-      btn.onclick = () => {
-        const val = btn.dataset.val;
-        group.querySelectorAll("button").forEach((b) => {
-          const act = b === btn;
-          b.style.background = act ? "#ffffff" : "transparent";
-          b.style.color = act ? "#18181b" : "rgba(255,255,255,0.75)";
-          b.style.boxShadow = act ? "0 3px 10px rgba(0,0,0,0.3)" : "none";
-          b.style.fontWeight = act ? "700" : "600";
-        });
-        chrome.storage.local.set({ [key]: val });
-        if (key === "userTheme") {
-          const themeModule = window.SwiftSelect?.theme;
-          if (themeModule?.applyTheme) {
-            themeModule.applyTheme(val);
-          }
-        }
-      };
-    });
-  });
-
-  host.appendChild(card);
-  (document.body || document.documentElement).appendChild(host);
-  settingsModalHost = host;
-
-  requestAnimationFrame(() => {
-    host.style.opacity = "1";
-    card.style.transform = "translate3d(0, 0, 0) scale(1)";
-  });
-
-  const closeBtn = card.querySelector(".qs-modal-close");
-  if (closeBtn) {
-    closeBtn.onmouseenter = () => {
-      closeBtn.style.color = "#ffffff";
-      closeBtn.style.background = "rgba(255,255,255,0.15)";
-    };
-    closeBtn.onmouseleave = () => {
-      closeBtn.style.color = "rgba(255,255,255,0.6)";
-      closeBtn.style.background = "rgba(255,255,255,0.06)";
-    };
-  }
-
-  function closeModal() {
-    card.style.transform = "translate3d(0, -12px, 0) scale(0.94)";
-    card.style.opacity = "0";
-    host.style.opacity = "0";
-    window.removeEventListener("keydown", onSettingsModalKey, true);
-    setTimeout(() => {
-      if (host.parentNode) host.parentNode.removeChild(host);
-      if (settingsModalHost === host) settingsModalHost = null;
-    }, 220);
-  }
-
-  function onSettingsModalKey(e) {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      closeModal();
-    }
-  }
-
-  window.addEventListener("keydown", onSettingsModalKey, true);
-  if (closeBtn) closeBtn.onclick = closeModal;
-  host.onclick = (e) => {
-    if (e.target === host) closeModal();
-  };
+export function openGallery() {
+  try {
+    chrome.runtime.sendMessage({ type: "open-gallery" }, () => void chrome.runtime.lastError);
+  } catch {}
 }

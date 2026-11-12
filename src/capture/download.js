@@ -44,6 +44,19 @@ export async function downloadBlob(blob, filename, options = {}) {
     }
   }
 
+  // 1b. Inside an extension page (gallery, standalone editor) the downloads API
+  // is available directly and takes a blob URL without any copying.
+  if (typeof location !== "undefined" && location.protocol === "chrome-extension:" && chrome.downloads?.download) {
+    const url = URL.createObjectURL(blob);
+    const ok = await new Promise((resolve) => {
+      chrome.downloads.download({ url, filename, saveAs: false }, (downloadId) => {
+        resolve(!chrome.runtime.lastError && downloadId !== undefined);
+      });
+    });
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    if (ok) return true;
+  }
+
   // 2. On standard web pages (https://, http://), native DOM <a> click is instantaneous (0ms, zero IPC overhead)
   if (!isFileProtocol) {
     try {
@@ -113,73 +126,15 @@ export async function handleSaveAction(customExt = null) {
   const filename = getSmartFilename("screenshot", ext);
   await downloadBlob(lastBlob, filename);
 
-  // Transition Logic via UI
-  const statusEl = window.SwiftSelect.ui.statusEl;
-  if (statusEl) {
-    const textSpan = statusEl.querySelector("span");
-    const saveBtn = statusEl.querySelector(".qs-save-btn");
-
-    if (textSpan && saveBtn) {
-      statusEl.getAnimations().forEach((anim) => {
-        if (!anim.animationName) anim.cancel();
-      });
-      textSpan.getAnimations().forEach((anim) => {
-        if (!anim.animationName) anim.cancel();
-      });
-
-      statusEl.classList.remove("qs-success");
-      statusEl.classList.add("qs-saved");
-      saveBtn.remove();
-      textSpan.textContent = "Image Saved";
-
-      textSpan.animate(
-        [
-          { opacity: 0, transform: "scale(0.94)" },
-          { opacity: 1, transform: "scale(1)" },
-        ],
-        {
-          duration: 180,
-          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-        },
-      );
-
-      const icon = statusEl.querySelector(".qs-status-icon");
-      if (icon) {
-        icon.getAnimations().forEach((anim) => {
-          if (!anim.animationName) anim.cancel();
-        });
-        icon.animate(
-          [
-            { opacity: 0, transform: "scale(0.88)" },
-            { opacity: 1, transform: "scale(1)" },
-          ],
-          {
-            duration: 180,
-            easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-          },
-        );
-      }
-    }
-
-    if (window.SwiftSelect?.ui?.hideStatusTimer)
-      clearTimeout(window.SwiftSelect.ui.hideStatusTimer);
-
-    window.SwiftSelect?.ui?.setHideStatusTimer?.(
-      setTimeout(() => {
-        if (statusEl) {
-          statusEl.classList.add("qs-hiding");
-          setTimeout(() => {
-            if (statusEl) {
-              statusEl.style.display = "none";
-              statusEl.classList.remove("qs-hiding");
-            }
-            if (window.SwiftSelect?.ui?.statusHost) {
-              window.SwiftSelect.ui.statusHost.style.display = "none";
-            }
-            window.SwiftSelect?.ui?.setCurrentStatus?.(null);
-          }, 180);
-        }
-      }, 2500),
-    );
+  // Swap the status to "saved" through setStatus itself, so the new state
+  // gets the right tile, glyph and tint, and keeps the capture details line.
+  const statusEl = window.SwiftSelect?.ui?.statusEl;
+  if (statusEl?.querySelector(".qs-save-btn")) {
+    const detail = statusEl.querySelector(".qs-status-text small")?.textContent || "";
+    window.SwiftSelect.ui.setStatus("Image Saved", 3500, "saved", false, {
+      downloaded: true,
+      detail,
+      sourceBlob: lastBlob,
+    });
   }
 }

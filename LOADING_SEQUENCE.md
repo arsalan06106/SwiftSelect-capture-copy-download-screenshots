@@ -1,124 +1,189 @@
 # Loading Sequence
 
-This document explains exactly what happens from the moment SwiftSelect is activated to the point where the UI is interactive and ready for input.
+What happens between a key press and an interactive capture UI, why the content script is a single pre-built file, and how frames are handled.
 
 <br>
 
-## Activation Triggers
+## 1. Entry points
 
-There are three ways SwiftSelect starts:
+| Trigger | Handler in `background.js` | Result |
+| :--- | :--- | :--- |
+| Keyboard command | `chrome.commands.onCommand` → `handleCommand()` | `injectAndStart(tab, type)` |
+| Context menu item | `chrome.contextMenus.onClicked` → `handleContextMenuClick()` | `injectAndStart(tab, type)` or a settings write |
+| Toolbar icon, `actionClick = "region"` | `chrome.action.onClicked` | `injectAndStart(tab, "start-selection")` |
+| Toolbar icon, `actionClick = "menu"` | none, Chrome opens `popup.html` | Popup sends `run-capture` |
+| Gallery or Settings capture buttons | `runtime.onMessage` (`run-capture`) | `findCaptureTarget()` → `injectAndStart()` |
 
-1. The user clicks the extension icon in the toolbar → `chrome.action.onClicked` fires in `background.js`
-2. The user presses a keyboard shortcut (`Alt+X`, `Alt+S`, `Alt+F`) → `chrome.commands.onCommand` fires in `background.js`
-3. The user opens the popup and clicks a button → `popup.js` sends a message to the content script
-
-All three paths converge on the same function: `injectAndStart(tab, messageType)`.
-
-<br>
-
-## Step 1 — URL Validation
-
-Before injecting anything, `background.js` checks the tab URL. The extension cannot run on:
-
-- `chrome://` pages
-- `edge://` pages
-- `about:` pages
-- `chrome-extension://` pages
-- Chrome Web Store pages (`https://chrome.google.com/webstore` and `https://chromewebstore.google.com`)
-
-If the URL matches any of these, the extension silently aborts.
+Every path converges on `injectAndStart(tab, messageType)`.
 
 <br>
 
-## Step 2 — Content Script Injection
+## 2. The sequence
 
-`background.js` calls `chrome.scripting.executeScript()` to inject `contentScript.js` into the active tab. This happens every time the extension is activated, but `contentScript.js` guards against double-injection:
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant W as Service worker
+    participant P as Web page (isolated world)
+    U->>W: command / menu / popup
+    W->>W: isRestrictedUrl(tab.url)?
+    W->>W: file:// ? isAllowedFileSchemeAccess()
+    W->>P: scripting.executeScript({ files: ["contentScript.js"] })
+    Note over P: guard: window === top and not yet injected
+    P->>P: build window.SwiftSelect, theme.init(), register onMessage
+    W->>P: tabs.sendMessage({ type })
+    P->>P: route message
+    alt start-selection
+        P->>P: ui.ensureUi(): shadow hosts, adopt stylesheet, freeze frame
+        P->>P: events.addListeners()
+    else capture-*
+        P->>P: optional countdown, then capture
+    end
+    P-->>W: { success: true }
+```
+
+### Step 1: URL validation
+
+`isRestrictedUrl()` rejects pages Chrome does not let extensions script:
+
+`chrome://`, `edge://`, `about:`, `chrome-extension://`, `view-source:`, `devtools://`, and both Chrome Web Store hosts.
+
+The same check runs continuously in `updateTabBadge()`, which is why the toolbar icon already shows the "protected page" popup on those tabs before anything is clicked.
+
+### Step 2: File access
+
+For `file://` URLs the worker calls `chrome.extension.isAllowedFileSchemeAccess()`. Without the permission it sets an amber `FILE` badge and stops. The popup for that tab explains how to enable access.
+
+### Step 3: Injection
 
 ```js
-if (window.__swiftSelectInjected_v2) {
-  // Already injected — skip
-} else {
+await chrome.scripting.executeScript({ target: { tabId }, files: ["contentScript.js"] });
+```
+
+The script is injected on demand, never declared under `content_scripts`. Pages that are never captured never run a line of SwiftSelect code.
+
+Injection happens on every activation. The bundle makes that safe with an idempotency guard:
+
+```js
+if (window === window.top && !window.__swiftSelectInjected_v2) {
   window.__swiftSelectInjected_v2 = true;
-  // proceed with setup
+  // set up once
 }
 ```
 
-If the script was already injected (from a previous activation on the same page), the existing message listener receives the new command directly.
+A second injection evaluates the bundle, fails the guard and does nothing. The listener registered the first time receives the new message.
+
+### Step 4: Synchronous bootstrap
+
+Inside the guard, in one synchronous run:
+
+1. `window.SwiftSelect = { theme, ui, events, capture }`
+2. `theme.init()`
+3. `chrome.runtime.onMessage.addListener(...)`
+
+Registering the listener synchronously matters. `executeScript` resolves as soon as the script has run, and the worker sends its message immediately afterwards. A listener registered after an `await` could miss it.
+
+### Step 5: Routing
+
+| Message | Action |
+| :--- | :--- |
+| `start-selection` | `ui.ensureUi()` then `events.addListeners()`. Ignored while the editor is open |
+| `capture-visible`, `capture-download` | `afterDelay()` → `region.handleCaptureVisible()` |
+| `capture-full` | `afterDelay()` → `fullpage.handleCaptureFullPage()` |
+| `capture-horizontal` | `afterDelay()` → `fullpage.handleCaptureHorizontal()` |
+| `capture-timer` | `region.handleTimedCapture(delay or 3)` |
+| `show-help-modal` | `ui.showShortcutsHelpModal()` |
+| `show-settings-modal` | Opens the Settings tab |
+| `fullpage-progress` | Updates the progress label and badge |
+| `fullpage-action` | `unroll-page`, `update-unroll`, `restore-unroll` |
+
+`afterDelay()` reads `captureDelay`. A non-zero value shows the countdown card first. Region selection is interactive and is never delayed.
+
+### Step 6: UI materialisation
+
+`ui.ensureUi()`:
+
+1. `loadStyles()` builds one constructable `CSSStyleSheet` from the bundled CSS text.
+2. `makeShadowOverlay()` creates each host (`overlay`, `guide`, `status`, `highlighter`, HUD) as a fixed, `pointer-events: none`, initially hidden `div` with an open shadow root.
+3. Each root adopts the shared sheet through `adoptedStyleSheets`.
+4. The first viewport snapshot is requested for the freeze frame.
+5. `theme.applyTheme()` picks light or dark glass per element.
+6. Hosts are revealed.
+
+Hosts start at `display: none` and their inner element at `opacity: 0` until the sheet is attached, so there is never a flash of unstyled UI.
+
+### Step 7: Cleanup
+
+Capture, <kbd>Esc</kbd> and navigation all run `events.cleanup()` and `ui.cleanup()`: listeners removed, hosts detached, crosshair cursor restored, freeze frame released. Safety listeners on `beforeunload` and `visibilitychange` remove any overlay that would otherwise outlive the session.
 
 <br>
 
-## Step 3 — Self-Contained Module Loading
+## 3. CSP strategy
 
-`contentScript.js` is bundled with all five functional modules and core stylesheet:
+A content script runs in an isolated world, but anything it adds to the DOM is subject to the **page's** Content Security Policy. Strict policies (GitHub, YouTube, Google apps, banking sites) block the obvious ways of loading extension code and styles. SwiftSelect avoids each one.
 
-1. `src/theme.js` — detects page luminance, loads saved theme preference
-2. `src/ui.js` — creates Shadow DOM hosts, builds the toolbar
-3. `src/events.js` — pointer/keyboard event handlers
-4. `src/capture/region.js` — visible-area and region capture logic
-5. `src/capture/fullpage.js` — scroll-and-stitch full-page capture
+| Naive approach | Blocked by | What SwiftSelect does |
+| :--- | :--- | :--- |
+| `import()` of `chrome-extension://` modules from the page | `script-src` | One IIFE bundle (`esbuild --bundle --format=iife`). No dynamic import, no module graph at runtime |
+| `<link rel="stylesheet" href="chrome-extension://...">` | `style-src` | CSS is compiled into the bundle as a string (`--loader:.css=text`) |
+| `fetch("chrome-extension://.../styles.css")` | `connect-src` | Not needed, the text is already in memory |
+| Global `<style>` rules in the document | Collisions with page CSS in both directions | Constructable stylesheets (`new CSSStyleSheet()` + `adoptedStyleSheets`) scoped to shadow roots. No style element is added to the page for the capture UI |
+| Page CSS leaking into the UI | n/a | Every surface is in its own shadow root and begins with `all: initial` |
+| Fetching an extension `blob:` URL from the page | `connect-src`, origin | `fetch-blob-url` asks the worker to resolve it |
+| `navigator.clipboard.write` denied | Permissions Policy, lost focus | `write-image-to-clipboard` writes from the offscreen document |
+| `<a download>` blocked or unreliable on `file://` | page context | `download-file` uses `chrome.downloads` |
 
-Because all modules and styles are bundled into `contentScript.js`, the script runs synchronously and immediately inside the page's isolated world without triggering cross-origin dynamic import or fetch errors on pages with strict CSPs like YouTube.
+The annotation editor is the one surface that renders in the light DOM (it needs a full-screen canvas and a native colour input). Its container starts with `all: initial`, carries the highest z-index, and receives the stylesheet text in a style element that the content script creates from its isolated world, scoped by `qs-` prefixed class names.
+
+Extension pages (`gallery.html`, `settings.html`, `popup.html`, `annotate.html`) run under the default Manifest V3 extension CSP. They contain no inline scripts and load only local files.
 
 <br>
 
-## Step 4 — Namespace Initialisation
+## 4. Frames
 
-After all modules load, they are attached to `window.SwiftSelect`:
+**The content script runs in the top frame only.** `executeScript` is called without `allFrames`, and the guard checks `window === window.top`.
 
-```js
-window.SwiftSelect.theme = theme;
-window.SwiftSelect.ui = ui;
-window.SwiftSelect.events = events;
-window.SwiftSelect.capture = { ...region, ...fullpage };
+This is deliberate:
+
+- Captures are taken by the browser compositor (`captureVisibleTab`, `tabCapture`), which renders every frame, including cross-origin ones, into one image. No code needs to run inside an iframe to photograph it.
+- One overlay in the top document covers the entire viewport. An overlay per frame would produce nested toolbars and split selections.
+- Cross-origin frames stay untouched, so SwiftSelect never reads or modifies third-party embedded content.
+
+| Scenario | Behaviour |
+| :--- | :--- |
+| Region drawn across an iframe | Captured as displayed. The pixels come from the compositor |
+| Smart snap over an iframe | The `IFRAME` element is the candidate. Its inner elements are not inspected |
+| Full page capture with a scrolling iframe | The iframe appears as it is currently scrolled. Its inner content is not unrolled |
+| Page whose main content is one full-size iframe | Full page capture yields one viewport. Open the frame's URL in its own tab to capture all of it |
+| Theme sampling over a cross-origin frame | `elementsFromPoint` returns the iframe element. Sampling falls back to the last tab screenshot or the surrounding surface |
+
+<br>
+
+## 5. Extension pages
+
+Pages load in a different order from the content script because they have direct access to extension APIs.
+
+```text
+<head>
+  src/pageTheme.js   classic, blocking: sets html[data-theme] before first paint
+  pages.css
+<body>
+  markup with <i data-icon> placeholders
+  <script type="module">   gallery.js | options.js | popup.js
+      hydrateIcons() → getSettings() → render → subscribe to storage and gallery changes
 ```
 
-This bridge allows cross-module calls without circular import problems.
+`annotate.html` loads `annotatePage.js`, a bundle. The editor imports CSS as text, which native ES modules cannot do, so that page is built the same way as the content script.
 
 <br>
 
-## Step 5 — Theme Initialisation
+## 6. Build outputs
 
-`theme.init()` runs immediately. It:
+| Output | Source entry | Command |
+| :--- | :--- | :--- |
+| `src/styles.min.css` | `styles.css` | `npm run build:css` |
+| `contentScript.js` | `src/contentScript.js` | `npm run build:content` |
+| `annotatePage.js` | `src/annotatePage.js` | `npm run build:annotate` |
 
-- Samples the page background colour to determine if the page is light or dark
-- Loads the user's saved theme preference from `chrome.storage.local`
-- Defaults to matching the page luminance if no preference is stored
-
-<br>
-
-## Step 6 — Message Routing
-
-A `chrome.runtime.onMessage` listener is registered. It routes incoming messages to the correct handler:
-
-| Message type          | Handler                                |
-| :-------------------- | :------------------------------------- |
-| `start-selection`     | `ui.ensureUi()` + `events.addListeners()` |
-| `capture-download`    | `region.handleCaptureAndDownload()`    |
-| `capture-full`        | `fullpage.handleCaptureFullPage()`     |
-| `fullpage-progress`   | Updates progress text in the UI        |
-| `fullpage-action`     | Delegates to fullpage unroll/restore   |
-
-<br>
-
-## Step 7 — UI Materialisation (on `start-selection`)
-
-When the message type is `start-selection`, the UI layer builds:
-
-1. Loads `styles.css` via `fetch()` → parses into a `CSSStyleSheet`
-2. Creates four Shadow DOM hosts: overlay, status bar, highlighter, toolbar
-3. Adopts the shared stylesheet into each shadow root
-4. Sets the cursor to crosshair
-5. Attaches pointer and keyboard listeners to the document (capture phase)
-
-At this point the user sees the floating toolbar and can begin drawing a selection.
-
-<br>
-
-## Cleanup
-
-When the user presses Escape, completes a capture, or navigates away:
-
-- All event listeners are removed
-- All Shadow DOM hosts are detached from the page
-- The crosshair cursor is restored
-- Safety listeners on `beforeunload` and `visibilitychange` ensure no stale cursor or overlay persists
+`npm run build` runs all three in order. The CSS step must come first, because both bundles embed its output.

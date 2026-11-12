@@ -2,6 +2,8 @@
  * Utility functions for capture operations
  */
 
+import { SETTING_KEYS, normalizeSettings, formatInfo, buildFilename } from "../settings.js";
+
 export function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -12,16 +14,12 @@ export function loadImage(src) {
 }
 
 export function getSmartFilename(type, ext = "jpg") {
-  let title = document.title || "";
-  title = title.replace(/[<>:"\/\\|?*\x00-\x1F]/g, " ");
-  title = title.trim().replace(/\s+/g, " ");
-  if (title.length > 100) title = title.substring(0, 100).trim();
-
-  const cleanExt = (ext || "jpg").replace(/^\./, "");
-  const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  return title
-    ? `${title} - ${type} - ${timestamp}.${cleanExt}`
-    : `${type} - ${timestamp}.${cleanExt}`;
+  return buildFilename(_cachedSettings?.template, {
+    title: typeof document !== "undefined" ? document.title : "",
+    url: typeof location !== "undefined" ? location.href : "",
+    type,
+    ext,
+  });
 }
 
 let _cursorStyleTag = null;
@@ -47,46 +45,62 @@ export function toggleCursor(hide) {
 
 let _cachedSettings = null;
 
+function toOutputSettings(raw) {
+  const n = normalizeSettings(raw);
+  const info = formatInfo(n.outputFormat);
+  return {
+    format: n.outputFormat, // png | jpg | webp
+    ext: info.ext,
+    mime: info.mime,
+    quality: n.outputFormat === "png" ? 1 : n.outputQuality,
+    destination: n.outputDestination, // both | clipboard | download | none
+    saveToGallery: n.saveToGallery,
+    delay: n.captureDelay,
+    template: n.filenameTemplate,
+    flash: n.captureFlash,
+    toolbarShortcuts: n.toolbarShortcuts,
+    editorShortcuts: n.editorShortcuts,
+  };
+}
+
+let _rawSettings = {};
+
 try {
   if (typeof chrome !== "undefined" && chrome?.storage?.local) {
-    chrome.storage.local.get(["outputFormat", "outputDestination"], (data) => {
-      _cachedSettings = {
-        format: data?.outputFormat === "png" ? "png" : "jpg",
-        destination: data?.outputDestination || "both",
-      };
+    chrome.storage.local.get(SETTING_KEYS, (data) => {
+      _rawSettings = data || {};
+      _cachedSettings = toOutputSettings(_rawSettings);
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "local") {
-        if (!_cachedSettings) _cachedSettings = { format: "jpg", destination: "both" };
-        if (changes.outputFormat) {
-          _cachedSettings.format = changes.outputFormat.newValue === "png" ? "png" : "jpg";
-        }
-        if (changes.outputDestination) {
-          _cachedSettings.destination = changes.outputDestination.newValue || "both";
+      if (area !== "local") return;
+      let touched = false;
+      for (const key of SETTING_KEYS) {
+        if (changes[key]) {
+          _rawSettings[key] = changes[key].newValue;
+          touched = true;
         }
       }
+      if (touched) _cachedSettings = toOutputSettings(_rawSettings);
     });
   }
 } catch {}
 
 export function getOutputSettingsSync() {
-  return _cachedSettings || { format: "jpg", destination: "both" };
+  return _cachedSettings || toOutputSettings({});
 }
 
 export async function getOutputSettings() {
   if (_cachedSettings) return _cachedSettings;
   return new Promise((resolve) => {
     try {
-      chrome.storage.local.get(["outputFormat", "outputDestination"], (data) => {
-        _cachedSettings = {
-          format: data?.outputFormat === "png" ? "png" : "jpg",
-          destination: data?.outputDestination || "both",
-        };
+      chrome.storage.local.get(SETTING_KEYS, (data) => {
+        _rawSettings = data || {};
+        _cachedSettings = toOutputSettings(_rawSettings);
         resolve(_cachedSettings);
       });
     } catch {
-      resolve({ format: "jpg", destination: "both" });
+      resolve(toOutputSettings({}));
     }
   });
 }
@@ -236,4 +250,35 @@ export function detectStandaloneMediaOrActiveBounds() {
     cropRect: null,
     hasMargins: false,
   };
+}
+
+/**
+ * Crop a snapshot of the visible tab to the standalone media on it (an image
+ * or video opened on its own), so the grey margins Chrome draws around it
+ * never end up in the capture. Returns the input when there is nothing to trim.
+ */
+export async function cropSnapshotToMedia(dataUrl) {
+  try {
+    const info = detectStandaloneMediaOrActiveBounds();
+    if (!info.cropRect) return dataUrl;
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = dataUrl;
+    });
+    const scale = img.width / window.innerWidth;
+    const x = Math.max(0, Math.round(info.cropRect.x * scale));
+    const y = Math.max(0, Math.round(info.cropRect.y * scale));
+    const w = Math.min(img.width - x, Math.round(Math.min(info.cropRect.width, window.innerWidth - info.cropRect.x) * scale));
+    const h = Math.min(img.height - y, Math.round(Math.min(info.cropRect.height, window.innerHeight - info.cropRect.y) * scale));
+    if (w < 2 || h < 2) return dataUrl;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    c.getContext("2d").drawImage(img, x, y, w, h, 0, 0, w, h);
+    return c.toDataURL("image/png");
+  } catch {
+    return dataUrl;
+  }
 }

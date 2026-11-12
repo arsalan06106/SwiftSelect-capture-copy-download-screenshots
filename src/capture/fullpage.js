@@ -7,6 +7,8 @@ import {
   writeImageBlobToClipboard,
 } from "./utils.js";
 import { setLastBlob, downloadBlob } from "./download.js";
+import { saveToGallery } from "./deliver.js";
+import { wantsCopy } from "../settings.js";
 import { handleCaptureVisible, captureFrame } from "./region.js";
 
 let _unrollStyle = null;
@@ -195,10 +197,15 @@ export function measureFullContentHeight() {
   const bodySH = document.body?.scrollHeight || 0;
   const winH = window.innerHeight;
 
+  // An image opened on its own: Chrome scales it to fit the window until it
+  // is clicked to 100%. Measure what is rendered, not the file's natural
+  // size, or a fitted image "needs" scrolling that the page cannot do and the
+  // stitch fills the rest with black.
   const standaloneImg = document.querySelector("body > img");
   if (standaloneImg && (document.contentType?.startsWith("image/") || document.body?.children?.length === 1)) {
-    const natH = standaloneImg.naturalHeight || 0;
-    if (natH > winH) return natH;
+    const r = standaloneImg.getBoundingClientRect();
+    const rendered = Math.ceil(r.bottom + (window.scrollY || 0));
+    return rendered > winH + 5 ? Math.max(rendered, docSH) : winH;
   }
 
   const innerScroller = findInnerScrollContainer();
@@ -226,8 +233,9 @@ export function measureFullContentWidth() {
 
   const standaloneImg = document.querySelector("body > img");
   if (standaloneImg && (document.contentType?.startsWith("image/") || document.body?.children?.length === 1)) {
-    const natW = standaloneImg.naturalWidth || 0;
-    if (natW > winW) return natW;
+    const r = standaloneImg.getBoundingClientRect();
+    const rendered = Math.ceil(r.right + (window.scrollX || 0));
+    return rendered > winW + 5 ? Math.max(rendered, docSW) : winW;
   }
 
   // Real horizontal overflow exists only if scrollWidth exceeds innerWidth
@@ -650,10 +658,13 @@ export async function captureStream({
     await new Promise((r) => requestAnimationFrame(r));
     document.activeElement?.blur();
 
-    const { format, destination } = await getOutputSettings();
-    const captureFormat = format === "png" ? "image/png" : "image/jpeg";
-    const captureQuality = format === "png" ? 1.0 : 0.98;
-    const fileExt = format;
+    const outputSettings = await getOutputSettings();
+    const { destination } = outputSettings;
+    const captureFormat = outputSettings.mime;
+    const captureQuality = outputSettings.quality;
+    const fileExt = outputSettings.ext;
+    let stitchedWidth = 0;
+    let stitchedHeight = 0;
 
     const contentHeight =
       mode === "horizontal" ? window.innerHeight : measureFullContentHeight();
@@ -667,7 +678,7 @@ export async function captureStream({
     if (isSinglePage) {
       if (document.documentElement?.style) document.documentElement.style.cursor = "";
       if (document.body?.style) document.body.style.cursor = "";
-      return handleCaptureVisible({ forceDownload: true, label });
+      return handleCaptureVisible({ forceDownload: true, label, type: filenameType });
     }
 
     function dataUrlToBlob(dataUrl) {
@@ -715,8 +726,14 @@ export async function captureStream({
 
     const totalFrames = xPoints.length * yPoints.length;
 
+    // Chromium refuses canvases beyond 32,767px per side or 268,435,456px in
+    // area. Output that large goes to the offscreen path, which scales to fit.
+    const projectedW = Math.ceil(rectWidth * dpr);
+    const projectedH = isHorizontalOnly ? Math.ceil(innerHeight * dpr) : Math.ceil(rectHeight * dpr);
+    const fitsCanvas = projectedW <= 32767 && projectedH <= 32767 && projectedW * projectedH <= 268435456;
+
     // Use lossless compositor snapshots for up to 12 viewports
-    if (totalFrames <= 12) {
+    if (totalFrames <= 12 && fitsCanvas) {
       const frames = [];
       let frameCount = 0;
 
@@ -825,6 +842,8 @@ export async function captureStream({
         }
       }
 
+      stitchedWidth = finalCanvas.width;
+      stitchedHeight = finalCanvas.height;
       blob = await new Promise((res, rej) =>
         finalCanvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), captureFormat, captureQuality),
       );
@@ -909,13 +928,12 @@ export async function captureStream({
       }, 2000);
     }
 
-    // Full Page & Horizontal captures MUST always trigger file download
-    await downloadBlob(blob, getSmartFilename(filenameType, fileExt), {
-      blobUrl: fallbackBlobUrl,
-    });
+    // Gallery write runs alongside delivery and never delays the status pill.
+    saveToGallery(blob, { type: filenameType, width: stitchedWidth, height: stitchedHeight });
 
+    const copyWanted = wantsCopy(destination);
     let clipOk = false;
-    if (destination === "clipboard" || destination === "both") {
+    if (copyWanted) {
       try {
         let clipBlob = blob;
         if (fileExt !== "png") {
@@ -936,15 +954,19 @@ export async function captureStream({
       }
     }
 
-    let statusMsg = "Page Saved";
-    let statusType = "saved";
-    if (destination === "both" || destination === "clipboard") {
-      statusMsg = clipOk ? "Copied & Saved" : "Page Saved";
-      statusType = "saved";
-    } else if (destination === "download") {
-      statusMsg = "Page Saved";
-      statusType = "saved";
+    // Download when asked to, and also when a clipboard-only capture could not
+    // reach the clipboard, so a long capture is never lost.
+    // Full page and horizontal captures are always saved as a file.
+    const downloaded = true;
+    if (downloaded) {
+      await downloadBlob(blob, getSmartFilename(filenameType, fileExt), {
+        blobUrl: fallbackBlobUrl,
+      });
     }
+
+    // The file is always saved; the message only adds what else happened.
+    const statusMsg = clipOk ? "Copied & Saved" : copyWanted ? "Saved (Clipboard Blocked)" : "Page Saved";
+    const statusType = "saved";
 
     if (document.documentElement?.style) document.documentElement.style.cursor = "";
     if (document.body?.style) document.body.style.cursor = "";
@@ -952,8 +974,15 @@ export async function captureStream({
     window.SwiftSelect?.events?.removeListeners?.();
     window.removeEventListener("keydown", onAbortKey, true);
 
+    const kb = blob?.size ? blob.size / 1024 : 0;
+    const sizeText = kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(kb))} KB`;
     window.SwiftSelect?.ui?.setStatus?.(statusMsg, 5000, statusType, false, {
       sourceBlob: blob,
+      downloaded: true,
+      detail:
+        stitchedWidth && stitchedHeight
+          ? `${stitchedWidth.toLocaleString()} × ${stitchedHeight.toLocaleString()} · ${String(fileExt || "png").toUpperCase()} · ${sizeText}`
+          : "",
     });
 
     window.SwiftSelect?.ui?.updateBadge?.("✓", "#10B981");
@@ -990,7 +1019,7 @@ export async function handleCaptureFullPage() {
     contentHeight <= window.innerHeight + 5 &&
     contentWidth <= window.innerWidth + 5
   ) {
-    return handleCaptureVisible({ forceDownload: true });
+    return handleCaptureVisible({ forceDownload: true, type: "fullpage" });
   }
   return captureStream({
     mode: "full",
@@ -1002,7 +1031,7 @@ export async function handleCaptureFullPage() {
 
 export async function handleCaptureHorizontal() {
   if (measureFullContentWidth() <= window.innerWidth + 5) {
-    return handleCaptureVisible({ forceDownload: true });
+    return handleCaptureVisible({ forceDownload: true, type: "horizontal" });
   }
   return captureStream({
     mode: "horizontal",

@@ -8,6 +8,7 @@ import {
   handleCaptureHorizontal,
 } from "./capture/fullpage.js";
 import { openAnnotationEditor } from "./capture/annotate.js";
+import { getOutputSettingsSync } from "./capture/utils.js";
 
 export let dragging = false;
 export let isMoving = false;
@@ -475,7 +476,10 @@ export function onKeyDown(e) {
   if (!dragging && !isInput) {
     const key = e.key.toLowerCase();
     const isAlt = e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey;
-    const isPlain = !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+    // Single-key shortcuts are opt-in (Settings > Shortcuts). The Alt
+    // combinations mirror Chrome's global commands and always work.
+    const isPlain =
+      getOutputSettingsSync().toolbarShortcuts && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey;
 
     if ((isAlt && key === "s") || (isPlain && (key === "s" || key === "v"))) {
       e.preventDefault();
@@ -484,7 +488,7 @@ export function onKeyDown(e) {
     }
     if ((isAlt && key === "t") || (isPlain && (key === "t" || key === "3"))) {
       e.preventDefault();
-      handleTimedCapture(3);
+      handleTimedCapture(getOutputSettingsSync().delay || 3);
       return;
     }
     if (isPlain && key === "a") {
@@ -495,6 +499,13 @@ export function onKeyDown(e) {
     if (isPlain && (key === "," || key === "o")) {
       e.preventDefault();
       window.SwiftSelect?.ui?.showSettingsModal?.();
+      return;
+    }
+    if (isPlain && key === "g") {
+      e.preventDefault();
+      cleanup();
+      window.SwiftSelect.ui.cleanup();
+      window.SwiftSelect?.ui?.openGallery?.();
       return;
     }
     if (isPlain && key === "c") {
