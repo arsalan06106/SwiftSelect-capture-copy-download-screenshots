@@ -21,8 +21,48 @@ A fast, dependency-free screenshot extension for Chrome. Select a region, grab t
 ---
 
 <br>
+
+### Region capture
+Capture any region in one drag, cropped cleanly at device pixel ratio.
+
 <div align="center">
-  <img src="https://lh3.googleusercontent.com/OF283NjktCBE8qv5Cin-vxiSi9k__jc0Zxb4aP7vu_popwnfNAOYDVqa6AE3LhnkNHAECGikszOVuJEyrRPjn0Ebzw=s1280-w1280-h800" alt="SwiftSelect Interface Preview" width="100%">
+  <img src="https://lh3.googleusercontent.com/LLhvf6oKg9_5wTBnHY5_op9MqsaUJNb_JgvJ4JPppmjC9Mgl9lLxxMJ6X5xGM4fcd2ww_kHEMM-5_nirphrk9Da5lw=s1280-w1280-h800" alt="Capture any region in one drag" width="100%">
+</div>
+
+<br>
+
+### Smart element snapping
+Hold <kbd>Ctrl</kbd> / <kbd>⌘</kbd> and hover to snap directly onto any image, card, or UI element under your cursor.
+
+<div align="center">
+  <img src="https://lh3.googleusercontent.com/heeGOmlll8yu0EHJDMU1UuI18p4djM2QAefrfN4XiyEQjGOlornZ9tAxqUCuK6ZrUy5s8TOQ19MtdEecowpwD9z3JK0=s1280-w1280-h800" alt="Hold Ctrl and snap to any element" width="100%">
+</div>
+
+<br>
+
+### Full-page stitching
+The whole page stitched seamlessly from top to bottom in a single pass.
+
+<div align="center">
+  <img src="https://lh3.googleusercontent.com/9hLs6uMjzYMaYQ0Y5glIExfsPrrP9HuaYa9S7UAeoWalNOW7yESdoyJXcxkA7F0fvkYI4BRZCTjBSTIKPTpW3XaB-Q=s1280-w1280-h800" alt="Full page stitched automatically" width="100%">
+</div>
+
+<br>
+
+### Built-in annotation editor
+Mark it up with arrows, step counters, text, or redactions before copying or sharing.
+
+<div align="center">
+  <img src="https://lh3.googleusercontent.com/tVt2p7ap04yWP9YApzFpZF4_AS3pcean-XXnUNf7WieEI9foPGHWIV2YRObP2MluvwNUzzxUxT2ut-ew01S6BNHyDPE=s1280-w1280-h800" alt="Mark up screenshots before sharing" width="100%">
+</div>
+
+<br>
+
+### Local Swift Gallery
+Every capture is automatically saved to a searchable, local-only gallery right inside your browser.
+
+<div align="center">
+  <img src="https://lh3.googleusercontent.com/BS9ls53vKFBOlCNQPiu8SWNDRwOc88qix1lVm59Z8aYsQ04UwnoNlljxajfUZbOez9egmYlMH9Nk73KGbX6TCfI0tA=s1280-w1280-h800" alt="Every capture saved to the local gallery" width="100%">
 </div>
 
 <br>
