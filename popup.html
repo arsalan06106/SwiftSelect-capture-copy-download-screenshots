@@ -11,6 +11,7 @@
       <header class="popup-head">
         <span class="logo" aria-hidden="true"><img src="icons/icon128.png" alt="" /></span>
         <b>SwiftSelect</b>
+        <button type="button" class="btn btn-quiet popup-tool" id="open-convert" title="Batch image converter"><i data-icon="convert"></i>Convert</button>
       </header>
 
       <section class="notice" id="notice" role="alert" hidden>
@@ -50,6 +51,12 @@
         <button type="button" class="action" data-tone="pink" data-mode="timer" data-command="capture-timer" style="--i: 4">
           <span class="action-glyph"><i data-icon="timer"></i></span>
           <span class="action-text" id="timer-label">Delayed Capture</span>
+          <span class="action-keys"></span>
+        </button>
+        <div class="divider"></div>
+        <button type="button" class="action" data-tone="teal" data-mode="annotate" style="--i: 5">
+          <span class="action-glyph"><i data-icon="annotated"></i></span>
+          <span class="action-text">Annotate Page</span>
           <span class="action-keys"></span>
         </button>
       </nav>

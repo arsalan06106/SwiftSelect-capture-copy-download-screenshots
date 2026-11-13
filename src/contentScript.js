@@ -6,6 +6,7 @@ import * as ui from "./ui.js";
 import * as events from "./events.js";
 import * as region from "./capture/region.js";
 import * as fullpage from "./capture/fullpage.js";
+import { openAnnotationEditor } from "./capture/annotate.js";
 import { getOutputSettings, getOutputSettingsSync } from "./capture/utils.js";
 
 /**
@@ -45,6 +46,14 @@ if (typeof window !== "undefined" && window === window.top && !window.__swiftSel
         }
         ui.ensureUi();
         events.addListeners();
+        sendResponse({ success: true });
+      } else if (message.type === "start-annotate") {
+        // Quick menu → Annotate: straight into the editor on the visible page.
+        if (!document.getElementById("swiftselect-annotate-root")) {
+          events.cleanup?.();
+          ui.cleanup?.();
+          openAnnotationEditor();
+        }
         sendResponse({ success: true });
       } else if (
         message.type === "capture-visible" ||

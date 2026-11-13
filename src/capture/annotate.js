@@ -217,6 +217,134 @@ function isBoxShape(s) {
   return s.type === "rect" || s.type === "ellipse" || s.type === "blur";
 }
 
+// ─── Highlighter: straight strokes that fit the text ─────────────────
+// Dragging the highlighter along a line of text locks the stroke level and
+// sizes it to that line. Moving clearly off the line turns it back into a
+// freehand stroke. A single click drops an anchor instead: the stroke then
+// follows the pointer and the next click finishes it. Alt switches all of
+// this off for one stroke.
+
+let _hlPending = false; // anchor placed, waiting for the click that ends the stroke
+let _fitCanvas = null;
+let _fitCtx = null;
+let _fitSrc = null;
+
+/**
+ * Find the line of text under (x, y) in the screenshot itself.
+ * Returns its vertical centre and height, or null when there is no clear
+ * line there (a photo, a solid block, empty space).
+ */
+function fitTextLine(x, y) {
+  if (!_baseImage) return null;
+  try {
+    const iw = _baseImage.naturalWidth || _baseImage.width;
+    const ih = _baseImage.naturalHeight || _baseImage.height;
+    if (_fitSrc !== _baseImage || !_fitCanvas) {
+      _fitCanvas = document.createElement("canvas");
+      _fitCanvas.width = iw;
+      _fitCanvas.height = ih;
+      _fitCtx = _fitCanvas.getContext("2d", { willReadFrequently: true });
+      _fitCtx.drawImage(_baseImage, 0, 0, iw, ih);
+      _fitSrc = _baseImage;
+    }
+    const reach = Math.round(Math.max(90, Math.min(220, iw / 12)));
+    const bw = Math.min(iw, reach * 2);
+    const bx = Math.round(Math.max(0, Math.min(iw - bw, x - bw / 2)));
+    const by = Math.round(Math.max(0, y - reach));
+    const bh = Math.min(ih - by, Math.round(y + reach) - by);
+    if (bw < 8 || bh < 8) return null;
+    const data = _fitCtx.getImageData(bx, by, bw, bh).data;
+
+    // Background = the most common brightness in the band.
+    const luma = new Uint8Array(bw * bh);
+    const hist = new Uint32Array(32);
+    for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+      const l = (data[i] * 54 + data[i + 1] * 183 + data[i + 2] * 19) >> 8;
+      luma[j] = l;
+      hist[l >> 3]++;
+    }
+    let mode = 0;
+    for (let i = 1; i < 32; i++) if (hist[i] > hist[mode]) mode = i;
+    const bg = mode * 8 + 4;
+
+    // A row has ink when a few of its pixels stand out from the background.
+    const ink = new Uint8Array(bh);
+    const need = Math.max(2, Math.round(bw * 0.012));
+    for (let r = 0; r < bh; r++) {
+      let n = 0;
+      for (let c = 0, o = r * bw; c < bw; c++) if (Math.abs(luma[o + c] - bg) > 42) n++;
+      ink[r] = n >= need ? 1 : 0;
+    }
+
+    // Start on the nearest inked row, then grow while rows keep having ink
+    // (a gap of up to two rows is still the same line: think of "i" or "=").
+    let row = Math.round(y - by);
+    if (!ink[row]) {
+      let found = -1;
+      for (let d = 1; d <= 10 && found < 0; d++) {
+        if (ink[row - d]) found = row - d;
+        else if (ink[row + d]) found = row + d;
+      }
+      if (found < 0) return null;
+      row = found;
+    }
+    const GAP = 2;
+    let top = row;
+    for (let r = row - 1, gap = 0; r >= 0; r--) {
+      if (ink[r]) {
+        top = r;
+        gap = 0;
+      } else if (++gap > GAP) break;
+    }
+    let bottom = row;
+    for (let r = row + 1, gap = 0; r < bh; r++) {
+      if (ink[r]) {
+        bottom = r;
+        gap = 0;
+      } else if (++gap > GAP) break;
+    }
+    const h = bottom - top + 1;
+    // Touching the band's edge means this is not a line of text.
+    if (h < 6 || top <= 1 || bottom >= bh - 2 || h > reach * 1.2) return null;
+    return { cy: by + (top + bottom) / 2, h };
+  } catch {
+    return null;
+  }
+}
+
+/** Width that covers a fitted text line with a little breathing room. */
+function fitWidth(h) {
+  return Math.round(Math.max(10, Math.min(200, h * 1.34 + 4)));
+}
+
+function stripHighlighterState(shape) {
+  delete shape._raw;
+  delete shape._free;
+  delete shape._userLw;
+  delete shape._cy;
+  delete shape._sy;
+}
+
+function commitActiveShape() {
+  const shape = _activeShape;
+  if (!shape) return;
+  stripHighlighterState(shape);
+  _shapes.push(shape);
+  _undoStack.push({ type: "add", shape });
+  _activeShape = null;
+  _hlPending = false;
+  _redoStack = [];
+  updateHistoryUI();
+}
+
+function cancelPendingHighlight() {
+  if (!_hlPending) return false;
+  _hlPending = false;
+  _activeShape = null;
+  renderCanvas();
+  return true;
+}
+
 function isFreehandTool(tool = _currentTool) {
   return tool === "pen" || tool === "highlighter";
 }
@@ -435,6 +563,8 @@ export async function openAnnotationEditor(source, options = {}) {
   }
 
   _baseImage = img;
+  _hlPending = false;
+  _activeShape = null;
   _shapes = [];
   _undoStack = [];
   _redoStack = [];
@@ -463,6 +593,10 @@ export async function openAnnotationEditor(source, options = {}) {
 }
 
 function selectTool(toolId) {
+  if (_hlPending) {
+    _hlPending = false;
+    _activeShape = null;
+  }
   switchStyleKind(styleKind(toolId));
   // Line style is remembered per tool: a dotted box should not make the next
   // pen stroke dotted.
@@ -549,7 +683,7 @@ function buildAnnotationUI() {
     justify-content: center;
     background: ${_standalone ? "transparent" : "rgba(0, 0, 0, 0.14)"};
     user-select: none;
-    font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'SS Selawik', 'Selawik', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     opacity: 0;
     transition: opacity 0.14s cubic-bezier(0.16, 1, 0.3, 1);
   `;
@@ -628,6 +762,7 @@ function buildAnnotationUI() {
     {
       id: "highlighter",
       name: "Highlighter",
+      desc: "Drag along text: it stays level and fits the line. Or click, then click again. Alt draws freehand.",
       key: "H",
       svg: '<svg class="tool-icon-highlighter" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>',
     },
@@ -723,7 +858,7 @@ function buildAnnotationUI() {
     btn.innerHTML = t.svg;
     const isActive = t.id === _currentTool;
     btn.className = `qs-guide-btn circle ${isActive ? "active" : ""}`;
-    attachTooltip(btn, t.name, "", keyHint(t.key), 200, _annotateHost);
+    attachTooltip(btn, t.name, t.desc || "", keyHint(t.key), 200, _annotateHost);
     btn.onclick = (e) => {
       e?.stopPropagation?.();
       hideCustomTooltip();
@@ -2344,6 +2479,20 @@ function onCanvasPointerDown(e) {
   dismissLingeringMainMenu();
   const { x, y } = getCanvasCoords(e);
 
+  // Second click of a click-to-click highlight: finish it here.
+  if (_hlPending && _activeShape) {
+    const pts = _activeShape.points;
+    const end = pts[pts.length - 1];
+    if (Math.hypot(end.x - pts[0].x, end.y - pts[0].y) < 4) {
+      cancelPendingHighlight();
+    } else {
+      commitActiveShape();
+      _selectedShapeIndex = -1;
+      renderCanvas();
+    }
+    return;
+  }
+
   // 1. Crop Mode interactions
   if (_currentTool === "crop" && _cropRect) {
     const action = hitTestCrop(x, y);
@@ -2445,13 +2594,21 @@ function onCanvasPointerDown(e) {
       const px = _annotateCtx.getImageData(Math.max(0, x), Math.max(0, y), 1, 1).data;
       if ((0.2126 * px[0] + 0.7152 * px[1] + 0.0722 * px[2]) / 255 < 0.35) blend = "screen";
     } catch {}
+    // Fit the stroke to the line of text under the pointer (Alt: freehand).
+    const fit = e.altKey ? null : fitTextLine(x, y);
+    const cy = fit ? fit.cy : y;
     _activeShape = {
       type: "pen",
-      points: [{ x, y }],
+      points: [{ x, y: cy }],
       color: _currentColor,
-      lineWidth: _currentLineWidth,
+      lineWidth: fit ? fitWidth(fit.h) : _currentLineWidth,
       opacity: _currentOpacity,
       blend,
+      _raw: [{ x, y }],
+      _free: !!e.altKey,
+      _userLw: _currentLineWidth,
+      _cy: cy,
+      _sy: y,
     };
   } else {
     _activeShape = {
@@ -2522,6 +2679,21 @@ function onCanvasPointerMove(e) {
   const { x, y } = getCanvasCoords(e);
 
   if (!_isDrawing) {
+    // Click-to-click highlight: the stroke follows the pointer until the
+    // second click. Level while the pointer stays near the line, any angle
+    // once it leaves (Shift: 45° steps).
+    if (_hlPending && _activeShape) {
+      const a = _activeShape;
+      const start = a.points[0];
+      const tol = Math.max(12, a.lineWidth * 0.8);
+      let end;
+      if (e.shiftKey) end = constrainPoint(start.x, start.y, x, y, "line");
+      else if (!e.altKey && Math.abs(y - a._sy) <= tol) end = { x, y: start.y };
+      else end = { x, y };
+      a.points = [start, { x: end.x, y: end.y }];
+      renderCanvas();
+      return;
+    }
     // pointermove is on window: ignore hovers over the toolbar or popover.
     if (e.target !== _annotateCanvas) {
       setHoverShape(-1);
@@ -2867,7 +3039,27 @@ function onCanvasPointerMove(e) {
   if (_activeShape) {
     if (_activeShape.type === "pen") {
       const pts = _activeShape.points;
-      if (e.shiftKey) {
+      const hl = _activeShape._raw ? _activeShape : null;
+      if (hl) {
+        const last = hl._raw[hl._raw.length - 1];
+        if (Math.hypot(x - last.x, y - last.y) >= 1.5) hl._raw.push({ x, y });
+        // Leaving the line (or holding Alt) turns the stroke freehand for good.
+        const tol = Math.max(9, hl.lineWidth * 0.62);
+        if (!hl._free && !e.shiftKey && (e.altKey || Math.abs(y - hl._sy) > tol)) {
+          hl._free = true;
+          hl.lineWidth = hl._userLw;
+          hl.points = hl._raw.map((p) => ({ x: p.x, y: p.y }));
+        }
+      }
+      if (hl && !hl._free && !e.shiftKey) {
+        hl.points = [
+          { x: hl._raw[0].x, y: hl._cy },
+          { x, y: hl._cy },
+        ];
+      } else if (hl && hl._free && !e.shiftKey) {
+        const prev = pts[pts.length - 1];
+        if (Math.hypot(x - prev.x, y - prev.y) >= 1.5) pts.push({ x, y });
+      } else if (e.shiftKey) {
         // Shift draws a ruler-straight stroke from the starting point.
         const end = constrainPoint(pts[0].x, pts[0].y, x, y, "line");
         _activeShape.points = [pts[0], { x: end.x, y: end.y, p: 1 }];
@@ -2915,21 +3107,27 @@ function onCanvasPointerUp(e) {
   if (_activeShape) {
     // A click without a drag is not a shape.
     const a = _activeShape;
+    const first = a.points?.[0];
+    const lastPt = a.points?.[a.points.length - 1];
     const degenerate =
       a.type === "pen"
-        ? a.points.length < 2
+        ? a.points.length < 2 || (a._raw && Math.hypot(lastPt.x - first.x, lastPt.y - first.y) < 4)
         : Math.abs(a.x2 - a.x1) < 3 && Math.abs(a.y2 - a.y1) < 3;
     if (degenerate) {
+      // A click with the highlighter drops an anchor: the stroke now follows
+      // the pointer and the next click finishes it.
+      if (a._raw && !a._free) {
+        a.points = [first, { x: first.x, y: first.y }];
+        _hlPending = true;
+        renderCanvas();
+        return;
+      }
       _activeShape = null;
       renderCanvas();
       return;
     }
-    _shapes.push(_activeShape);
-    _undoStack.push({ type: "add", shape: _activeShape });
+    commitActiveShape();
     _selectedShapeIndex = _shapes.length - 1;
-    _activeShape = null;
-    _redoStack = [];
-    updateHistoryUI();
     renderCanvas();
 
     // Revert tool to select after drawing one shape (except brush and step badge)
@@ -3168,6 +3366,7 @@ async function handleSaveToGallery() {
 
 function onAnnotateKeyDown(e) {
   if (e.key === "Escape") {
+    if (cancelPendingHighlight()) return;
     if (_strokePopoverEl && _strokePopoverEl.style.display !== "none") {
       _strokePopoverEl.style.display = "none";
       _updateStrokeUI();

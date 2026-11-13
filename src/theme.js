@@ -7,11 +7,12 @@
  * "dark". "glass" is the pre-2.0 name for "system" and
  * "standard" is the legacy flat palette, still honoured if present.
  */
-export let currentUserTheme = "system";
+export let currentUserTheme = "light";
 
 function _normalizeTheme(value) {
-  if (value === "light" || value === "dark" || value === "standard") return value;
-  return "system";
+  if (value === "light" || value === "dark" || value === "standard" || value === "system") return value;
+  if (value === "glass") return "system";
+  return "light";
 }
 
 export function init() {
@@ -96,7 +97,7 @@ export function init() {
 }
 
 export function handleThemeToggle() {
-  const order = ["system", "light", "dark"];
+  const order = ["light", "dark", "system"];
   currentUserTheme = order[(order.indexOf(_normalizeTheme(currentUserTheme)) + 1) % order.length];
   applyTheme(currentUserTheme);
   chrome.storage.local.set({ userTheme: currentUserTheme });

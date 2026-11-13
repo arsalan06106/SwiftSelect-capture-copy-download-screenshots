@@ -45,6 +45,8 @@ const ICONS = {
   tab: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 9h18"/><g class="p-arr"><path d="M9.5 14h5M12.5 12l2 2-2 2"/></g>',
   drag: '<g class="p-hand"><path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10V5a1.5 1.5 0 0 1 3 0v5"/><path d="M14 10.5V7a1.5 1.5 0 0 1 3 0v6.5a6.5 6.5 0 0 1-6.5 6.5h-.6a5.5 5.5 0 0 1-4.4-2.2L4.2 15a1.6 1.6 0 0 1 2.5-2L8 14.5"/></g>',
   info: '<circle cx="12" cy="12" r="8.5"/><path class="p-dot" d="M12 11v5M12 8h.01"/>',
+  convert: '<path class="p-right" d="M4 8h13M13.5 4.5 17 8l-3.5 3.5"/><path class="p-left" d="M20 16H7M10.5 12.5 7 16l3.5 3.5"/>',
+  plus: '<g class="p-x"><path d="M12 5.5v13M5.5 12h13"/></g>',
   sparkle: '<path class="p-star" d="M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5z"/>',
 };
 
@@ -100,7 +102,7 @@ export function mountPill(container, activeSelector) {
   return sync;
 }
 
-const SHEEN_HOSTS = ".btn, .act, .nav-item, .action, .link-row, .select-trigger, .chip, .notice-cta, [data-sheen]";
+const SHEEN_HOSTS = ".btn, .act, .nav-item, .action, .link-row, .select-trigger, .chip, .notice-cta, .tool-link, [data-sheen]";
 
 /**
  * Pointer-tracked specular light on glass controls. A delegated listener

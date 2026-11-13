@@ -79,7 +79,8 @@
     {
       "resources": [
         "styles.css",
-        "icons/*"
+        "icons/*",
+        "fonts/*"
       ],
       "matches": [
         "<all_urls>"

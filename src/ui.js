@@ -83,7 +83,38 @@ export let stylePromise = null;
 export let safetyListenersAdded = false;
 export let cachedCssText = stylesCss;
 
+/**
+ * Selawik ships with the extension. @font-face inside a shadow root is
+ * ignored, so the faces are registered on the document under a private
+ * family name ("SS Selawik") that no page stylesheet will ever ask for.
+ * They are read as bytes, so a strict page CSP (font-src) cannot block them.
+ * Until they arrive (or if they cannot), the stack falls back to Segoe UI /
+ * the system font, so nothing waits on this.
+ */
+let fontsRequested = false;
+export function loadFonts() {
+  if (fontsRequested) return;
+  fontsRequested = true;
+  const faces = [
+    ["selawk.ttf", "400 500"],
+    ["selawksb.ttf", "600"],
+    ["selawkb.ttf", "700 900"],
+  ];
+  for (const [file, weight] of faces) {
+    (async () => {
+      try {
+        const res = await fetch(chrome.runtime.getURL(`fonts/${file}`));
+        if (!res.ok) return;
+        const face = new FontFace("SS Selawik", await res.arrayBuffer(), { weight, display: "swap" });
+        await face.load();
+        document.fonts.add(face);
+      } catch {}
+    })();
+  }
+}
+
 export async function loadStyles() {
+  loadFonts();
   if (stylePromise) return stylePromise;
   stylePromise = (async () => {
     try {
@@ -1469,7 +1500,7 @@ export function showShortcutsHelpModal() {
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     user-select: none;
-    font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'SS Selawik', 'Selawik', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     color: #f4f4f5;
     opacity: 0;
     transition: opacity 0.14s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1641,7 +1672,7 @@ export function showColorPickerLoupe(x, y, hex) {
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    font-family: 'Google Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'SS Selawik', 'Selawik', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   `;
 
   host.innerHTML = `

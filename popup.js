@@ -229,6 +229,10 @@ async function init() {
     window.close();
   });
   $("open-gallery").addEventListener("click", goGallery);
+  $("open-convert").addEventListener("click", async () => {
+    await send({ type: "open-convert" });
+    window.close();
+  });
   $("recent-all").addEventListener("click", goGallery);
 
   // Arrow keys move between actions (no single-key shortcuts here).

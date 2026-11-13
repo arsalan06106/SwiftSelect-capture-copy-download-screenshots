@@ -1033,6 +1033,7 @@ function wireHeaderAndBulk() {
     if (kind === "clear") clearSelection();
     else if (kind === "favorite") toggleFavorite(ids, b.dataset.mode !== "off");
     else if (kind === "download") downloadRecords(selectedRecords());
+    else if (kind === "convert") location.href = `convert.html?ids=${ids.join(",")}`;
     else if (kind === "trash") moveToTrash(ids);
     else if (kind === "restore") restoreFromTrash(ids);
     else if (kind === "purge") purge(ids);

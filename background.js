@@ -120,6 +120,7 @@ const CAPTURE_MODES = {
   full: "capture-full",
   horizontal: "capture-horizontal",
   timer: "capture-timer",
+  annotate: "start-annotate",
 };
 
 function handleCommand(command, tab) {
@@ -234,8 +235,8 @@ function initAllTabs() {
 async function migrateSettings() {
   const data = await chrome.storage.local.get(["userTheme", "settingsSchema", "retentionDays"]);
   const schema = data.settingsSchema || 1;
-  if (schema >= 4) return;
-  const patch = { settingsSchema: 4 };
+  if (schema >= 5) return;
+  const patch = { settingsSchema: 5 };
   if (schema < 2) {
     const theme = normalizeTheme(data.userTheme);
     // "standard" was the flat legacy palette. 2.x is Liquid Glass throughout.
@@ -247,6 +248,11 @@ async function migrateSettings() {
     patch.actionClick = "region";
     patch.toolbarShortcuts = false;
     patch.editorShortcuts = false;
+  }
+  // 2.3: light is the default look. "System" used to be the default, so a
+  // stored "system" is almost always the old default, not a choice.
+  if (schema < 5 && (patch.userTheme || data.userTheme || "system") === "system") {
+    patch.userTheme = "light";
   }
   // 2.2: captures older than three months move to Trash by default.
   if (!Number(data.retentionDays)) patch.retentionDays = 90;
@@ -438,6 +444,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message?.type === "open-settings") {
     openExtensionPage("gallery.html", { hash: `#settings${message.hash ? `/${message.hash.replace(/^#/, "")}` : ""}` });
+    sendResponse?.({ success: true });
+    return false;
+  }
+  if (message?.type === "open-convert") {
+    openExtensionPage("convert.html");
     sendResponse?.({ success: true });
     return false;
   }
@@ -736,7 +747,7 @@ function setupContextMenus() {
 
         safeCreateMenu({
           id: "ss-capture-timer",
-          title: "3-Second Delayed Capture (Alt+T)",
+          title: "Delayed Capture",
           contexts: ["action", "page"],
         });
 
@@ -750,6 +761,12 @@ function setupContextMenus() {
           id: "ss-capture-full",
           title: "Capture Full Page (Alt+F)",
           contexts: ["action", "page"],
+        });
+
+        safeCreateMenu({
+          id: "ss-annotate",
+          title: "Annotate This Page",
+          contexts: ["page"],
         });
 
         safeCreateMenu({
@@ -949,6 +966,8 @@ function handleContextMenuClick(info, tab) {
     injectAndStart(tab, "capture-horizontal");
   } else if (menuItemId === "ss-capture-full") {
     injectAndStart(tab, "capture-full");
+  } else if (menuItemId === "ss-annotate") {
+    injectAndStart(tab, "start-annotate");
   } else if (menuItemId === "ss-format-jpg") {
     chrome.storage.local.set({ outputFormat: "jpg" });
   } else if (menuItemId === "ss-format-png") {
