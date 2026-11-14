@@ -99,6 +99,30 @@ async function dataUrlToBlob(dataUrl) {
 
 // ─── Main Capture Logic ──────────────────────────────────────────────
 
+/** A capture that stopped for a reason that is not a bug (tab closed…). */
+class CaptureStopped extends Error {
+  constructor(reason, message) {
+    super(message);
+    this.name = "CaptureStopped";
+    this.reason = reason;
+  }
+}
+
+/** Readable text for anything thrown, including DOMExceptions and undefined. */
+function describe(err) {
+  if (!err) return "Unknown error";
+  if (typeof err === "string") return err;
+  const text = err.message || String(err);
+  return err.name && err.name !== "Error" && !text.startsWith(err.name) ? `${err.name}: ${text}` : text;
+}
+
+/** Ask the page to restore itself, without failing if the tab is gone. */
+async function restoreQuietly(tabId) {
+  try {
+    await sendToContent(tabId, "restore-unroll");
+  } catch {}
+}
+
 /**
  * Send a message to the content script (via background relay) and wait for response.
  */
@@ -190,8 +214,7 @@ async function captureFullPage(
 ) {
   // 1. Unroll the page — CSS is applied first, then rect is measured
   const meta = await sendToContent(tabId, "unroll-page", { mode });
-  if (!meta)
-    throw new Error("unroll-page failed — no response from content script");
+  if (!meta) throw new CaptureStopped("tab-gone", "The page stopped responding before the capture began.");
 
   const { innerWidth, innerHeight, clientWidth, devicePixelRatio: dpr, cropRect } = meta;
 
@@ -238,11 +261,14 @@ async function captureFullPage(
   try {
     stream = await getTabStream(streamId, streamW, streamH);
   } catch (err) {
-    await sendToContent(tabId, "restore-unroll");
-    throw new Error("getUserMedia failed: " + err.message);
+    await restoreQuietly(tabId);
+    throw new Error("Could not open the tab's video stream: " + describe(err));
   }
 
   const videoTrack = stream.getVideoTracks()[0];
+  // The stream ends when the tab closes or navigates away mid-capture.
+  let trackEnded = false;
+  if (videoTrack) videoTrack.addEventListener("ended", () => (trackEnded = true), { once: true });
   if (videoTrack) {
     if ("contentHint" in videoTrack) {
       videoTrack.contentHint = "detail";
@@ -300,9 +326,15 @@ async function captureFullPage(
           scrollLeft: logicalX,
         });
 
-        if (!updateResult || updateResult.abort) {
-          isDone = true;
-          break;
+        if (!updateResult) {
+          // No answer: the tab closed, navigated or crashed.
+          throw new CaptureStopped("tab-gone", "The tab was closed or left the page before the capture finished.");
+        }
+        if (updateResult.abort) {
+          throw new CaptureStopped("cancelled", "The capture was cancelled.");
+        }
+        if (trackEnded) {
+          throw new CaptureStopped("tab-gone", "The tab was closed or left the page before the capture finished.");
         }
 
         // Wait for repaint
@@ -332,17 +364,21 @@ async function captureFullPage(
       }
     }
   } catch (err) {
-    console.error("[offscreen] Capture loop error:", err);
+    // A partial set of frames cannot make a correct image: release them all
+    // and stop. A closed tab is reported as such, not as a crash.
     frames.forEach((f) => {
       try {
         f.bitmap?.close?.();
       } catch {}
     });
-    if (frames.length === 0) {
-      stream.getTracks().forEach((t) => t.stop());
-      await sendToContent(tabId, "restore-unroll");
-      throw err;
+    frames.length = 0;
+    stream.getTracks().forEach((t) => t.stop());
+    await restoreQuietly(tabId);
+    if (err instanceof CaptureStopped) throw err;
+    if (trackEnded || err?.name === "InvalidStateError") {
+      throw new CaptureStopped("tab-gone", "The tab was closed or left the page before the capture finished.");
     }
+    throw new Error(describe(err));
   }
 
   // 4. Stitch frames onto 2D canvas
@@ -495,8 +531,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const success = await writeToClipboardSilent(blob);
         sendResponse({ success });
       } catch (err) {
-        console.error("Offscreen clipboard write error:", err);
-        sendResponse({ success: false, error: err.message });
+        console.warn("[offscreen] Clipboard write failed:", describe(err));
+        sendResponse({ success: false, error: describe(err) });
       }
     })();
 
@@ -517,8 +553,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ success: true, ...result });
       })
       .catch((err) => {
-        console.error("Offscreen capture error:", err);
-        sendResponse({ success: false, error: err.message });
+        // Reported to the worker, which keeps it for the Gallery's notices;
+        // a warning here, not an error, so nothing lands in chrome://extensions.
+        const stopped = err instanceof CaptureStopped;
+        console.warn("[offscreen] Full-page capture stopped:", describe(err));
+        sendResponse({
+          success: false,
+          aborted: stopped,
+          reason: stopped ? err.reason : "error",
+          error: describe(err),
+        });
       });
     return true; // async response
   }

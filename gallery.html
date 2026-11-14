@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Swift Gallery</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon32.png" />
-    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon64.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/tab-icon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/tab-icon-32.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/tab-icon-64.png" />
     <script src="src/pageTheme.js"></script>
     <link rel="stylesheet" href="pages.css" />
   </head>
@@ -52,6 +53,14 @@
             <button type="button" class="nav-item nav-types" data-filter="annotated">
               <i data-icon="annotated"></i><span>Annotated</span><b class="nav-count" data-count="annotated">0</b>
             </button>
+            <button type="button" class="nav-item nav-types" data-filter="converted">
+              <i data-icon="convert"></i><span>Converted</span><b class="nav-count" data-count="converted">0</b>
+            </button>
+
+            <div class="nav-label nav-types">Tools</div>
+            <button type="button" class="nav-item" data-filter="convert">
+              <i data-icon="sparkle"></i><span>Batch Converter</span>
+            </button>
 
             <div class="nav-sep nav-types"></div>
             <button type="button" class="nav-item" data-filter="trash" data-drop="trash">
@@ -64,11 +73,6 @@
         </div>
 
         <div class="sidebar-foot">
-          <a class="tool-link" href="convert.html" id="open-convert">
-            <i data-icon="convert"></i>
-            <span><b>Batch Converter</b><small>Convert, resize, compress</small></span>
-            <i data-icon="arrow" class="icon tool-link-arrow"></i>
-          </a>
           <p class="telemetry" id="telemetry" aria-live="polite">Total <b>0</b> screenshots, occupying <b>0 KB</b> of space.</p>
           <div class="meter" id="meter" role="presentation"><i></i></div>
           <button type="button" class="btn btn-danger btn-block" id="clear-all" disabled>
@@ -87,7 +91,7 @@
           </label>
 
           <div class="topbar-title" aria-hidden="true">
-            <b>Settings</b><span>SwiftSelect <span id="version"></span></span>
+            <b id="topbar-title">Settings</b><span id="topbar-sub">SwiftSelect <span id="version"></span></span>
           </div>
 
           <div class="topbar-spacer"></div>
@@ -127,6 +131,19 @@
             </button>
           </div>
 
+          <div class="issues" id="issues" hidden>
+            <button type="button" class="btn btn-icon issues-btn" id="issues-btn" aria-label="Notices" aria-expanded="false" aria-controls="issues-pop" data-tip="Notices" data-tip-pos="bottom">
+              <i data-icon="bell"></i><b class="issues-count" id="issues-count"></b>
+            </button>
+            <div class="issues-pop glass glass-dense" id="issues-pop" role="dialog" aria-label="Notices" hidden>
+              <div class="issues-head">
+                <b>Notices</b>
+                <button type="button" class="issues-clear" id="issues-clear">Dismiss all</button>
+              </div>
+              <ul class="issues-list" id="issues-list"></ul>
+            </div>
+          </div>
+
           <button type="button" class="btn btn-icon" id="open-settings" aria-label="Settings" data-tip="Settings" data-tip-pos="bottom">
             <i data-icon="settings"></i>
           </button>
@@ -160,7 +177,7 @@
         <section class="canvas settings-canvas" id="settings-view" aria-label="Settings" hidden>
           <div class="settings-shell">
           <!-- 1. General -->
-          <section class="group glass" data-tone="teal" aria-labelledby="g-general">
+          <section class="group glass" data-tone="amber" aria-labelledby="g-general">
             <h2 class="group-title" id="g-general"><span class="tile tile-slate"><i data-icon="settings"></i></span>General</h2>
 
             <div class="row">
@@ -199,6 +216,18 @@
 
             <div class="row">
               <div class="row-label">
+                <b id="l-colour">Colour</b>
+                <span><em>Dynamic</em> gives the Gallery and the capture toolbar a fresh colour each time they open. <em>Calm</em> keeps one soft colour. <em>Plain</em> has none.</span>
+              </div>
+              <div class="seg" role="radiogroup" aria-labelledby="l-colour" data-key="uiColour">
+                <button type="button" role="radio" data-value="dynamic">Dynamic</button>
+                <button type="button" role="radio" data-value="calm">Calm</button>
+                <button type="button" role="radio" data-value="plain">Plain</button>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="row-label">
                 <b id="l-action">Toolbar icon click</b>
                 <span>Start a region capture in one click, or open the quick menu first.</span>
               </div>
@@ -210,7 +239,7 @@
           </section>
 
           <!-- 2. Capture & export -->
-          <section class="group glass" data-tone="blue" aria-labelledby="g-capture">
+          <section class="group glass" data-tone="orange" aria-labelledby="g-capture">
             <h2 class="group-title" id="g-capture"><span class="tile tile-blue"><i data-icon="region"></i></span>Capture &amp; Export Preferences</h2>
 
             <div class="row row-stack">
@@ -292,7 +321,7 @@
           </section>
 
           <!-- 3. Gallery & storage -->
-          <section class="group glass" data-tone="violet" id="gallery" aria-labelledby="g-gallery">
+          <section class="group glass" data-tone="pink" id="gallery" aria-labelledby="g-gallery">
             <h2 class="group-title" id="g-gallery"><span class="tile tile-violet"><i data-icon="gallery"></i></span>Gallery &amp; Storage</h2>
 
             <div class="row">
@@ -335,7 +364,7 @@
           </section>
 
           <!-- 4. Shortcuts -->
-          <section class="group glass" data-tone="amber" id="shortcuts" aria-labelledby="g-shortcuts">
+          <section class="group glass" data-tone="violet" id="shortcuts" aria-labelledby="g-shortcuts">
             <h2 class="group-title" id="g-shortcuts"><span class="tile tile-amber"><i data-icon="keyboard"></i></span>Shortcuts</h2>
 
             <div class="row row-stack">
@@ -400,6 +429,119 @@
           <footer class="settings-foot">
             <span>Changes are saved as you make them and apply to open tabs straight away.</span>
           </footer>
+          </div>
+        </section>
+
+
+        <!-- Batch Converter: a view of this window, like Settings -->
+        <section class="canvas tool-canvas" id="convert-view" aria-label="Batch Converter" hidden>
+          <div class="cv-layout">
+            <div class="cv-main">
+              <label class="cv-drop glass" id="cv-drop" tabindex="0">
+                <input type="file" id="cv-file" accept="image/*" multiple hidden />
+                <span class="cv-drop-glyph" aria-hidden="true"><i data-icon="convert"></i></span>
+                <span class="cv-drop-text">
+                  <b>Drop images to convert</b>
+                  <small>or click to browse · paste with <kbd class="kbd">Ctrl</kbd><kbd class="kbd">V</kbd> · PNG, JPG, WebP, GIF, BMP, AVIF, SVG</small>
+                </span>
+                <span class="cv-drop-actions">
+                  <span class="btn btn-primary" aria-hidden="true"><i data-icon="plus"></i>Add images</span>
+                </span>
+              </label>
+
+              <section class="cv-summary glass" id="cv-summary" hidden aria-live="polite">
+                <div class="cv-summary-text">
+                  <b id="cv-sum-title">0 images</b>
+                  <span id="cv-sum-detail"></span>
+                </div>
+                <div class="cv-saving" id="cv-sum-saving" hidden></div>
+                <div class="topbar-spacer"></div>
+                <button type="button" class="btn btn-quiet" id="cv-clear" data-tip="Remove every image"><i data-icon="trash"></i><span>Clear</span></button>
+                <button type="button" class="btn" id="cv-save-gallery" data-tip="Keep the results in the Gallery, tagged Converted"><i data-icon="gallery"></i><span>Save to Gallery</span></button>
+                <button type="button" class="btn btn-icon" id="cv-zip" aria-label="Download as one ZIP" data-tip="Download as one ZIP"><i data-icon="zip"></i></button>
+                <button type="button" class="btn btn-primary" id="cv-download-all"><i data-icon="download"></i><span id="cv-download-label">Download all</span></button>
+                <i class="cv-progress" id="cv-progress" aria-hidden="true"><i></i></i>
+              </section>
+
+              <ul class="cv-list" id="cv-list" aria-label="Images"></ul>
+            </div>
+
+            <aside class="cv-side" aria-label="Conversion settings">
+              <section class="group glass" data-tone="orange">
+                <h2 class="group-title"><span class="tile"><i data-icon="convert"></i></span>Format</h2>
+                <div class="row row-stack">
+                  <div class="seg seg-full" role="radiogroup" aria-label="Output format" data-key="format">
+                    <button type="button" role="radio" data-value="jpg">JPG</button>
+                    <button type="button" role="radio" data-value="png">PNG <small>Lossless</small></button>
+                    <button type="button" role="radio" data-value="webp">WebP</button>
+                  </div>
+                </div>
+                <div class="row row-stack" id="cv-quality-row">
+                  <div class="row-label cv-inline">
+                    <b>Quality</b>
+                    <output class="cv-value" id="cv-quality-out">92</output>
+                  </div>
+                  <input class="range" id="cv-quality" type="range" min="30" max="100" step="1" value="92" aria-label="Quality" />
+                  <div class="cv-presets" data-key="quality">
+                    <button type="button" class="chip" data-value="60">Smallest</button>
+                    <button type="button" class="chip" data-value="80">Balanced</button>
+                    <button type="button" class="chip" data-value="92">High</button>
+                    <button type="button" class="chip" data-value="100">Best</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="group glass" data-tone="pink">
+                <h2 class="group-title"><span class="tile"><i data-icon="fit"></i></span>Size</h2>
+                <div class="row row-stack">
+                  <div class="seg seg-full" role="radiogroup" aria-label="Resize" data-key="resize">
+                    <button type="button" role="radio" data-value="none">Original</button>
+                    <button type="button" role="radio" data-value="fit">Fit within</button>
+                    <button type="button" role="radio" data-value="scale">Scale</button>
+                  </div>
+                </div>
+                <div class="row row-stack" id="cv-fit-row" hidden>
+                  <div class="cv-dims">
+                    <label><span>Max width</span><input class="input" id="cv-max-w" type="number" min="1" max="20000" placeholder="auto" inputmode="numeric" /></label>
+                    <span class="cv-times" aria-hidden="true">×</span>
+                    <label><span>Max height</span><input class="input" id="cv-max-h" type="number" min="1" max="20000" placeholder="auto" inputmode="numeric" /></label>
+                  </div>
+                  <div class="cv-presets" data-key="box">
+                    <button type="button" class="chip" data-value="3840">4K</button>
+                    <button type="button" class="chip" data-value="1920">1920</button>
+                    <button type="button" class="chip" data-value="1280">1280</button>
+                    <button type="button" class="chip" data-value="800">800</button>
+                  </div>
+                  <p class="cv-note">Images keep their proportions and are never enlarged.</p>
+                </div>
+                <div class="row row-stack" id="cv-scale-row" hidden>
+                  <div class="row-label cv-inline">
+                    <b>Scale</b>
+                    <output class="cv-value" id="cv-scale-out">50%</output>
+                  </div>
+                  <input class="range" id="cv-scale" type="range" min="10" max="100" step="5" value="50" aria-label="Scale" />
+                </div>
+              </section>
+
+              <section class="group glass" data-tone="violet">
+                <h2 class="group-title"><span class="tile"><i data-icon="annotated"></i></span>Output</h2>
+                <div class="row row-stack">
+                  <div class="row-label">
+                    <b>File name suffix</b>
+                    <span>Added before the extension, e.g. <code>photo<em id="cv-suffix-demo"></em>.jpg</code></span>
+                  </div>
+                  <input class="input" id="cv-suffix" type="text" maxlength="40" placeholder="none" spellcheck="false" autocomplete="off" />
+                </div>
+                <div class="row" id="cv-bg-row">
+                  <div class="row-label">
+                    <b>Fill transparency with white</b>
+                    <span>JPG has no transparency. Off uses black.</span>
+                  </div>
+                  <button type="button" class="switch" id="cv-bg-white" role="switch" aria-checked="true" aria-label="Fill transparency with white"></button>
+                </div>
+                <p class="cv-note cv-privacy"><i data-icon="lock"></i>Everything happens on this device. Converting also removes hidden metadata such as camera details and location.</p>
+              </section>
+            </aside>
           </div>
         </section>
 

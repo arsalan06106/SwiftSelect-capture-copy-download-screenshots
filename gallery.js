@@ -24,6 +24,7 @@ import {
   formatBytes,
 } from "./src/storage.js";
 import { getSettings, buildFilename } from "./src/settings.js";
+import { listIssues, dismissIssue, clearIssues, ISSUES_KEY } from "./src/issues.js";
 import {
   icon,
   hydrateIcons,
@@ -48,16 +49,19 @@ const TYPE_LABEL = {
   horizontal: "Horizontal",
   annotated: "Annotated",
   imported: "Imported",
+  converted: "Converted",
   screenshot: "Capture",
 };
 
+// Each type has its own colour of glass; the sidebar tiles match.
 const TYPE_TONE = {
-  region: "indigo",
-  visible: "cyan",
+  region: "orchid",
+  visible: "coral",
   fullpage: "violet",
   horizontal: "orange",
   annotated: "pink",
   imported: "teal",
+  converted: "lime",
 };
 
 const FILTER_TITLE = {
@@ -70,8 +74,16 @@ const FILTER_TITLE = {
   fullpage: "Full Page Captures",
   horizontal: "Horizontal Captures",
   annotated: "Annotated",
+  converted: "Converted",
   trash: "Trash",
 };
+
+/** Views that are tools in this window rather than lists of captures. */
+const TOOL_VIEWS = {
+  settings: { el: "settings-view", title: "Settings" },
+  convert: { el: "convert-view", title: "Batch Converter", sub: "Convert, resize and compress. Nothing leaves this device." },
+};
+const isToolView = (filter = state.filter) => filter in TOOL_VIEWS;
 
 /** Title for a library view; Settings (and anything unknown) reads as All. */
 const filterTitle = (filter) => FILTER_TITLE[filter] || FILTER_TITLE.all;
@@ -365,7 +377,7 @@ function renderCounts() {
   count.textContent = formatNumber(n);
   const space = document.createElement("b");
   space.textContent = formatBytes(liveBytes + trashBytes);
-  tel.append("Total ", count, ` screenshot${n === 1 ? "" : "s"}, occupying `, space, " of space.");
+  tel.append(count, ` capture${n === 1 ? "" : "s"}`, document.createElement("i"), space, " used");
   $("clear-all").disabled = n === 0;
 
   navigator.storage?.estimate?.().then((est) => {
@@ -488,7 +500,7 @@ function render({ animate = false } = {}) {
   const counts = renderCounts();
   // While Settings is open the library is hidden: keep the sidebar counts
   // live and leave the grid for when a library view comes back.
-  if (state.filter === "settings") return;
+  if (isToolView()) return;
   const shown = visibleRecords();
   renderHead(shown, counts);
 
@@ -832,7 +844,7 @@ function wireMarquee() {
   }
 
   canvas.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || e.pointerType === "touch" || state.filter === "settings") return;
+    if (e.button !== 0 || e.pointerType === "touch" || isToolView()) return;
     if (lightbox.classList.contains("is-open") || !isBlank(e.target)) return;
     // The scrollbar is not empty space.
     if (e.clientX - canvas.getBoundingClientRect().left > canvas.clientLeft + canvas.clientWidth) return;
@@ -1059,7 +1071,7 @@ function syncLightbox() {
   $("lb-next").hidden = i === -1 || i >= shown.length - 1;
 }
 
-function openLightbox(r) {
+function fillLightbox(r) {
   state.lightboxId = r.id;
   if (lightboxUrl) URL.revokeObjectURL(lightboxUrl);
   lightboxUrl = URL.createObjectURL(r.blob);
@@ -1075,19 +1087,65 @@ function openLightbox(r) {
   $("lb-close").focus();
 }
 
+/**
+ * Open the preview. From a card, the thumbnail grows into the preview (a
+ * shared-element View Transition); stepping with the arrows just swaps.
+ */
+function openLightbox(r, { hero = null } = {}) {
+  const img = $("lb-img");
+  if (!hero || !document.startViewTransition || prefersReducedMotion()) {
+    fillLightbox(r);
+    return;
+  }
+  hero.style.viewTransitionName = "lb-hero";
+  const vt = document.startViewTransition(async () => {
+    hero.style.viewTransitionName = "";
+    fillLightbox(r);
+    img.style.viewTransitionName = "lb-hero";
+    try {
+      await img.decode();
+    } catch {}
+  });
+  vt.finished.finally(() => {
+    img.style.viewTransitionName = "";
+    hero.style.viewTransitionName = "";
+  });
+}
+
 function closeLightbox() {
   if (!lightbox.classList.contains("is-open")) return;
-  lightbox.classList.remove("is-open");
   const id = state.lightboxId;
-  state.lightboxId = null;
-  setTimeout(() => {
-    if (state.lightboxId === null && lightboxUrl) {
-      URL.revokeObjectURL(lightboxUrl);
-      lightboxUrl = "";
-      $("lb-img").removeAttribute("src");
-    }
-  }, 320);
-  grid.querySelector(`[data-id="${id}"] .card-thumb`)?.focus();
+  const img = $("lb-img");
+  const thumb = grid.querySelector(`[data-id="${id}"] .card-thumb img`);
+  const finish = () => {
+    lightbox.classList.remove("is-open");
+    state.lightboxId = null;
+    setTimeout(() => {
+      if (state.lightboxId === null && lightboxUrl) {
+        URL.revokeObjectURL(lightboxUrl);
+        lightboxUrl = "";
+        img.removeAttribute("src");
+      }
+    }, 320);
+    grid.querySelector(`[data-id="${id}"] .card-thumb`)?.focus({ preventScroll: true });
+  };
+  // Shrink back into the card when it is on screen.
+  const r = thumb?.getBoundingClientRect();
+  const visible = r && r.bottom > 0 && r.top < innerHeight && r.width > 0;
+  if (!visible || !document.startViewTransition || prefersReducedMotion() || !lightbox.classList.contains("is-fit")) {
+    finish();
+    return;
+  }
+  img.style.viewTransitionName = "lb-hero";
+  const vt = document.startViewTransition(() => {
+    img.style.viewTransitionName = "";
+    thumb.style.viewTransitionName = "lb-hero";
+    finish();
+  });
+  vt.finished.finally(() => {
+    thumb.style.viewTransitionName = "";
+    img.style.viewTransitionName = "";
+  });
 }
 
 function stepLightbox(delta) {
@@ -1099,35 +1157,90 @@ function stepLightbox(delta) {
 
 // ─── Wiring ──────────────────────────────────────────────────────────
 
-// ─── Settings view ───────────────────────────────────────────────────
-// Settings are a view of this window rather than a separate tab: the same
-// sidebar, the same topbar (which carries the save state), the same glass.
+// ─── Tool views and section motion ───────────────────────────────────
+// Settings and the Batch Converter are views of this window rather than
+// separate tabs: the same sidebar, the same top bar, the same glass. Every
+// switch between sections runs as a View Transition: the stage slides and
+// fades in the direction of travel in the sidebar while the sidebar itself
+// stays put and its pill glides.
 
 let settingsModule = null;
+let converterModule = null;
 
-async function showSettings(section = "") {
-  document.body.classList.add("is-settings");
-  $("canvas").hidden = true;
-  const view = $("settings-view");
-  view.hidden = false;
-  settingsModule ||= await import("./options.js");
-  await settingsModule.mountSettings();
-  // Scroll only the settings pane. scrollIntoView would also scroll every
-  // ancestor, nudging the whole window (sidebar included) out of place.
-  const target = section && document.getElementById(section);
-  let top = 0;
-  for (let el = target; el && el !== view; el = el.offsetParent) top += el.offsetTop;
-  view.scrollTo({ top: target ? Math.max(0, top - 8) : 0, behavior: target ? "smooth" : "auto" });
+const prefersReducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * Swap sections with motion that never blocks input: the new stage glides
+ * and fades in from the direction of travel in the sidebar, the top bar's
+ * contents cross-fade. (View Transitions hold clicks while they play, which
+ * made quick hops down the sidebar drop clicks, so they are kept for the
+ * preview morph only.)
+ */
+let stageAnim = null;
+function transition(update, direction = "down") {
+  const result = update();
+  if (prefersReducedMotion() || document.hidden) return Promise.resolve(result);
+  const stage = [$("canvas"), $("settings-view"), $("convert-view")].find((el) => el && !el.hidden);
+  const dy = direction === "up" ? -18 : 18;
+  stageAnim?.cancel();
+  stageAnim = stage?.animate(
+    [
+      { opacity: 0, transform: `translateY(${dy}px) scale(0.99)`, filter: "blur(6px)" },
+      { opacity: 1, transform: "none", filter: "none" },
+    ],
+    { duration: 340, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+  );
+  document.querySelector(".topbar")?.animate([{ opacity: 0.55 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
+  return Promise.resolve(result);
 }
 
-function hideSettings() {
-  if (!document.body.classList.contains("is-settings")) return;
-  document.body.classList.remove("is-settings");
-  $("settings-view").hidden = true;
-  $("canvas").hidden = false;
+function navIndex(filter) {
+  return [...document.querySelectorAll(".nav-item")].findIndex((n) => n.dataset.filter === filter);
 }
 
-/** #settings, #settings/shortcuts, #trash, #favorites … */
+function showStage(filter) {
+  for (const [key, cfg] of Object.entries(TOOL_VIEWS)) $(cfg.el).hidden = key !== filter;
+  $("canvas").hidden = isToolView(filter);
+  const tool = TOOL_VIEWS[filter];
+  document.body.classList.toggle("is-tool", !!tool);
+  document.body.classList.toggle("is-settings", filter === "settings");
+  document.body.classList.toggle("is-convert", filter === "convert");
+  if (tool) {
+    $("topbar-title").textContent = tool.title;
+    const sub = $("topbar-sub");
+    if (tool.sub) sub.textContent = tool.sub;
+    else sub.innerHTML = `SwiftSelect <span id="version">v${chrome.runtime.getManifest().version}</span>`;
+  }
+}
+
+async function mountTool(filter, section = "") {
+  if (filter === "settings") {
+    settingsModule ||= await import("./options.js");
+    await settingsModule.mountSettings();
+    const view = $("settings-view");
+    // Scroll only the settings pane. scrollIntoView would also scroll every
+    // ancestor, nudging the whole window (sidebar included) out of place.
+    const target = section && document.getElementById(section);
+    let top = 0;
+    for (let el = target; el && el !== view; el = el.offsetParent) top += el.offsetTop;
+    view.scrollTo({ top: target ? Math.max(0, top - 8) : 0, behavior: target ? "smooth" : "auto" });
+  } else if (filter === "convert") {
+    converterModule ||= await import("./convert.js");
+    await converterModule.mountConverter();
+    const ids = String(section || "").split(",").map(Number).filter(Boolean);
+    if (ids.length) await converterModule.addCaptureIds(ids);
+  }
+}
+
+async function openConverterWith(ids) {
+  clearSelection();
+  setFilter("convert");
+  converterModule ||= await import("./convert.js");
+  await converterModule.mountConverter();
+  await converterModule.addCaptureIds(ids);
+}
+
+/** #settings, #settings/shortcuts, #convert, #convert/3,7, #trash … */
 function routeFromHash() {
   const [view, section] = location.hash.replace(/^#/, "").split("/");
   if (view === "capture") {
@@ -1142,34 +1255,42 @@ function routeFromHash() {
   }
   const known = [...document.querySelectorAll(".nav-item")].map((n) => n.dataset.filter);
   if (view && known.includes(view)) setFilter(view, { section, fromHash: true });
+  if (view === "convert" && section) {
+    try {
+      history.replaceState(null, "", `${location.pathname}#convert`);
+    } catch {}
+  }
 }
 
 function setFilter(filter, { section = "", fromHash = false } = {}) {
-  if (state.filter !== filter) clearSelection();
+  const from = state.filter;
+  const same = from === filter;
+  if (!same) clearSelection();
   if (!fromHash) {
     try {
       history.replaceState(null, "", filter === "all" ? location.pathname : `#${filter}`);
     } catch {}
   }
-  if (filter === "settings") {
-    state.filter = filter;
-    document.querySelectorAll(".nav-item").forEach((el) => {
-      if (el.dataset.filter === filter) el.setAttribute("aria-current", "true");
-      else el.removeAttribute("aria-current");
-    });
-    syncNavPill();
-    showSettings(section);
-    return;
-  }
-  hideSettings();
   state.filter = filter;
   document.querySelectorAll(".nav-item").forEach((el) => {
     if (el.dataset.filter === filter) el.setAttribute("aria-current", "true");
     else el.removeAttribute("aria-current");
   });
   syncNavPill();
-  $("canvas").scrollTop = 0;
-  render({ animate: true });
+
+  const direction = navIndex(filter) >= navIndex(from) ? "down" : "up";
+  const swap = () => {
+    showStage(filter);
+    if (isToolView(filter)) return mountTool(filter, section);
+    $("canvas").scrollTop = 0;
+    // The transition carries the motion; cards only stagger on first paint.
+    render({ animate: same || !document.startViewTransition });
+  };
+  if (same && !isToolView(filter)) {
+    swap();
+    return;
+  }
+  transition(swap, direction);
 }
 
 function setView(view) {
@@ -1245,7 +1366,7 @@ function wireGrid() {
       if (e.metaKey || e.ctrlKey || (e.shiftKey && state.anchorId !== null) || state.selected.size) {
         toggleSelect(r.id, { range: e.shiftKey });
       } else {
-        openLightbox(r);
+        openLightbox(r, { hero: card.querySelector(".card-thumb img") });
       }
       return;
     }
@@ -1295,7 +1416,7 @@ function wireHeaderAndBulk() {
     }
     else if (kind === "favorite") toggleFavorite(ids, b.dataset.mode !== "off");
     else if (kind === "download") downloadRecords(selectedRecords());
-    else if (kind === "convert") location.href = `convert.html?ids=${ids.join(",")}`;
+    else if (kind === "convert") openConverterWith(ids);
     else if (kind === "trash") moveToTrash(ids);
     else if (kind === "restore") restoreFromTrash(ids);
     else if (kind === "purge") purge(ids);
@@ -1358,7 +1479,7 @@ function wireKeyboard() {
   document.addEventListener("keydown", (e) => {
     const typing = ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
     if (document.querySelector(".modal-root.is-open")) return;
-    if (state.filter === "settings") return;
+    if (isToolView()) return;
 
     if (lightbox.classList.contains("is-open")) {
       const r = currentLightboxRecord();
@@ -1449,7 +1570,7 @@ async function init() {
   $("canvas").addEventListener(
     "wheel",
     (e) => {
-      if (!(e.ctrlKey || e.metaKey) || state.filter === "settings") return;
+      if (!(e.ctrlKey || e.metaKey) || isToolView()) return;
       e.preventDefault();
       const now = Date.now();
       if (now - wheelAt < 220 || Math.abs(e.deltaY) < 4) return;
@@ -1512,6 +1633,7 @@ async function init() {
   wireDragAndDrop();
   wireMarquee();
   wireImport();
+  wireIssues();
 
   // Stay live: captures from other tabs, retention runs, other gallery tabs.
   let reloadTimer = 0;
@@ -1537,6 +1659,88 @@ async function init() {
   state.records = await listCaptures().catch(() => []);
   render({ animate: true });
   routeFromHash();
+}
+
+// ─── Notices ─────────────────────────────────────────────────────────
+// Capture problems from web pages (a failed capture, a full-page capture cut
+// short by a closed tab) wait here behind a small icon, each dismissible.
+
+async function renderIssues({ fresh = false } = {}) {
+  const list = await listIssues();
+  const wrap = $("issues");
+  wrap.hidden = list.length === 0;
+  if (!list.length) {
+    closeIssues();
+    return;
+  }
+  const errors = list.filter((i) => i.kind === "error").length;
+  $("issues-count").textContent = formatNumber(list.length);
+  wrap.dataset.kind = errors ? "error" : "warn";
+  if (fresh) {
+    wrap.classList.remove("is-new");
+    void wrap.offsetWidth;
+    wrap.classList.add("is-new");
+  }
+  const ul = $("issues-list");
+  ul.replaceChildren(
+    ...list.map((i) => {
+      const li = document.createElement("li");
+      li.className = `issue is-${i.kind}`;
+      li.dataset.id = i.id;
+      li.innerHTML = `<span class="issue-glyph">${icon(i.kind === "error" ? "alert" : "warn")}</span>
+        <div class="issue-text"><b></b><p></p><small></small></div>
+        <button type="button" class="issue-dismiss" aria-label="Dismiss" data-tip="Dismiss">${icon("close")}</button>`;
+      li.querySelector("b").textContent = i.count > 1 ? `${i.title} (×${i.count})` : i.title;
+      li.querySelector("p").textContent = i.detail || "";
+      let where = "";
+      try {
+        where = i.source ? new URL(i.source).hostname : "";
+      } catch {}
+      li.querySelector("small").textContent = [formatRelative(i.at), where].filter(Boolean).join(" · ");
+      return li;
+    }),
+  );
+}
+
+function closeIssues() {
+  $("issues-pop").hidden = true;
+  $("issues-btn").setAttribute("aria-expanded", "false");
+}
+
+function wireIssues() {
+  $("issues-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const pop = $("issues-pop");
+    pop.hidden = !pop.hidden;
+    $("issues-btn").setAttribute("aria-expanded", String(!pop.hidden));
+    $("issues").classList.remove("is-new");
+  });
+  $("issues-list").addEventListener("click", async (e) => {
+    const b = e.target.closest(".issue-dismiss");
+    if (!b) return;
+    const li = b.closest(".issue");
+    li.classList.add("is-leaving");
+    await new Promise((r) => setTimeout(r, 180));
+    await dismissIssue(li.dataset.id);
+  });
+  $("issues-clear").addEventListener("click", () => clearIssues());
+  document.addEventListener("click", (e) => {
+    if (!$("issues-pop").hidden && !e.target.closest("#issues")) closeIssues();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("issues-pop").hidden) {
+      e.stopPropagation();
+      closeIssues();
+    }
+  }, true);
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes[ISSUES_KEY]) {
+      const before = changes[ISSUES_KEY].oldValue?.length || 0;
+      const after = changes[ISSUES_KEY].newValue?.length || 0;
+      renderIssues({ fresh: after > before });
+    }
+  });
+  renderIssues();
 }
 
 // ─── Import: drop image files or paste an image ──────────────────────
@@ -1571,7 +1775,8 @@ async function importFiles(files) {
 }
 
 function wireImport() {
-  const isFileDrag = (e) => !dragIds && [...(e.dataTransfer?.types || [])].includes("Files");
+  // The Batch Converter takes its own drops and pastes while it is showing.
+  const isFileDrag = (e) => !dragIds && !isToolView() && [...(e.dataTransfer?.types || [])].includes("Files");
   let depth = 0;
   const end = () => {
     depth = 0;
@@ -1601,7 +1806,7 @@ function wireImport() {
   window.addEventListener("blur", end);
 
   document.addEventListener("paste", (e) => {
-    if (e.target.closest?.("input, textarea, [contenteditable]")) return;
+    if (isToolView() || e.target.closest?.("input, textarea, [contenteditable]")) return;
     const files = [...(e.clipboardData?.files || [])];
     if (!files.length) return;
     e.preventDefault();

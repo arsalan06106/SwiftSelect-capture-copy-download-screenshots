@@ -1,30 +1,29 @@
 /**
- * Gallery peek tray.
+ * The capture toolbar's panel: the Gallery and Settings without leaving the
+ * page.
  *
- * Rest the pointer on the Gallery button of the capture toolbar for three
- * seconds and the newest captures slide in along the bottom of the page
- * (or the top, when the toolbar has been dragged into the lower half).
- * Each one can be dragged straight into the page (a file drop, as if it came
- * from the desktop), clicked to copy, downloaded or opened in the editor.
+ * The Gallery and Settings tiles (or the chevron) grow the toolbar itself:
+ * its pill reshapes into a panel that unfolds under the buttons, or above
+ * them when the toolbar sits low on the page. While it is open the two
+ * tiles fuse into the panel's tabs. (Convert opens the full Batch Converter,
+ * where images are dropped and handled in bulk.)
  *
- * The button shows a ring filling up while it waits, so the delay reads as
- * "keep holding" rather than as lag. The Gallery tooltip is vetoed while the
- * tray is open so the two are never on screen together.
+ *   Gallery   the newest captures: drag one into the page (a file drop, as
+ *             if from the desktop), click to copy, download, convert or
+ *             annotate.
+ *   Settings  the settings people change most (src/panelSettings.js).
  *
- * The tray does not vanish when the pointer wanders off (the trip from a
- * toolbar at the top to a tray at the bottom takes a moment); it closes on
- * Esc, its close button, a press anywhere else, or when a capture starts.
- *
- * Images come from the service worker (see src/peekData.js): small previews
- * up front, full files fetched in the background, nearest-first.
+ * Each tab has a small button that opens its full page in a new tab. The
+ * panel closes on Esc, the chevron, a press outside the toolbar, or when a
+ * capture starts. Gallery images come from the service worker (see
+ * src/peekData.js): small previews up front, full files fetched in the
+ * background, nearest first.
  */
-import { applyElementTheme, currentUserTheme } from "./theme.js";
 import { writeImageBlobToClipboard } from "./capture/utils.js";
 import { downloadBlob } from "./capture/download.js";
 import { openAnnotationEditor } from "./capture/annotate.js";
+import { mountSettingsTab } from "./panelSettings.js";
 
-const HOLD_MS = 3000;
-const RING_DELAY_MS = 650;
 const LIMIT = 14;
 const PREFETCH_BUDGET = 160 * 1024 * 1024;
 const PREFETCH_MAX_ITEM = 48 * 1024 * 1024;
@@ -36,6 +35,7 @@ const TYPE_LABEL = {
   horizontal: "Horizontal",
   annotated: "Annotated",
   imported: "Imported",
+  converted: "Converted",
 };
 
 const SVG = {
@@ -46,6 +46,8 @@ const SVG = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg>',
   annotate:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 20H21"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  collapse:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>',
   close:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
   external:
@@ -53,26 +55,32 @@ const SVG = {
   check:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
   drag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10V5a1.5 1.5 0 0 1 3 0v5"/><path d="M14 10.5V7a1.5 1.5 0 0 1 3 0v6.5a6.5 6.5 0 0 1-6.5 6.5h-.6a5.5 5.5 0 0 1-4.4-2.2L4.2 15a1.6 1.6 0 0 1 2.5-2L8 14.5"/></svg>',
+  sliders:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>',
+  convert:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13M13.5 4.5 17 8l-3.5 3.5"/><path d="M20 16H7M10.5 12.5 7 16l3.5 3.5"/></svg>',
   arrow:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
 };
 
 const s = {
-  host: null,
-  shadow: null,
-  tray: null,
+  guide: null, // the toolbar element that grows
+  host: null, // the toolbar's shadow host
+  tray: null, // the drawer inside the toolbar
   strip: null,
+  saved: null, // the toolbar's inline position before it grew
   open: false,
   closing: false,
   detached: false,
   dragging: false,
-  edge: "bottom",
+  up: false,
   items: [],
   files: new Map(), // id → { file, url }
   pending: new Map(), // id → Promise
   closeTimer: 0,
-  holdTimer: 0,
-  ringTimer: 0,
+  tab: "gallery",
+  lastTab: "gallery",
+  panes: null,
   anchor: null,
   generation: 0,
   onKey: null,
@@ -92,7 +100,7 @@ function relayDrop(e) {
   const dt0 = e.dataTransfer;
   if (dt0 && [...(dt0.types || [])].includes("Files") && dt0.files?.length) return;
   const target = e.composedPath?.()[0] || e.target;
-  if (!target || s.host?.contains?.(target) || target === s.host) return;
+  if (!target || target === s.host || (s.guide && target.getRootNode?.() === s.guide.getRootNode())) return;
   e.preventDefault();
   e.stopImmediatePropagation();
   try {
@@ -207,57 +215,6 @@ function titleOf(item) {
   }
 }
 
-// ─── Hold to open ────────────────────────────────────────────────────
-
-/** Arm a button: holding the pointer on it for three seconds opens the tray. */
-export function armPeek(btn) {
-  if (!btn || btn._qsPeek) return;
-  btn._qsPeek = true;
-  btn.addEventListener("pointerenter", (e) => {
-    if (e.pointerType === "touch" || (s.open && !s.closing)) return;
-    startHold(btn);
-  });
-  btn.addEventListener("pointerleave", () => cancelHold(btn));
-  btn.addEventListener("pointerdown", () => cancelHold(btn));
-}
-
-function ringOf(btn) {
-  let ring = btn.querySelector(".qs-peek-ring");
-  if (!ring) {
-    ring = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    ring.setAttribute("class", "qs-peek-ring");
-    ring.setAttribute("viewBox", "0 0 40 40");
-    ring.setAttribute("aria-hidden", "true");
-    ring.innerHTML = '<circle cx="20" cy="20" r="18" pathLength="100"/>';
-    btn.appendChild(ring);
-  }
-  return ring;
-}
-
-function startHold(btn) {
-  cancelHold(btn);
-  s.anchor = btn;
-  s.ringTimer = setTimeout(() => {
-    const ring = ringOf(btn);
-    ring.style.setProperty("--qs-peek-ms", `${HOLD_MS - RING_DELAY_MS}ms`);
-    btn.classList.remove("qs-peek-arming");
-    void btn.offsetWidth;
-    btn.classList.add("qs-peek-arming");
-  }, RING_DELAY_MS);
-  s.holdTimer = setTimeout(() => {
-    btn.classList.remove("qs-peek-arming");
-    openPeek(btn);
-  }, HOLD_MS);
-}
-
-function cancelHold(btn) {
-  clearTimeout(s.holdTimer);
-  clearTimeout(s.ringTimer);
-  s.holdTimer = 0;
-  s.ringTimer = 0;
-  btn?.classList.remove("qs-peek-arming");
-}
-
 // ─── Tray ────────────────────────────────────────────────────────────
 
 export function isPeekOpen() {
@@ -292,11 +249,25 @@ function iconBtn(act, label, svg) {
   return b;
 }
 
-export async function openPeek(anchor = s.anchor) {
-  if (s.open && !s.closing) return;
+const TABS = {
+  gallery: { label: "Gallery", open: "Open Gallery", message: "open-gallery", sub: "Drag in, or click to copy" },
+  settings: { label: "Settings", open: "All settings", message: "open-settings", sub: "Applies straight away" },
+};
+
+/**
+ * Open the panel on a tab (or switch tabs when it is already open).
+ * With no tab, it opens on the last one used (Gallery the first time).
+ */
+export async function openPeek(anchor = s.anchor, tab = null) {
+  const want = TABS[tab] ? tab : s.lastTab || "gallery";
+  if (s.open && !s.closing) {
+    showTab(want);
+    return;
+  }
   const U = ui();
-  if (!U?.makeShadowOverlay) return;
   if (document.getElementById("swiftselect-annotate-root")) return;
+  const guide = anchor?.closest?.(".qs-guide");
+  if (!guide) return;
 
   clearTimeout(s.closeTimer);
   teardown(true);
@@ -305,67 +276,156 @@ export async function openPeek(anchor = s.anchor) {
   s.open = true;
   s.closing = false;
   s.detached = false;
-  s.anchor = anchor || null;
+  s.anchor = anchor;
+  s.guide = guide;
+  s.host = guide.getRootNode()?.host || null;
 
-  const r = anchor?.getBoundingClientRect?.();
-  s.edge = r && r.top + r.height / 2 > window.innerHeight * 0.55 ? "top" : "bottom";
+  U?.hideCustomTooltip?.();
+  // Tooltips of the tiles that fused into tabs must not linger.
+  U?.setTooltipGuard?.((btn) => !(s.open && btn.closest?.(".qs-fuse, .qs-expand-btn")));
 
-  // The Gallery tooltip and the tray never share the screen.
-  U.hideCustomTooltip?.();
-  U.setTooltipGuard?.((btn) => !(s.open && btn === s.anchor));
-
-  const { host, el: tray, shadow } = U.makeShadowOverlay("div", "qs-peek");
-  host.id = "qs-peek-host";
-  s.host = host;
-  s.shadow = shadow;
-  s.tray = tray;
-  tray.dataset.edge = s.edge;
-  tray.setAttribute("role", "dialog");
-  tray.setAttribute("aria-label", "Recent captures");
-  // Same tone as the toolbar it came from, so the two read as one surface.
-  const guide = anchor?.closest?.(".qs-guide");
-  if (guide?.classList.contains("qs-theme-glass")) {
-    tray.classList.add("qs-theme-glass");
-    tray.classList.toggle("qs-theme-glass-dark", guide.classList.contains("qs-theme-glass-dark"));
-  } else {
-    applyElementTheme(tray, currentUserTheme);
+  // Grow downward, or upward when the toolbar sits in the lower part of the
+  // page (pin its bottom edge so the buttons stay where the pointer is).
+  const r = guide.getBoundingClientRect();
+  const drawerH = 330;
+  s.up = r.bottom + drawerH > window.innerHeight - 12 && r.top > drawerH;
+  s.saved = {
+    top: guide.style.getPropertyValue("top"),
+    topP: guide.style.getPropertyPriority("top"),
+    bottom: guide.style.getPropertyValue("bottom"),
+    bottomP: guide.style.getPropertyPriority("bottom"),
+    radius: guide.style.getPropertyValue("border-radius"),
+  };
+  if (s.up) {
+    guide.style.setProperty("top", "auto", "important");
+    guide.style.setProperty("bottom", `${Math.round(window.innerHeight - r.bottom)}px`, "important");
   }
+  // Start the corner morph from the pill's real radius, not 999px, so the
+  // shape eases instead of snapping.
+  guide.style.setProperty("border-radius", `${Math.round(r.height / 2)}px`, "important");
+  void guide.offsetWidth;
 
+  const tray = el("div", "qs-peek-drawer");
+  tray.setAttribute("role", "region");
+  tray.setAttribute("aria-label", "Toolbar panel");
+  s.tray = tray;
+  const inner = el("div", "qs-peek-inner");
+
+  // Head: tabs on the left, "open in a tab" on the right.
   const head = el("div", "qs-peek-head");
-  const glyph = el("span", "qs-peek-glyph", SVG.gallery);
-  const heading = el("div", "qs-peek-heading");
-  const h = el("b");
-  h.textContent = "Recent captures";
-  const sub = el("span", "qs-peek-sub");
-  sub.textContent = "Drag one into the page, or click to copy";
-  heading.append(h, sub);
-  const openBtn = el("button", "qs-peek-open", `${SVG.external}<span>Open Gallery</span>`);
+  const tabs = el("div", "qs-panel-tabs");
+  tabs.setAttribute("role", "tablist");
+  tabs.appendChild(el("i", "qs-panel-tab-pill"));
+  for (const [key, cfg] of Object.entries(TABS)) {
+    const b = el("button", "qs-panel-tab");
+    b.type = "button";
+    b.dataset.tab = key;
+    b.setAttribute("role", "tab");
+    b.innerHTML = `${key === "gallery" ? SVG.gallery : SVG.sliders}<span>${cfg.label}</span>`;
+    b.addEventListener("click", () => showTab(key));
+    tabs.appendChild(b);
+  }
+  const openBtn = el("button", "qs-peek-open", `<span></span>${SVG.external}`);
   openBtn.type = "button";
   openBtn.addEventListener("click", () => {
-    closePeek();
-    U.openGallery?.();
+    const cfg = TABS[s.tab];
+    closePeek({ immediate: true });
+    window.SwiftSelect?.events?.cleanup?.();
+    U?.cleanup?.();
+    try {
+      chrome.runtime.sendMessage({ type: cfg.message }, () => void chrome.runtime.lastError);
+    } catch {}
   });
-  const closeBtn = el("button", "qs-peek-close", SVG.close);
-  closeBtn.type = "button";
-  closeBtn.setAttribute("aria-label", "Close");
-  closeBtn.addEventListener("click", () => closePeek());
-  head.append(glyph, heading, openBtn, closeBtn);
+  const sub = el("div", "qs-peek-sub");
+  head.append(tabs, sub, openBtn);
 
+  // Panes: built once per opening, kept while switching tabs.
+  const body = el("div", "qs-panel-body");
+  const gallery = el("div", "qs-pane qs-pane-gallery");
+  gallery.dataset.tab = "gallery";
   const strip = el("div", "qs-peek-strip");
   strip.setAttribute("role", "list");
   s.strip = strip;
-  for (let i = 0; i < 5; i++) strip.appendChild(el("div", "qs-peek-skeleton"));
+  for (let i = 0; i < 4; i++) {
+    const sk = el("div", "qs-peek-skeleton");
+    sk.style.setProperty("--i", String(i));
+    strip.appendChild(sk);
+  }
+  gallery.appendChild(strip);
+  const settings = el("div", "qs-pane qs-pane-settings");
+  settings.dataset.tab = "settings";
+  body.append(gallery, settings);
+  s.panes = { gallery, settings, body, tabs, openBtn, sub, mounted: new Set() };
 
-  tray.append(head, strip);
+  inner.append(head, body);
+  tray.appendChild(inner);
+  guide.appendChild(tray);
+  guide.classList.add("qs-grow");
+  guide.classList.toggle("qs-grow-up", s.up);
+  guide.querySelector(".qs-expand-btn")?.setAttribute("aria-expanded", "true");
   wireTray(tray, strip);
+  showTab(want, { instant: true });
+  // The bar narrows while the tiles fuse; keep the tab highlight on its tab.
+  try {
+    new ResizeObserver(() => placeTabPill()).observe(tabs);
+  } catch {}
 
-  // Slide in on the next frame so the start position is painted first.
-  requestAnimationFrame(() => requestAnimationFrame(() => s.tray === tray && tray.classList.add("is-in")));
+  // Unfold on the next frame so the folded state is painted first.
+  requestAnimationFrame(() => requestAnimationFrame(() => s.tray === tray && guide.classList.add("qs-grow-in")));
 
   const resp = await send({ type: "gallery-peek", limit: LIMIT });
   if (gen !== s.generation) return;
   renderItems(resp);
   if (resp?.success && resp.items?.length) prefetch(gen);
+}
+
+/** Switch tabs; the panel eases to the new pane's height. */
+function showTab(tab, { instant = false } = {}) {
+  const p = s.panes;
+  if (!p || !TABS[tab]) return;
+  const before = p.body.offsetHeight;
+  s.tab = tab;
+  s.lastTab = tab;
+  for (const key of Object.keys(TABS)) {
+    const on = key === tab;
+    p[key].hidden = !on;
+    const b = p.tabs.querySelector(`[data-tab="${key}"]`);
+    b.setAttribute("aria-selected", String(on));
+    b.tabIndex = on ? 0 : -1;
+  }
+  placeTabPill();
+  p.openBtn.querySelector("span").textContent = TABS[tab].open;
+  if (!s.detached || tab !== "gallery") p.sub.textContent = TABS[tab].sub;
+
+  if (!p.mounted.has(tab)) {
+    p.mounted.add(tab);
+    if (tab === "settings") mountSettingsTab(p.settings);
+  }
+
+  if (instant || prefersReducedMotion()) return;
+  const after = p.body.offsetHeight;
+  if (before && after && before !== after) {
+    p.body.animate([{ height: `${before}px` }, { height: `${after}px` }], { duration: 280, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+  }
+  p[tab].animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+}
+
+function placeTabPill() {
+  const p = s.panes;
+  if (!p) return;
+  const active = p.tabs.querySelector(`[data-tab="${s.tab}"]`);
+  const pill = p.tabs.querySelector(".qs-panel-tab-pill");
+  if (!active || !pill) return;
+  pill.style.setProperty("--x", `${active.offsetLeft}px`);
+  pill.style.setProperty("--w", `${active.offsetWidth}px`);
+}
+
+function prefersReducedMotion() {
+  try {
+    return matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
 }
 
 function renderItems(resp) {
@@ -375,7 +435,7 @@ function renderItems(resp) {
   s.items = resp?.success ? resp.items || [] : [];
 
   if (!resp?.success || !s.items.length) {
-    s.tray.classList.add("is-empty");
+    s.panes.gallery.classList.add("is-empty");
     const empty = el("div", "qs-peek-empty");
     const art = el("span", "qs-peek-empty-art", SVG.gallery);
     const text = el("div", "qs-peek-empty-text");
@@ -386,35 +446,34 @@ function renderItems(resp) {
       p.textContent = "Try again in a moment, or open the Gallery.";
     } else if (resp.enabled === false) {
       t.textContent = "Your gallery is empty, and saving is off";
-      p.textContent = "Turn on “Keep captures in the Gallery” in Settings and every capture will wait here.";
+      p.textContent = "Turn on “Keep in Gallery” in the Settings tab and every capture will wait here.";
     } else {
       t.textContent = "No captures yet";
-      p.textContent = "Take one with the capture toolbar. It will wait here, ready to drag into any page.";
+      p.textContent = "Take one with the buttons above. It will wait here, ready to drag into any page.";
     }
     text.append(t, p);
     empty.append(art, text);
     if (resp?.success && resp.enabled === false) {
-      const go = el("button", "qs-peek-cta", "Open Settings");
+      const go = el("button", "qs-peek-cta", "Turn it on");
       go.type = "button";
-      go.addEventListener("click", () => {
-        closePeek();
-        ui()?.showSettingsModal?.();
-      });
+      go.addEventListener("click", () => showTab("settings"));
       empty.appendChild(go);
     }
     strip.appendChild(empty);
-    s.tray.querySelector(".qs-peek-sub").textContent = resp?.success ? "Your gallery is empty" : "Something went wrong";
+    if (s.tab === "gallery") s.panes.sub.textContent = resp?.success ? "Your gallery is empty" : "Something went wrong";
     return;
   }
 
-  s.tray.classList.remove("is-empty");
+  s.panes.gallery.classList.remove("is-empty");
   s.items.forEach((item, i) => strip.appendChild(buildCard(item, i)));
   if (resp.more) {
     const more = el("button", "qs-peek-more", `<span class="qs-peek-more-ic">${SVG.arrow}</span><b>See all</b><span>in the Gallery</span>`);
     more.type = "button";
     more.style.setProperty("--i", String(s.items.length));
     more.addEventListener("click", () => {
-      closePeek();
+      closePeek({ immediate: true });
+      window.SwiftSelect?.events?.cleanup?.();
+      ui()?.cleanup?.();
       ui()?.openGallery?.();
     });
     strip.appendChild(more);
@@ -448,7 +507,12 @@ function buildCard(item, i) {
   thumb.appendChild(spin);
 
   const acts = el("div", "qs-peek-acts");
-  acts.append(iconBtn("copy", "Copy", SVG.copy), iconBtn("download", "Download", SVG.download), iconBtn("annotate", "Annotate", SVG.annotate));
+  acts.append(
+    iconBtn("copy", "Copy", SVG.copy),
+    iconBtn("download", "Download", SVG.download),
+    iconBtn("convert", "Convert", SVG.convert),
+    iconBtn("annotate", "Annotate", SVG.annotate),
+  );
   thumb.appendChild(acts);
 
   const meta = el("div", "qs-peek-meta");
@@ -484,13 +548,16 @@ function flash(card, text, kind = "ok") {
 function detach() {
   if (s.detached || !s.open) return;
   s.detached = true;
-  s.tray?.classList.add("is-detached");
-  const sub = s.tray?.querySelector(".qs-peek-sub");
-  if (sub) sub.textContent = "Paste it, or drag another one in · Esc closes";
+  s.guide?.classList.add("qs-grow-detached");
+  if (s.panes && s.tab === "gallery") s.panes.sub.textContent = "Paste it, or drag another · Esc closes";
+  // Leave capture mode so the page is usable again (click to paste, drop
+  // targets react), but keep the toolbar and its drawer on screen.
   setTimeout(() => {
     window.SwiftSelect?.events?.cleanup?.();
-    ui()?.cleanup?.();
-    ui()?.setTooltipGuard?.(null);
+    const U = ui();
+    U?.removeCrosshairCursor?.();
+    if (U?.overlayHost) U.overlayHost.style.display = "none";
+    U?.setTooltipGuard?.(null);
   }, 0);
 }
 
@@ -535,6 +602,14 @@ async function downloadItem(item, card) {
   } catch {}
   card?.classList.remove("is-busy");
   flash(card, ok ? "Saved" : "Download failed", ok ? "ok" : "error");
+}
+
+/** Open the Batch Converter in the Gallery with this capture in it. */
+function convertItem(item, card) {
+  flash(card, "Opening converter", "ok");
+  try {
+    chrome.runtime.sendMessage({ type: "open-convert", ids: [item.id] }, () => void chrome.runtime.lastError);
+  } catch {}
 }
 
 async function annotateItem(item, card) {
@@ -586,6 +661,7 @@ function wireTray(tray, strip) {
     if (!item) return;
     const act = e.target.closest?.(".qs-peek-act")?.dataset.act || "copy";
     if (act === "download") downloadItem(item, card);
+    else if (act === "convert") convertItem(item, card);
     else if (act === "annotate") annotateItem(item, card);
     else copyItem(item, card);
   });
@@ -636,7 +712,7 @@ function wireTray(tray, strip) {
     document.addEventListener("drop", relayDrop, true);
     // Changing layout inside dragstart can cancel the drag; defer it.
     setTimeout(() => {
-      tray.classList.add("is-dragging");
+      s.guide?.classList.add("qs-grow-dragging");
       card.classList.add("is-dragged");
       detach();
     }, 0);
@@ -647,7 +723,7 @@ function wireTray(tray, strip) {
     s.dragging = false;
     s.dragFile = null;
     document.removeEventListener("drop", relayDrop, true);
-    tray.classList.remove("is-dragging");
+    s.guide?.classList.remove("qs-grow-dragging");
     card?.classList.remove("is-dragged");
     if (card && e.dataTransfer?.dropEffect && e.dataTransfer.dropEffect !== "none") flash(card, "Dropped", "ok");
   });
@@ -657,7 +733,7 @@ function wireTray(tray, strip) {
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
-    closePeek();
+    closePeek({ finish: s.detached });
   };
   window.addEventListener("keydown", s.onKey, true);
 
@@ -666,23 +742,34 @@ function wireTray(tray, strip) {
   s.onOutside = (e) => {
     if (!s.open || s.dragging) return;
     const path = e.composedPath?.() || [];
-    if (path.includes(s.host) || (s.anchor && path.includes(s.anchor))) return;
-    closePeek();
+    if (path.includes(s.guide) || (s.host && path.includes(s.host))) return;
+    closePeek({ finish: s.detached });
   };
   window.addEventListener("pointerdown", s.onOutside, true);
 }
 
-export function closePeek({ immediate = false } = {}) {
+/**
+ * Fold the drawer away. `finish` also puts the toolbar away: used once the
+ * person has taken something out of the drawer, since capture mode has
+ * already ended by then.
+ */
+export function closePeek({ immediate = false, finish = false } = {}) {
   if (!s.open || s.closing) return;
   s.closing = true;
-  cancelHold(s.anchor);
   ui()?.setTooltipGuard?.(null);
-  const tray = s.tray;
-  if (!tray || immediate) return teardown();
-  tray.classList.remove("is-in");
-  tray.classList.add("is-out");
+  const guide = s.guide;
+  const done = () => {
+    teardown();
+    if (finish) {
+      const U = ui();
+      U?.hideGuide?.();
+      setTimeout(() => U?.cleanup?.(), 200);
+    }
+  };
+  if (!guide || !guide.isConnected || immediate) return done();
+  guide.classList.remove("qs-grow-in");
   clearTimeout(s.closeTimer);
-  s.closeTimer = setTimeout(() => teardown(), 240);
+  s.closeTimer = setTimeout(done, 300);
 }
 
 function teardown(silent = false) {
@@ -690,9 +777,25 @@ function teardown(silent = false) {
   if (s.onOutside) window.removeEventListener("pointerdown", s.onOutside, true);
   s.onKey = null;
   s.onOutside = null;
-  s.host?.remove();
+  s.tray?.remove();
+  const g = s.guide;
+  if (g) {
+    g.classList.remove("qs-grow", "qs-grow-in", "qs-grow-up", "qs-grow-detached", "qs-grow-dragging");
+    const v = s.saved;
+    if (v) {
+      if (v.top) g.style.setProperty("top", v.top, v.topP);
+      else g.style.removeProperty("top");
+      if (v.bottom) g.style.setProperty("bottom", v.bottom, v.bottomP);
+      else g.style.removeProperty("bottom");
+      if (v.radius) g.style.setProperty("border-radius", v.radius);
+      else g.style.removeProperty("border-radius");
+    }
+  }
+  g?.querySelector(".qs-expand-btn")?.setAttribute("aria-expanded", "false");
+  s.guide = null;
+  s.saved = null;
+  s.panes = null;
   s.host = null;
-  s.shadow = null;
   s.tray = null;
   s.strip = null;
   // Revoke late: a file dropped outside the browser is fetched after dragend.

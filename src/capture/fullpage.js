@@ -988,7 +988,8 @@ export async function captureStream({
     window.SwiftSelect?.ui?.updateBadge?.("✓", "#10B981");
     setTimeout(() => window.SwiftSelect?.ui?.updateBadge?.(""), 1500);
   } catch (err) {
-    console.error(`${label} capture error:`, err);
+    const cancelled = _abortCapture || /aborted|cancelled/i.test(err?.message || "");
+    if (!cancelled) console.warn(`SwiftSelect: ${label} capture stopped:`, err?.message || err);
     handleRestoreUnroll();
     window.SwiftSelect?.ui?.updateBadge?.("ERR", "#EF4444");
     setTimeout(() => window.SwiftSelect?.ui?.updateBadge?.(""), 2000);
@@ -1005,7 +1006,12 @@ export async function captureStream({
     }
     if (document.documentElement?.style) document.documentElement.style.cursor = "";
     if (document.body?.style) document.body.style.cursor = "";
-    window.SwiftSelect?.ui?.setStatus?.("Capture Failed", 3000, "error");
+    if (cancelled) {
+      window.SwiftSelect?.ui?.setStatus?.("Capture cancelled", 1800, "info");
+    } else {
+      // The worker already keeps full-page failures for the Gallery.
+      window.SwiftSelect?.ui?.setStatus?.("Capture Failed", 3500, "error", false, { detail: "Details are in the Gallery" });
+    }
     if (window.SwiftSelect?.ui?.guideHost)
       window.SwiftSelect.ui.guideHost.style.display = "flex";
     window.removeEventListener("keydown", onAbortKey, true);

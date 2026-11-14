@@ -16,7 +16,7 @@
  * same replay onto a clean canvas without selection handles.
  */
 
-import { getSmartFilename, getOutputSettings, getOutputSettingsSync, cropSnapshotToMedia } from "./utils.js";
+import { getSmartFilename, getOutputSettings, getOutputSettingsSync, cropSnapshotToMedia, currentToolbarLook } from "./utils.js";
 import { setLastBlob, downloadBlob } from "./download.js";
 import { saveToGallery } from "./deliver.js";
 import { loadStyles, getCachedCssText, attachTooltip, hideCustomTooltip, trackSheen, setTooltipGuard } from "../ui.js";
@@ -776,12 +776,14 @@ function buildAnnotationUI() {
     align-items: center;
     justify-content: center;
     user-select: none;
-    font-family: 'SS Selawik', 'Selawik', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    font-family: 'SS Manrope', 'Manrope', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     opacity: 0;
     transition: opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   `;
   _closeArmed = false;
   _markSaved();
+  // The editor wears the look the capture toolbar last wore.
+  _annotateHost.dataset.look = currentToolbarLook();
 
   // Inject styles.css text directly into _annotateHost (bypasses CSP on sites like Google Gemini)
   const styleTag = document.createElement("style");
@@ -829,23 +831,31 @@ function buildAnnotationUI() {
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: none; }
     }
-    #swiftselect-annotate-root .qs-stage-info {
+    #swiftselect-annotate-root .qs-stage-frame {
       all: initial;
-      position: fixed;
-      left: 22px;
-      bottom: 18px;
-      z-index: 2;
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      max-width: min(30vw, 420px);
-      padding: 9px 16px 10px;
-      border-radius: 16px;
+      align-items: center;
+      gap: 14px;
+      max-width: 100%;
+      margin: auto;
+    }
+    #swiftselect-annotate-root .qs-stage-info {
+      all: initial;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: min(760px, calc(100vw - 112px));
+      min-width: 0;
+      padding: 7px 16px;
+      border-radius: 99em;
       box-sizing: border-box;
-      font-family: 'SS Selawik', 'Selawik', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      font-family: 'SS Manrope', 'Manrope', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
       color: #1b1c2a;
-      background: rgba(255, 255, 255, 0.62);
-      box-shadow: inset 0 0 0 1px rgba(20, 24, 40, 0.07), 0 6px 18px -10px rgba(20, 24, 40, 0.3);
+      background:
+        linear-gradient(110deg, var(--tb1), var(--tb2) 50%, var(--tb3)),
+        rgba(255, 255, 255, 0.72);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 0 0 1px var(--tbe), 0 8px 20px -12px rgba(20, 24, 50, 0.3);
       backdrop-filter: blur(18px) saturate(160%);
       -webkit-backdrop-filter: blur(18px) saturate(160%);
       animation: qsStageInfoIn 260ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
@@ -854,13 +864,17 @@ function buildAnnotationUI() {
       user-select: none;
     }
     #swiftselect-annotate-root[data-tone="dark"] .qs-stage-info {
-      color: #eef0f6;
-      background: rgba(30, 32, 42, 0.62);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 18px -10px rgba(0, 0, 0, 0.6);
+      color: #f4f5fa;
+      background:
+        linear-gradient(110deg, var(--tb1), var(--tb2) 50%, var(--tb3)),
+        rgba(24, 25, 33, 0.76);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px var(--tbe), 0 8px 20px -12px rgba(0, 0, 0, 0.7);
     }
     #swiftselect-annotate-root .qs-stage-title {
       all: unset;
       display: block;
+      min-width: 0;
+      flex: 0 1 auto;
       font-size: 13px;
       font-weight: 600;
       line-height: 1.35;
@@ -873,8 +887,8 @@ function buildAnnotationUI() {
       display: flex;
       align-items: center;
       gap: 7px;
-      min-width: 0;
-      font-size: 11.5px;
+      flex-shrink: 0;
+      font-size: 12px;
       line-height: 1.35;
       opacity: 0.62;
       font-variant-numeric: tabular-nums;
@@ -899,8 +913,9 @@ function buildAnnotationUI() {
       transform: translateY(8px);
       pointer-events: none;
     }
-    @media (max-width: 960px) {
-      #swiftselect-annotate-root .qs-stage-info { display: none; }
+    @media (max-width: 640px) {
+      #swiftselect-annotate-root .qs-stage-meta span:last-child,
+      #swiftselect-annotate-root .qs-stage-meta i { display: none; }
     }
     @media (prefers-reduced-transparency: reduce) {
       #swiftselect-annotate-root .qs-stage-info { background: #fff; }
@@ -1611,7 +1626,7 @@ function buildAnnotationUI() {
     align-items: center;
     justify-content: center;
     overflow: auto;
-    padding: 88px 56px 64px;
+    padding: 84px 56px 28px;
     box-sizing: border-box;
   `;
 
@@ -1628,16 +1643,20 @@ function buildAnnotationUI() {
     overflow: hidden;
     cursor: ${getToolCursor(_currentTool)};
     max-width: calc(100vw - 112px);
-    max-height: calc(100vh - 152px);
+    max-height: calc(100vh - 196px);
     object-fit: contain;
     animation: qsCanvasIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   `;
 
-  viewport.appendChild(_annotateCanvas);
-  _annotateHost.appendChild(viewport);
-
+  // Image and caption travel together: the caption sits under the frame in
+  // the layout, so it can never cover the picture.
+  const frame = document.createElement("div");
+  frame.className = "qs-stage-frame";
+  frame.appendChild(_annotateCanvas);
   _infoEl = buildStageInfo();
-  _annotateHost.appendChild(_infoEl);
+  frame.appendChild(_infoEl);
+  viewport.appendChild(frame);
+  _annotateHost.appendChild(viewport);
 
   // Close annotation editor when clicking outside the canvas on the backdrop
   const handleBackdropClick = (e) => {

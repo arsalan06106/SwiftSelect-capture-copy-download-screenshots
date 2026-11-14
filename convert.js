@@ -1,15 +1,23 @@
 /**
- * Swift Converter: batch convert, resize and compress images.
+ * Batch Converter: convert, resize and compress images, as a view of the
+ * Gallery (gallery.html#convert), mounted on first visit like Settings.
  *
  * Everything runs in this page with the browser's own codecs. Files are
  * never uploaded. Every change to the settings re-converts the whole batch
  * in the background, so the size next to each file is always the real size
  * of what "Download all" will hand over, not an estimate.
+ *
+ * Results can be downloaded as separate files (like a gallery selection) or
+ * as one ZIP, and saved to the Gallery under their own type, "converted".
  */
 import { addCapture, getCapture, formatBytes } from "./src/storage.js";
 import { icon, hydrateIcons, enableSheen, mountPill, toast, formatNumber } from "./src/pageKit.js";
 
-const $ = (id) => document.getElementById(id);
+// Every element of the view carries a cv- prefix: Settings shares the page.
+const $ = (id) => document.getElementById(`cv-${id}`);
+const view = () => document.getElementById("convert-view");
+/** The converter only takes drops and pastes while its view is showing. */
+export const isConverterActive = () => !!view() && !view().hidden;
 
 const FORMATS = {
   jpg: { ext: "jpg", mime: "image/jpeg", lossy: true },
@@ -17,9 +25,11 @@ const FORMATS = {
   webp: { ext: "webp", mime: "image/webp", lossy: true },
 };
 
+const PREFS_VERSION = 2;
 const DEFAULT_PREFS = {
+  v: PREFS_VERSION,
   format: "jpg",
-  quality: 82,
+  quality: 92,
   resize: "none", // none | fit | scale
   maxW: "",
   maxH: "",
@@ -39,8 +49,14 @@ const pills = {};
 
 function normalizePrefs(raw = {}) {
   const p = { ...DEFAULT_PREFS, ...raw };
+  // Version 1 defaulted to 82; the default is now 92, so earlier saved
+  // settings move up once.
+  if (raw && raw.v !== PREFS_VERSION) {
+    p.quality = 92;
+    p.v = PREFS_VERSION;
+  }
   if (!FORMATS[p.format]) p.format = "jpg";
-  p.quality = Math.min(100, Math.max(30, Math.round(Number(p.quality) || 82)));
+  p.quality = Math.min(100, Math.max(30, Math.round(Number(p.quality) || 92)));
   if (!["none", "fit", "scale"].includes(p.resize)) p.resize = "none";
   p.scale = Math.min(100, Math.max(10, Math.round(Number(p.scale) || 50)));
   const dim = (v) => {
@@ -66,7 +82,7 @@ function setRangeFill(input) {
 }
 
 function syncControls() {
-  for (const seg of document.querySelectorAll(".seg[data-key]")) {
+  for (const seg of view().querySelectorAll(".seg[data-key]")) {
     const value = String(prefs[seg.dataset.key]);
     seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.value === value)));
     pills[seg.dataset.key]?.();
@@ -90,10 +106,10 @@ function syncControls() {
   $("fit-row").hidden = prefs.resize !== "fit";
   $("scale-row").hidden = prefs.resize !== "scale";
 
-  document.querySelectorAll('.cv-presets[data-key="quality"] .chip').forEach((c) => {
+  view().querySelectorAll('.cv-presets[data-key="quality"] .chip').forEach((c) => {
     c.classList.toggle("is-on", Number(c.dataset.value) === prefs.quality);
   });
-  document.querySelectorAll('.cv-presets[data-key="box"] .chip').forEach((c) => {
+  view().querySelectorAll('.cv-presets[data-key="box"] .chip').forEach((c) => {
     c.classList.toggle("is-on", Number(c.dataset.value) === prefs.maxW && Number(c.dataset.value) === prefs.maxH);
   });
 }
@@ -288,11 +304,19 @@ function buildRow(item) {
       <span class="cv-delta"></span>
     </div>
     <span class="cv-state" aria-hidden="true"></span>
+    <button type="button" class="act" data-act="retry" data-tip="Try again" hidden>${icon("restore")}</button>
     <button type="button" class="act" data-act="download" data-tip="Download">${icon("download")}</button>
     <button type="button" class="act" data-act="remove" data-tip="Remove">${icon("close")}</button>`;
   li.querySelector("img").src = item.url;
   li.querySelector('[data-act="download"]').onclick = () => downloadItems([item]);
   li.querySelector('[data-act="remove"]').onclick = () => removeItem(item);
+  li.querySelector('[data-act="retry"]').onclick = () => {
+    item.state = "queued";
+    item.error = "";
+    renderRow(item);
+    renderSummary();
+    pump();
+  };
   item.el = li;
   renderRow(item);
   return li;
@@ -313,6 +337,8 @@ function renderRow(item) {
   const meta = el.querySelector(".cv-meta");
   const dl = el.querySelector('[data-act="download"]');
   dl.disabled = item.state !== "done";
+  el.querySelector('[data-act="retry"]').hidden = item.state !== "error";
+  if (item.state === "done") el.querySelector(".cv-thumb img").src = item.outUrl;
   delta.className = "cv-delta";
 
   if (item.state === "done") {
@@ -365,9 +391,12 @@ function renderSummary() {
   saving.classList.toggle("is-larger", pct < 0);
 
   $("summary").classList.toggle("is-busy", busy);
+  $("progress").style.setProperty("--pct", `${n ? Math.round((done.length / n) * 100) : 0}%`);
   $("download-all").disabled = !done.length || busy;
   $("save-gallery").disabled = !done.length || busy;
-  $("download-label").textContent = done.length > 1 ? "Download ZIP" : "Download";
+  $("zip").hidden = done.length < 2;
+  $("zip").disabled = busy;
+  $("download-label").textContent = done.length > 1 ? `Download ${formatNumber(done.length)} files` : "Download";
 }
 
 // ─── Output ──────────────────────────────────────────────────────────
@@ -478,16 +507,21 @@ function saveBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
-async function downloadItems(list) {
+/** Every result as its own file, the way a gallery selection downloads. */
+function downloadItems(list) {
   const ready = list.filter((i) => i.state === "done");
   if (!ready.length) return;
   const names = uniqueNames(ready);
-  if (ready.length === 1) {
-    saveBlob(ready[0].out, names[0]);
-    toast("Download started");
-    return;
-  }
-  const btn = $("download-all");
+  // Small stagger: Chrome may ask once before allowing several downloads.
+  ready.forEach((item, i) => setTimeout(() => saveBlob(item.out, names[i]), i * 140));
+  toast(ready.length === 1 ? "Download started" : `Downloading ${formatNumber(ready.length)} files`);
+}
+
+async function downloadZip(list) {
+  const ready = list.filter((i) => i.state === "done");
+  if (!ready.length) return;
+  const names = uniqueNames(ready);
+  const btn = $("zip");
   btn.disabled = true;
   try {
     const zip = await buildZip(ready.map((item, i) => ({ name: names[i], blob: item.out })));
@@ -513,31 +547,57 @@ async function saveToGallery() {
       await addCapture({
         blob: ready[i].out,
         title: names[i].replace(/\.[a-z0-9]+$/i, ""),
-        type: "screenshot",
+        type: "converted",
         width: ready[i].outW,
         height: ready[i].outH,
       });
       saved++;
     } catch {}
   }
-  if (saved) toast(saved === 1 ? "Saved to Gallery" : `Saved ${formatNumber(saved)} images to Gallery`);
+  if (saved) toast(saved === 1 ? "Saved to Gallery under Converted" : `Saved ${formatNumber(saved)} images to Gallery under Converted`);
   else toast("Could not save to the Gallery", { error: true });
 }
 
 // ─── Wiring ──────────────────────────────────────────────────────────
 
-async function init() {
-  hydrateIcons();
-  enableSheen();
+let mountPromise = null;
+
+/** Add gallery captures to the batch (bulk Convert in the Gallery). */
+export async function addCaptureIds(ids = []) {
+  const blobs = [];
+  for (const id of ids) {
+    try {
+      const r = await getCapture(id);
+      if (!r?.blob) continue;
+      const ext = (r.blob.type.split("/")[1] || "png").replace("jpeg", "jpg");
+      blobs.push(new File([r.blob], `${r.title || "capture"}.${ext}`, { type: r.blob.type || "image/png" }));
+    } catch {}
+  }
+  if (blobs.length) await addBlobs(blobs);
+}
+
+/** Build the view once; later calls wait for that and re-sync the pills. */
+export function mountConverter() {
+  if (mountPromise) {
+    return mountPromise.then(() => Object.values(pills).forEach((sync) => sync()));
+  }
+  mountPromise = setup();
+  return mountPromise;
+}
+
+async function setup() {
+  hydrateIcons(view());
+  enableSheen(view());
 
   try {
     const data = await chrome.storage.local.get(["converterPrefs"]);
-    prefs = normalizePrefs(data?.converterPrefs);
+    prefs = normalizePrefs(data?.converterPrefs || {});
   } catch {
-    prefs = normalizePrefs();
+    prefs = normalizePrefs({});
   }
+  savePrefs();
 
-  for (const seg of document.querySelectorAll(".seg[data-key]")) {
+  for (const seg of view().querySelectorAll(".seg[data-key]")) {
     pills[seg.dataset.key] = mountPill(seg, '[aria-checked="true"]');
     seg.addEventListener("click", (e) => {
       const b = e.target.closest("button[data-value]");
@@ -558,16 +618,16 @@ async function init() {
   });
   $("bg-white").addEventListener("click", () => changed({ bgWhite: !prefs.bgWhite }, { delay: 0 }));
 
-  document.querySelector('.cv-presets[data-key="quality"]').addEventListener("click", (e) => {
+  view().querySelector('.cv-presets[data-key="quality"]').addEventListener("click", (e) => {
     const c = e.target.closest(".chip");
     if (c) changed({ quality: c.dataset.value }, { delay: 0 });
   });
-  document.querySelector('.cv-presets[data-key="box"]').addEventListener("click", (e) => {
+  view().querySelector('.cv-presets[data-key="box"]').addEventListener("click", (e) => {
     const c = e.target.closest(".chip");
     if (c) changed({ maxW: c.dataset.value, maxH: c.dataset.value }, { delay: 0 });
   });
 
-  // Files: picker, drop anywhere, paste.
+  // Files: picker, drop anywhere on the view, paste.
   const drop = $("drop");
   $("file").addEventListener("change", (e) => {
     addBlobs(e.target.files);
@@ -580,7 +640,7 @@ async function init() {
     }
   });
   let depth = 0;
-  const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+  const hasFiles = (e) => isConverterActive() && [...(e.dataTransfer?.types || [])].includes("Files");
   window.addEventListener("dragenter", (e) => {
     if (!hasFiles(e)) return;
     e.preventDefault();
@@ -602,8 +662,12 @@ async function init() {
     drop.classList.remove("is-over");
     addBlobs(e.dataTransfer.files);
   });
+  window.addEventListener("blur", () => {
+    depth = 0;
+    drop.classList.remove("is-over");
+  });
   window.addEventListener("paste", (e) => {
-    if (e.target.closest?.("input")) return;
+    if (!isConverterActive() || e.target.closest?.("input, textarea")) return;
     const files = [...(e.clipboardData?.files || [])];
     if (files.length) {
       e.preventDefault();
@@ -613,24 +677,6 @@ async function init() {
 
   $("clear").addEventListener("click", clearAll);
   $("download-all").addEventListener("click", () => downloadItems(items));
+  $("zip").addEventListener("click", () => downloadZip(items));
   $("save-gallery").addEventListener("click", saveToGallery);
-  $("to-gallery").addEventListener("click", () => {
-    location.href = "gallery.html";
-  });
-
-  // Opened from a gallery selection: convert.html?ids=3,7,12
-  const ids = (new URLSearchParams(location.search).get("ids") || "").split(",").map(Number).filter(Boolean);
-  if (ids.length) {
-    const blobs = [];
-    for (const id of ids) {
-      try {
-        const r = await getCapture(id);
-        if (r?.blob) blobs.push(new File([r.blob], `${r.title || "capture"}.png`, { type: r.blob.type || "image/png" }));
-      } catch {}
-    }
-    if (blobs.length) addBlobs(blobs);
-    history.replaceState(null, "", location.pathname);
-  }
 }
-
-init();

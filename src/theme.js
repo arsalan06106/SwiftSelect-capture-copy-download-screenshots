@@ -122,10 +122,8 @@ export function applyTheme(theme = currentUserTheme) {
     applyElementTheme(ui.hudEl, theme);
   }
 
-  if (ui.menuTooltipEl) {
-    ui.menuTooltipEl._qsThemeState = null;
-    applyElementTheme(ui.menuTooltipEl, theme);
-  }
+  // The tooltip is not re-toned here: it takes the tone of its own bar each
+  // time it opens (showCustomTooltip in ui.js).
 
   const decorative = [ui.box, ui.overlay].filter(Boolean);
   decorative.forEach((el) => {

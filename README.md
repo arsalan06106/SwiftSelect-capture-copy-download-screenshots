@@ -111,9 +111,10 @@ Every capture is automatically saved to a searchable, local-only gallery right i
 | Surface | File | Purpose |
 | :--- | :--- | :--- |
 | Toolbar icon | `popup.html` | One click starts a region capture. On protected pages it explains why and offers to capture your last tab. The quick menu is an option in Settings |
-| Capture toolbar | injected by `contentScript.js` | Floating in-page pill with every mode and live key hints |
+| Capture toolbar | injected by `contentScript.js` | Floating in-page pill: Visible Area, Full page, Annotate, Convert, and a panel with Gallery and Settings tabs |
 | Swift Gallery | `gallery.html` | Full-tab dashboard: search, filter, preview, copy, download, annotate, delete |
 | Settings | `gallery.html#settings` | A view of the Gallery, opened from its sidebar, the toolbar menu or Chrome's Options. Saves as you go |
+| Batch Converter | `gallery.html#convert` | A view of the Gallery: convert, resize and compress many images, download them as separate files or one ZIP, save them to the Gallery as Converted |
 | Annotation editor | in-page, or `annotate.html` | Ten tools, undo and redo, copy, download, save to gallery |
 
 <br>
@@ -171,7 +172,6 @@ Single-key shortcuts are **off by default** so typing on a page never triggers a
 | <kbd>A</kbd> | Annotate the current view |
 | <kbd>C</kbd> | Copy the colour under the cursor |
 | <kbd>G</kbd> | Open the gallery |
-| Hold the pointer on the Gallery button (3 s) | Slide in your recent captures, ready to drag into the page or click to copy |
 | <kbd>,</kbd> or <kbd>O</kbd> | Open Settings |
 | <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + hover | Snap to the element under the cursor |
 | <kbd>Shift</kbd> while dragging | Constrain to a square |
@@ -225,6 +225,7 @@ Editor shortcuts are **off by default** too (Settings › Shortcuts). <kbd>Esc</
 - **Trash**: deleting is reversible. Captures wait in Trash for 7 or 30 days, with Restore, Restore all, Delete forever and Empty Trash.
 - **Drag and drop**: drag a capture (or a whole selection) onto the Trash or Favorites dock that rises from the bottom, or onto Trash and Favorites in the sidebar. Drag a single capture out of the browser to drop it as a file on the desktop or into another app.
 - **Selection**: <kbd>Ctrl</kbd>/<kbd>⌘</kbd>-click, <kbd>Shift</kbd>-click for a range, the check circle on each card, **drag a box** across empty space (<kbd>Shift</kbd> adds, <kbd>Ctrl</kbd>/<kbd>⌘</kbd> toggles; the view scrolls near the edges), or **Select** on a day heading. The selection bar shows the count and offers All, Invert, Copy (one capture), Favorite, Download, Convert and Trash.
+- **Batch Converter**: a view of the Gallery (sidebar › Tools). Drop, paste or pick images, or select captures and press Convert. JPG, PNG or WebP, quality (92 by default), fit within a box or scale, a file-name suffix. Every size shown is the real result. Download the results as separate files or as one ZIP, or save them to the Gallery, where they get their own **Converted** tag and view. Converting runs on this device and strips hidden metadata.
 - **Thumbnail sizes**: small, medium and large, from the top bar, <kbd>−</kbd> / <kbd>+</kbd> or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + wheel. Remembered between visits.
 - **Rename**: double-click a title.
 - **Import**: drop image files from the desktop onto the gallery, or paste an image, to keep it alongside your captures. Imports are labelled Imported.
@@ -244,40 +245,20 @@ Captures never leave the device. They live in the extension's own IndexedDB data
 
 Open it from the capture status pill, with <kbd>A</kbd> in the capture toolbar, from any gallery card, or from the recent-captures tray.
 
-On a web page the editor is staged like the gallery preview: the page behind is frosted over and tinted to the theme, the capture sits in a rounded frame, and a caption names its source and size. Closing with unsaved marks (Esc, the close button or a click outside) asks for a second press, so nothing is lost by accident. Toolbar tooltips stay out of the way while the Style panel is open.
+On a web page the editor is staged like the gallery preview: the page behind is frosted over and tinted to the theme, the capture sits in a rounded frame, and a caption under it names its source and size. Closing with unsaved marks (Esc, the close button or a click outside) asks for a second press, so nothing is lost by accident. Toolbar tooltips stay out of the way while the Style panel is open.
 
-### Recent-captures tray
+### The toolbar's panel
 
-Hold the pointer on the **Gallery** button of the capture toolbar. A ring fills for three seconds, then your newest captures slide in along the bottom of the page (along the top when the toolbar sits in the lower half). Drag one straight into the page, where it arrives as an image file, or out of the browser to save it. Click a capture to copy it; hover for Download and Annotate. Once you copy or drag, the capture toolbar steps aside and the tray stays until you press <kbd>Esc</kbd> or click elsewhere. With an empty gallery, or with gallery saving turned off, the tray says so and points to the fix.
+The capture toolbar holds **Visible Area**, **Full page** and **Annotate**, then **Convert**, **Gallery**, **Settings** and a chevron. Convert opens the Batch Converter in the Gallery, where images are dropped and handled in bulk. Gallery, Settings or the chevron grow the toolbar itself: the pill reshapes into a panel that unfolds under the buttons (above them when the toolbar sits low on the page), and the two tiles fuse into the panel's tabs. Each tab has a button that opens its full page.
 
-| Tool | Behaviour |
-| :--- | :--- |
-| Select and move | Bounding handles, drag, resize, <kbd>Delete</kbd> |
-| Pen | Quadratic Bézier smoothing, stylus pressure when available and speed-simulated pressure otherwise |
-| Highlighter | Translucent multiply stroke on light pages, screen blend on dark pages |
-| Arrow | Solid geometric head, angle and length snapping with <kbd>Shift</kbd> |
-| Rectangle and Ellipse | Stroke-proportional corner rounding, optional tinted fill |
-| Step counter | Auto-incrementing numbered badges |
-| Blur / Redact | Adaptive mosaic, or a solid bar with fill on. Redactions ignore the opacity control and are never translucent |
-| Text | Inline editor, optional background pill with automatic contrast |
-| Crop | Free, 16:9, 4:3, 1:1, 3:2, 9:16, eight drag handles |
+- **Gallery**: the newest captures as small cards, scrolling sideways. Drag one into the page, where it arrives as an image file, or out of the browser to save it. Click to copy; hover for Download, Convert and Annotate. After a copy or a drag, capture mode ends so the page is usable again, while the toolbar stays until <kbd>Esc</kbd> or a click elsewhere. An empty gallery, or gallery saving turned off, is said plainly with the fix one click away.
+- **Settings**: theme, colour, format, quality, delay, and what happens after a capture, all on one screen. Shortcuts and retention stay on the full Settings page.
 
-The toolbar can be dragged anywhere by its grip and resets on double-click. Move, resize, restyle, delete, clear and crop are all undoable.
+Horizontal capture left the toolbar to make room; it is still on <kbd>Alt</kbd>+<kbd>H</kbd>, the <kbd>H</kbd> key, the quick menu and the right-click menu.
 
-- **One style control**: the bar carries a single chip (colour disc, line weights, caret) that previews the current colour, thickness and fill. It opens a panel with the palette and a custom colour, Outline or Filled (Mosaic or Solid for redaction, Plain or Pill for text), four size presets plus a slider, and opacity, with a live preview. The panel only shows what applies to the current tool or selected shape, stays open while you switch tools, and follows the theme.
-- **Per-tool styles**: Pen and shapes share one size and opacity (7 px, 100%); the Highlighter keeps its own (24 px, 45%). What the panel shows is exactly what the next stroke draws.
-- **Size keys**: <kbd>[</kbd> and <kbd>]</kbd> step through the presets.
-- **Live preview**: the panel draws a miniature of exactly what the canvas will draw (dashes, arrow heads, fill, typeface, mosaic or solid redaction), so every option shows its effect before you use it.
-- **Delete in one click**: the trash button deletes the selected shape, or clears everything when nothing is selected. Both are undoable.
-- **Line style** for pen, arrow, rectangle and ellipse: *solid*, *dashed* or *dotted*, remembered per tool.
-- **Arrow heads**: at the end, at both ends, or a plain line.
-- **Text**: four typefaces (Sans, Serif, Mono, Handwriting), **bold** and *italic*, plain or on a pill. The size readout shows the real font size.
-- **Selection**: a crisp frame with rounded-square handles that stay the same size on screen at any zoom; pens and step counters show a frame too. Picking a drawing tool puts the selection down.
-- **Brush cursor**: with Pen or Highlighter active the cursor is a ring (or bar) the size of the stroke at the current zoom.
-- **Honest cursors**: the cursor only shows move or resize where a press would actually move or resize, and a dashed outline marks the shape under the pointer in Select.
-- **Nudge and duplicate**: arrow keys move the selection; <kbd>Ctrl</kbd>+<kbd>D</kbd> copies it.
+### Notices
 
-<br>
+When a capture fails on a web page, or a full-page capture stops because its tab was closed, the Gallery keeps a notice behind a bell in its top bar, with a count, a plain-language explanation, where it happened and a dismiss button. Nothing is lost silently and nothing lands in Chrome's extension error log.
 
 ## Settings
 
@@ -285,7 +266,7 @@ Settings are a view inside the Gallery (sidebar › Settings, the gear in the to
 
 | Group | Options |
 | :--- | :--- |
-| General | Language, Theme (System, Light, Dark), toolbar icon click (region capture by default, or the quick menu) |
+| General | Language, Theme (System, Light, Dark), **Colour** (Dynamic: a fresh colour each time the Gallery or the capture toolbar opens; Calm: one soft colour; Plain: none), toolbar icon click |
 | Capture and export | Format, quality, auto-copy, auto-download, shutter flash, delay timer, filename template |
 | Gallery and storage | Keep captures in the gallery, auto-delete after a week, month or three months, how long Trash keeps items, storage used, Empty Trash |
 | Shortcuts | Live table of Chrome's global shortcuts, opt-in switches for capture toolbar and editor shortcuts |
@@ -359,7 +340,9 @@ SwiftSelect/
 │   ├── settings.js          Settings schema, normalisation, filename template
 │   ├── storage.js           IndexedDB gallery engine
 │   ├── peekData.js          Worker side of the recent-captures tray
-│   ├── peek.js              Recent-captures tray on web pages
+│   ├── peek.js              The capture toolbar's panel (Gallery tab, tabs, drag and copy)
+│   ├── panelSettings.js     Its Settings tab
+│   ├── issues.js            Notices kept for the Gallery
 │   ├── pageKit.js           Page toolkit: icons, pill, toast, dialog, locale
 │   ├── pageTheme.js         Pre-paint theme bootstrap for pages
 │   ├── ui.js                Shadow DOM hosts, toolbar, status pill, tooltips

@@ -144,6 +144,8 @@ All messages are plain objects with a `type`. Async handlers return `true` and a
 | `open-settings` | `hash?` | `{ success }` | Focus or open the Gallery on `#settings` (plus `/section`) |
 | `open-annotate` | `id` | `{ success }` | Open the standalone editor |
 | `restore-tab-action` | none | none | Popup closed, restore per-tab state |
+| `record-issue` | `issue` | `{ success }` | Keep a notice (failed capture, full-page capture cut short) for the Gallery (`src/issues.js`) |
+| `open-convert` | `ids?` | `{ success }` | Focus or open the Gallery on the Batch Converter (`#convert`), with those captures added |
 
 `meta` is `{ title, url, type, width, height }`. `mode` is one of `region`, `visible`, `full`, `horizontal`, `timer`.
 
@@ -160,6 +162,7 @@ All messages are plain objects with a `type`. Async handlers return `true` and a
 | `fullpage-progress` | `{ progress, current, total }` for the progress label |
 | `fullpage-action` | `{ action, data }` with `unroll-page`, `update-unroll`, `restore-unroll` |
 | `apply-theme` | `{ theme }` applied immediately |
+| `ss-ping` | Answers `{ pong: true }`; the worker injects the content bundle only when no answer comes |
 
 ### Service worker to offscreen document
 

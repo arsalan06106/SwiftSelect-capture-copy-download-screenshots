@@ -74,6 +74,7 @@ Responses are `{ success, error? }` plus the fields listed.
 | `open-settings` | `hash?` | |
 | `open-annotate` | `id` | |
 | `restore-tab-action` | | none |
+| `record-issue` | `issue: { kind, title, detail, source? }` | Kept in `chrome.storage.local.issues` (newest first, 30 at most) for the Gallery's notices |
 
 ```js
 // meta
@@ -138,6 +139,7 @@ Defined in `src/settings.js`. Always read through `getSettings()`, which normali
 | `toolbarPosition` | `{ x, y }` | none | Where the capture toolbar was dragged, as fractions of the window |
 | `retentionDays` | number | `90` | `0` (keep forever), `7`, `30`, `90`. Schema 4 moves existing installs from `0` to `90` once |
 | `trashDays` | number | `30` | `7`, `30` |
+| `uiColour` | string | `dynamic` | `dynamic` (a new palette per page and per toolbar opening), `calm` (one soft palette), `plain` (no colour) |
 | `settingsSchema` | number | `3` | Migration marker, written by the worker. Schema 3 sets `actionClick` to `region` and both shortcut switches off |
 
 The Auto-copy and Auto-download switches are two views of `outputDestination`:
@@ -175,6 +177,9 @@ The extension is appended automatically.
 | `ss-theme` | Mirror of `userTheme` for flash-free first paint |
 | `ss-gallery-view` | `grid` or `list` |
 | `ss-gallery-size` | `s`, `m` or `l` (thumbnail size) |
+| `ss-colour`, `ss-last-palette` | Mirror of `uiColour`, and the palette Dynamic used last (so the next one differs) |
+
+`chrome.storage.local.converterPrefs` holds the Batch Converter's choices (`v`, `format`, `quality`, `resize`, `maxW`, `maxH`, `scale`, `suffix`, `bgWhite`). Version 2 moved the default quality to 92.
 
 ### IndexedDB
 
@@ -191,7 +196,7 @@ Indexes   createdAt, type
 | `thumb` | Blob \| null | WebP preview, at most 640 px wide, top-left of the image |
 | `title` | string | Page title, 300 chars max |
 | `url` | string | Page URL, 2000 chars max |
-| `type` | string | `CaptureType`, or `imported` for images dropped or pasted into the gallery |
+| `type` | string | `CaptureType`, `imported` for images dropped or pasted into the gallery, or `converted` for Batch Converter results |
 | `format` | string | `png`, `jpg`, `webp`, derived from `blob.type` |
 | `width`, `height` | number | Device pixels |
 | `size` | number | `blob.size + thumb.size`, in bytes |

@@ -9,6 +9,7 @@
 import { addCapture, applyRetention } from "./src/storage.js";
 import { DEFAULTS, getSettings, normalizeTheme } from "./src/settings.js";
 import { handlePeekMessage } from "./src/peekData.js";
+import { recordIssue } from "./src/issues.js";
 
 const QUICK_MENU = "popup.html";
 
@@ -340,7 +341,7 @@ async function injectAndStart(tab, messageType) {
     if (err.message.includes("extensions gallery cannot be scripted")) {
       console.warn("Cannot run on extension gallery page.");
     } else {
-      console.error("injectAndStart error:", err);
+      console.warn("injectAndStart stopped:", err?.message || err);
     }
   }
 }
@@ -451,6 +452,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // --- Notices for the Gallery (capture failures on web pages) ---
+  if (message?.type === "record-issue") {
+    recordIssue({ ...(message.issue || {}), source: message.issue?.source || sender?.tab?.url || "" }).then(() =>
+      sendResponse?.({ success: true }),
+    );
+    return true;
+  }
+
   // --- Gallery peek: recent captures for the tray on web pages ---
   if (handlePeekMessage(message, sendResponse)) return true;
 
@@ -468,7 +477,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
   if (message?.type === "open-convert") {
-    openExtensionPage("convert.html");
+    const ids = (Array.isArray(message.ids) ? message.ids : []).map(Number).filter((n) => n > 0);
+    openExtensionPage("gallery.html", { hash: ids.length ? `#convert/${ids.join(",")}` : "#convert" });
     sendResponse?.({ success: true });
     return false;
   }
@@ -546,7 +556,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         sendResponse(result);
       } catch (err) {
-        console.error("write-image-to-clipboard error:", err);
+        console.warn("write-image-to-clipboard failed:", err?.message || err);
         sendResponse({ success: false, error: err.message });
       } finally {
         scheduleCloseOffscreen(30000);
@@ -585,10 +595,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           quality: message.quality !== undefined ? message.quality : 0.98,
         });
 
+        if (!result?.success && result?.reason !== "cancelled") {
+          const gone = result?.reason === "tab-gone" || !(await chrome.tabs.get(tabId).catch(() => null));
+          recordIssue({
+            kind: gone ? "warn" : "error",
+            title: gone ? "Full-page capture stopped: the tab was closed" : "Full-page capture failed",
+            detail: gone
+              ? "The tab closed or left the page before every part was captured, so nothing was saved. Keep the tab open until the capture finishes."
+              : /MAX_CAPTURE/i.test(result?.error || "")
+                ? "Chrome allows only a couple of captures per second. Wait a moment and try again."
+                : result?.error || "The page could not be captured.",
+            source: sender?.tab?.url || "",
+          });
+        }
         sendResponse(result);
       } catch (err) {
-        console.error("start-fullpage-capture error:", err);
-        sendResponse({ success: false, error: err.message });
+        const gone = !(await chrome.tabs.get(tabId).catch(() => null));
+        console.warn("start-fullpage-capture stopped:", err?.message || err);
+        recordIssue({
+          kind: gone ? "warn" : "error",
+          title: gone ? "Full-page capture stopped: the tab was closed" : "Full-page capture failed",
+          detail: gone ? "The tab closed before the capture could start. Nothing was saved." : err?.message || String(err),
+          source: sender?.tab?.url || "",
+        });
+        sendResponse({ success: false, error: err?.message || String(err) });
       } finally {
         // 4. Close offscreen document cleanly after inactivity
         scheduleCloseOffscreen(30000);

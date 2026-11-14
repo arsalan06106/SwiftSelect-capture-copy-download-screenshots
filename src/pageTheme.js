@@ -22,9 +22,49 @@
     root.dataset.themePref = pref;
   }
 
+  // Colour is one setting (dynamic | calm | plain); the palette and how much
+  // of the interface wears it follow from it. Dynamic picks a new palette
+  // each time a page opens, never the same one twice in a row. Mirrored in
+  // localStorage so the first frame already has the right glass.
+  var DYNAMIC = ["ocean", "aurora", "sunset", "forest", "balanced"];
+  var current = null;
+  function setColour(mode) {
+    var m = mode === "calm" || mode === "plain" ? mode : "dynamic";
+    if (m === current) return;
+    current = m;
+    var palette = "balanced";
+    var tint = "full";
+    if (m === "plain") {
+      palette = "mono";
+      tint = "none";
+    } else if (m === "dynamic") {
+      var last = null;
+      try {
+        last = localStorage.getItem("ss-last-palette");
+      } catch (e) {}
+      var choices = DYNAMIC.filter(function (p) {
+        return p !== last;
+      });
+      palette = choices[Math.floor(Math.random() * choices.length)];
+      tint = "hybrid";
+      try {
+        localStorage.setItem("ss-last-palette", palette);
+      } catch (e) {}
+    }
+    root.dataset.colour = m;
+    root.dataset.palette = palette;
+    root.dataset.tint = tint;
+    try {
+      localStorage.setItem("ss-colour", m);
+    } catch (e) {}
+  }
+
   try {
     pref = normalize(localStorage.getItem("ss-theme"));
-  } catch (e) {}
+    setColour(localStorage.getItem("ss-colour"));
+  } catch (e) {
+    setColour();
+  }
   apply();
 
   media.addEventListener("change", apply);
@@ -38,11 +78,14 @@
   }
 
   try {
-    chrome.storage.local.get(["userTheme"], function (data) {
+    chrome.storage.local.get(["userTheme", "uiColour"], function (data) {
       adopt(data && data.userTheme);
+      setColour(data && data.uiColour);
     });
     chrome.storage.onChanged.addListener(function (changes, area) {
-      if (area === "local" && changes.userTheme) adopt(changes.userTheme.newValue);
+      if (area !== "local") return;
+      if (changes.userTheme) adopt(changes.userTheme.newValue);
+      if (changes.uiColour) setColour(changes.uiColour.newValue);
     });
   } catch (e) {}
 })();

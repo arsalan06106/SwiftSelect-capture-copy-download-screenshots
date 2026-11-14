@@ -21,7 +21,16 @@ export const DEFAULTS = Object.freeze({
   editorShortcuts: false, // single-key and Ctrl shortcuts in the annotation editor
   retentionDays: 90, // gallery auto-delete: 0 = keep forever, else 7 | 30 | 90
   trashDays: 30, // how long deleted captures stay recoverable: 7 | 30
+  uiColour: "dynamic", // dynamic | calm | plain (see COLOURS)
 });
+
+/**
+ * Colour is one choice; the extension works out the rest.
+ *   dynamic  a different palette each time a page or the toolbar opens
+ *   calm     one soft palette everywhere
+ *   plain    no colour, plain glass
+ */
+export const COLOURS = ["dynamic", "calm", "plain"];
 
 export const RETENTION_CHOICES = [0, 7, 30, 90];
 export const TRASH_CHOICES = [7, 30];
@@ -68,6 +77,7 @@ export function normalizeSettings(raw = {}) {
     editorShortcuts: raw.editorShortcuts === true,
     retentionDays: RETENTION_CHOICES.includes(Number(raw.retentionDays)) ? Number(raw.retentionDays) : 90,
     trashDays: TRASH_CHOICES.includes(Number(raw.trashDays)) ? Number(raw.trashDays) : 30,
+    uiColour: COLOURS.includes(raw.uiColour) ? raw.uiColour : DEFAULTS.uiColour,
   };
 }
 

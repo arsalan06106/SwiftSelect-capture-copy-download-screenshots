@@ -10,31 +10,22 @@
    3. Controls      6. Gallery
    ========================================================================== */
 
-/* Selawik (SIL OFL 1.1) ships with the extension, so the interface looks the
-   same on every machine. See fonts/LICENSE-Selawik.txt. */
+/* Manrope (SIL OFL 1.1) ships with the extension, so the interface looks
+   the same on every machine. One variable file per script range covers
+   every weight. See fonts/LICENSE-Manrope.txt. */
 @font-face {
-  font-family: "SS Selawik";
-  src: url("fonts/selawksl.ttf") format("truetype");
-  font-weight: 300 350;
+  font-family: "SS Manrope";
+  src: url("fonts/manrope-latin.woff2") format("woff2");
+  font-weight: 200 800;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "SS Selawik";
-  src: url("fonts/selawk.ttf") format("truetype");
-  font-weight: 400 500;
+  font-family: "SS Manrope";
+  src: url("fonts/manrope-latin-ext.woff2") format("woff2");
+  font-weight: 200 800;
   font-display: swap;
-}
-@font-face {
-  font-family: "SS Selawik";
-  src: url("fonts/selawksb.ttf") format("truetype");
-  font-weight: 600;
-  font-display: swap;
-}
-@font-face {
-  font-family: "SS Selawik";
-  src: url("fonts/selawkb.ttf") format("truetype");
-  font-weight: 700 900;
-  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 /* 1. MATERIAL ───────────────────────────────────────────────────────────── */
@@ -158,7 +149,7 @@ html[data-theme="dark"] {
 
   --blur: blur(22px) saturate(var(--saturation));
 
-  --font: "SS Selawik", "Selawik", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  --font: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
   --ease: cubic-bezier(0.2, 0, 0, 1);
@@ -6187,252 +6178,1160 @@ html[data-theme="dark"] .bulk-bar {
   }
 }
 
-/* 19. CALM PALETTE ──────────────────────────────────────────────────────
-   Neutral glass everywhere text lives (settings, converter, card footers,
-   toasts), one accent blue for state, and colour kept to the small tiles
-   and badges that identify things. The canvas is a quiet cool field rather
-   than five colour pools. */
+/* 19. COLOUR PRESETS ────────────────────────────────────────────────────
+   Liquid glass with colour mixed into the glass itself, an edge of the same
+   colour and the usual reflex light (the recipe of the protected-page
+   notice). What colour, and how much of it, is the person's choice:
+
+     html[data-palette]  balanced (default) · ocean · aurora · sunset ·
+                         forest · mono. Four section hues (--h1…--h4, a light
+                         and a deep stop each), an accent and a background.
+     html[data-tint]     full    every panel tinted
+                         hybrid  the frame (sidebar, top bar, bars, controls)
+                                 in colour, content panels plain
+                         none    plain glass, graphite accents
+
+   Capture types keep their own colours (cards, badges, sidebar tiles) so a
+   type reads at a glance whatever the preset. */
+
+/* Capture-type tones */
+[data-tone="orchid"],
+.nav-item[data-filter="region"] {
+  --tone-a: #d98bff;
+  --tone-b: #9a45e0;
+}
+[data-tone="coral"],
+.nav-item[data-filter="visible"] {
+  --tone-a: #ff9f86;
+  --tone-b: #e9573f;
+}
+[data-tone="lime"],
+.nav-item[data-filter="converted"] {
+  --tone-a: #9fdc6a;
+  --tone-b: #4a9a1c;
+}
+.nav-item[data-filter="convert"] {
+  --tone-a: var(--h1a);
+  --tone-b: var(--h1b);
+}
+
+/* ── Palettes ──────────────────────────────────────────────────────────── */
 
 :root,
-html[data-theme="light"] {
-  --accent: #3366f0;
-  --accent-soft: color-mix(in srgb, #3366f0 12%, transparent);
-  --c-action: #3366f0;
-  --c-bg: #f4f5f8;
-  --tint-panel: color-mix(in srgb, #fff 74%, transparent);
-  --panel-shadow:
-    0 1px 2px rgba(20, 26, 50, 0.05),
-    0 18px 40px -28px rgba(20, 26, 50, 0.3);
-  --canvas:
-    radial-gradient(70% 60% at 0% 0%, rgba(128, 156, 255, 0.2), transparent 70%),
-    radial-gradient(60% 60% at 100% 100%, rgba(150, 160, 210, 0.16), transparent 72%),
-    linear-gradient(180deg, #f6f7fa, #eff1f5);
+html[data-palette="balanced"] {
+  --h1a: #9db4e0; --h1b: #5674c2;
+  --h2a: #dcc5a4; --h2b: #ad8757;
+  --h3a: #a9cdb8; --h3b: #5b977a;
+  --h4a: #c4b4e4; --h4b: #8670c4;
+  --accent: #5068c8;
+  --accent-2: #8a6fc8;
+  --field-1: rgba(140, 170, 230, 0.3);
+  --field-2: rgba(220, 196, 160, 0.3);
+  --field-3: rgba(180, 160, 230, 0.24);
+  --field-4: rgba(160, 205, 182, 0.26);
+  --field-base: #f6f6f8;
+  --field-dark-base: #0d0e12;
+}
+html[data-palette="ocean"] {
+  --h1a: #6cc4ff; --h1b: #1f7fe0;
+  --h2a: #5fdccc; --h2b: #13a08f;
+  --h3a: #8f9dff; --h3b: #4b5be6;
+  --h4a: #84e2f2; --h4b: #1aa1c2;
+  --accent: #1f7fe0;
+  --accent-2: #13a08f;
+  --field-1: rgba(90, 170, 255, 0.34);
+  --field-2: rgba(80, 215, 200, 0.28);
+  --field-3: rgba(120, 130, 255, 0.24);
+  --field-4: rgba(110, 220, 240, 0.28);
+  --field-base: #f3f7fa;
+  --field-dark-base: #0a0e14;
+}
+html[data-palette="aurora"] {
+  --h1a: #b48bff; --h1b: #7a45f0;
+  --h2a: #ff8ac0; --h2b: #df3f7e;
+  --h3a: #63dcc7; --h3b: #16a08c;
+  --h4a: #93abff; --h4b: #4a62f0;
+  --accent: #7a45f0;
+  --accent-2: #df3f7e;
+  --field-1: rgba(170, 120, 255, 0.34);
+  --field-2: rgba(255, 120, 180, 0.28);
+  --field-3: rgba(90, 210, 190, 0.26);
+  --field-4: rgba(120, 150, 255, 0.26);
+  --field-base: #f7f5fa;
+  --field-dark-base: #0d0b14;
+}
+html[data-palette="sunset"] {
+  --h1a: #ffc04d; --h1b: #ee8600;
+  --h2a: #ff9b6b; --h2b: #ee4a2a;
+  --h3a: #ff7aa8; --h3b: #e3357a;
+  --h4a: #b38eff; --h4b: #7a4ef0;
+  --accent: #ec5a2c;
+  --accent-2: #e3357a;
+  --field-1: rgba(255, 184, 77, 0.36);
+  --field-2: rgba(255, 105, 160, 0.3);
+  --field-3: rgba(150, 105, 255, 0.26);
+  --field-4: rgba(255, 138, 92, 0.3);
+  --field-base: #fbf7f5;
+  --field-dark-base: #0e0b10;
+}
+html[data-palette="forest"] {
+  --h1a: #82d6a3; --h1b: #2b9a66;
+  --h2a: #bbd97c; --h2b: #6b9a26;
+  --h3a: #6ec9bd; --h3b: #1d8c7d;
+  --h4a: #e5cf8c; --h4b: #ad8728;
+  --accent: #2b9a66;
+  --accent-2: #1d8c7d;
+  --field-1: rgba(120, 210, 160, 0.32);
+  --field-2: rgba(190, 215, 120, 0.26);
+  --field-3: rgba(100, 200, 190, 0.24);
+  --field-4: rgba(225, 205, 140, 0.28);
+  --field-base: #f5f8f5;
+  --field-dark-base: #0a0f0c;
+}
+html[data-palette="mono"] {
+  --h1a: #c4c8d1; --h1b: #747b8c;
+  --h2a: #babec8; --h2b: #6a7080;
+  --h3a: #cdd0d8; --h3b: #808696;
+  --h4a: #bdc0c9; --h4b: #666c7c;
+  --accent: #3d4352;
+  --accent-2: #5d6474;
+  --field-1: rgba(170, 176, 190, 0.26);
+  --field-2: rgba(200, 204, 214, 0.24);
+  --field-3: rgba(150, 156, 170, 0.2);
+  --field-4: rgba(190, 194, 204, 0.22);
+  --field-base: #f5f5f7;
+  --field-dark-base: #0d0d10;
+}
+html[data-theme="dark"][data-palette="mono"] {
+  --accent: #c9cdd8;
+  --accent-2: #9ca2b2;
 }
 
+/* ── How much colour ───────────────────────────────────────────────────── */
+
+:root,
+html[data-tint="full"] {
+  --k-panel: 16%;
+  --k-pool: 28%;
+  --k-edge: 30%;
+  --k-frame: 18%;
+  --k-fpool: 30%;
+  --k-ctrl: 14%;
+  --k-card: 14%;
+  --k-meta: 30%;
+}
+html[data-tint="hybrid"] {
+  --k-panel: 0%;
+  --k-pool: 7%;
+  --k-edge: 16%;
+  --k-frame: 18%;
+  --k-fpool: 30%;
+  --k-ctrl: 14%;
+  --k-card: 3%;
+  --k-meta: 10%;
+}
+html[data-tint="none"] {
+  --k-panel: 0%;
+  --k-pool: 0%;
+  --k-edge: 0%;
+  --k-frame: 0%;
+  --k-fpool: 0%;
+  --k-ctrl: 0%;
+  --k-card: 0%;
+  --k-meta: 0%;
+}
+
+:root {
+  --c-action: var(--accent);
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --tint-panel: color-mix(in srgb, #fff 62%, transparent);
+  --tint-control: color-mix(in srgb, #fff 80%, transparent);
+  --tint-dense: color-mix(in srgb, #fff 90%, transparent);
+  --glass-base: color-mix(in srgb, #fff 56%, transparent);
+  --canvas:
+    radial-gradient(58% 58% at 0% 0%, var(--field-1), transparent 70%),
+    radial-gradient(48% 52% at 100% 0%, var(--field-2), transparent 70%),
+    radial-gradient(58% 62% at 100% 100%, var(--field-3), transparent 70%),
+    radial-gradient(52% 54% at 0% 100%, var(--field-4), transparent 70%),
+    var(--field-base);
+}
 html[data-theme="dark"] {
-  --accent: #7c9dff;
-  --accent-soft: color-mix(in srgb, #7c9dff 16%, transparent);
-  --c-action: #7c9dff;
-  --c-bg: #0d0e13;
-  --tint-panel: color-mix(in srgb, #1c1e27 78%, transparent);
-  --panel-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 20px 44px -26px rgba(0, 0, 0, 0.8);
+  --c-bg: var(--field-dark-base);
+  --tint-panel: color-mix(in srgb, #1c1d26 70%, transparent);
+  --tint-dense: color-mix(in srgb, #1a1b24 92%, transparent);
+  --glass-base: color-mix(in srgb, #1c1d27 74%, transparent);
   --canvas:
-    radial-gradient(70% 60% at 0% 0%, rgba(72, 98, 210, 0.22), transparent 70%),
-    radial-gradient(60% 60% at 100% 100%, rgba(96, 90, 170, 0.12), transparent 72%),
-    linear-gradient(180deg, #0e0f14, #0a0b0f);
+    radial-gradient(58% 58% at 0% 0%, color-mix(in srgb, var(--field-1) 70%, transparent), transparent 70%),
+    radial-gradient(48% 52% at 100% 0%, color-mix(in srgb, var(--field-2) 70%, transparent), transparent 70%),
+    radial-gradient(58% 62% at 100% 100%, color-mix(in srgb, var(--field-3) 80%, transparent), transparent 70%),
+    radial-gradient(52% 54% at 0% 100%, color-mix(in srgb, var(--field-4) 60%, transparent), transparent 70%),
+    var(--field-dark-base);
+}
+html[data-tint="none"] {
+  --canvas:
+    radial-gradient(60% 60% at 0% 0%, rgba(150, 160, 180, 0.16), transparent 70%),
+    radial-gradient(60% 60% at 100% 100%, rgba(150, 160, 180, 0.14), transparent 70%),
+    #f4f5f7;
+}
+html[data-theme="dark"][data-tint="none"] {
+  --canvas:
+    radial-gradient(60% 60% at 0% 0%, rgba(120, 130, 150, 0.12), transparent 70%),
+    radial-gradient(60% 60% at 100% 100%, rgba(120, 130, 150, 0.1), transparent 70%),
+    #0d0e11;
 }
 
-/* Sidebar, top bar and popup panels: plain glass */
-.sidebar.glass,
-.topbar.glass,
-html[data-theme="dark"] .sidebar.glass,
-.actions.glass,
-.recent.glass {
-  background-image: none;
-}
+/* ── The recipe ────────────────────────────────────────────────────────
+   Content panels use the panel strength, the frame uses the frame
+   strength. Each surface sets --g / --g2 to say which hue it wears. */
 
-/* Settings and converter panels */
 .group,
-html[data-theme="dark"] .group {
-  background-color: var(--tint-panel);
-  background-image: none;
+.cv-drop,
+.cv-summary,
+.modal,
+.select-menu,
+.canvas-note,
+.cv-item.glass,
+.issues-pop {
+  --g: var(--h1a);
+  --g2: var(--h1b);
+  background-color: color-mix(in srgb, var(--g) var(--k-panel), var(--glass-base));
+  background-image:
+    radial-gradient(130% 190px at 0% 0%, color-mix(in srgb, var(--g) var(--k-pool), transparent), transparent 70%),
+    linear-gradient(150deg, transparent 42%, color-mix(in srgb, var(--g2) calc(var(--k-panel) * 0.75), transparent));
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
   box-shadow:
     var(--reflex-panel),
-    inset 0 0 0 1px var(--hairline),
-    var(--panel-shadow);
+    inset 0 0 0 1px color-mix(in srgb, var(--g2) var(--k-edge), var(--hairline)),
+    0 22px 46px -30px color-mix(in srgb, var(--g2) calc(var(--k-edge) * 1.6), rgba(20, 24, 40, 0.18));
+}
+
+.sidebar.glass,
+.topbar.glass,
+.bulk-bar,
+.lightbox-bar,
+.dock,
+.actions.glass,
+.recent.glass {
+  --g: var(--h1a);
+  --g2: var(--h3b);
+  background-color: color-mix(in srgb, var(--g) var(--k-frame), var(--glass-base));
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px color-mix(in srgb, var(--g2) calc(var(--k-frame) * 1.5), var(--hairline)),
+    0 22px 46px -30px color-mix(in srgb, var(--g2) calc(var(--k-frame) * 2.6), rgba(20, 24, 40, 0.2));
+}
+.sidebar.glass {
+  background-image:
+    radial-gradient(140% 260px at 0% 0%, color-mix(in srgb, var(--h1a) var(--k-fpool), transparent), transparent 70%),
+    radial-gradient(120% 260px at 100% 100%, color-mix(in srgb, var(--h4a) var(--k-fpool), transparent), transparent 72%);
+}
+.topbar.glass {
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--h1a) var(--k-fpool), transparent),
+    color-mix(in srgb, var(--h2a) calc(var(--k-fpool) * 0.6), transparent) 50%,
+    color-mix(in srgb, var(--h4a) var(--k-fpool), transparent)
+  );
+}
+.bulk-bar,
+.lightbox-bar {
+  --g: var(--h4a);
+  --g2: var(--h4b);
+  background-image: linear-gradient(100deg, color-mix(in srgb, var(--h1a) var(--k-fpool), transparent), color-mix(in srgb, var(--h4a) var(--k-fpool), transparent));
+}
+.dock,
+.recent.glass {
+  --g: var(--h4a);
+  --g2: var(--h4b);
+}
+
+html[data-theme="dark"] :is(.group, .cv-drop, .cv-summary, .modal, .select-menu, .canvas-note, .cv-item.glass, .issues-pop) {
+  background-color: color-mix(in srgb, var(--g) calc(var(--k-panel) * 0.8), var(--glass-base));
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px color-mix(in srgb, var(--g) calc(var(--k-edge) * 0.85), rgba(255, 255, 255, 0.07)),
+    0 22px 46px -24px rgba(0, 0, 0, 0.6);
+}
+html[data-theme="dark"] :is(.sidebar.glass, .topbar.glass, .bulk-bar, .lightbox-bar, .dock, .actions.glass, .recent.glass) {
+  background-color: color-mix(in srgb, var(--g) calc(var(--k-frame) * 0.7), var(--glass-base));
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px color-mix(in srgb, var(--g) var(--k-frame), rgba(255, 255, 255, 0.07)),
+    0 22px 46px -24px rgba(0, 0, 0, 0.6);
 }
 
 .group:hover,
 html[data-theme="dark"] .group:hover {
   box-shadow:
     var(--reflex-panel),
-    inset 0 0 0 1px color-mix(in srgb, var(--c-content) 12%, transparent),
-    var(--panel-shadow);
+    inset 0 0 0 1px color-mix(in srgb, var(--g2) calc(var(--k-edge) * 1.4), var(--hairline)),
+    0 26px 52px -26px color-mix(in srgb, var(--g2) calc(var(--k-edge) * 2), rgba(20, 24, 40, 0.24));
 }
 
-.group .seg {
-  background-color: var(--tint-well);
+/* Which hue each section wears */
+.settings-shell > .group:nth-of-type(4n + 1),
+.cv-drop,
+.cv-summary {
+  --g: var(--h1a);
+  --g2: var(--h1b);
+}
+.settings-shell > .group:nth-of-type(4n + 2),
+.cv-side > .group:nth-child(1) {
+  --g: var(--h2a);
+  --g2: var(--h2b);
+}
+.settings-shell > .group:nth-of-type(4n + 3),
+.cv-side > .group:nth-child(2) {
+  --g: var(--h3a);
+  --g2: var(--h3b);
+}
+.settings-shell > .group:nth-of-type(4n + 4),
+.cv-side > .group:nth-child(3) {
+  --g: var(--h4a);
+  --g2: var(--h4b);
+}
+/* Section tiles follow their section */
+.group-title .tile,
+html[data-tint] .group-title .tile {
+  color: #fff;
+  background: linear-gradient(160deg, var(--g), var(--g2));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+    0 5px 12px -5px color-mix(in srgb, var(--g2) 70%, transparent);
 }
 
 .group .row + .row,
 .group .row + .shortcut-block,
 .group .shortcut-block + .row {
-  border-top-color: var(--hairline);
+  border-top-color: color-mix(in srgb, var(--g2) calc(var(--k-edge) * 0.6), var(--hairline));
 }
 
-/* One accent for "on" */
-.group .switch[aria-checked="true"],
-.switch[aria-checked="true"] {
-  background: var(--accent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+/* ── Controls ──────────────────────────────────────────────────────────── */
+
+.btn:not(.btn-primary):not(.btn-quiet):not(.btn-danger-solid) {
+  --b: var(--g, var(--h1a));
+  background-color: color-mix(in srgb, var(--b) var(--k-ctrl), var(--tint-control));
+  box-shadow:
+    var(--reflex-control),
+    inset 0 0 0 1px color-mix(in srgb, var(--b) calc(var(--k-ctrl) * 2.2), var(--hairline));
+}
+.btn:not(.btn-primary):not(.btn-quiet):not(.btn-danger-solid):hover {
+  background-color: color-mix(in srgb, var(--b) calc(var(--k-ctrl) * 1.6), var(--tint-hover));
+  box-shadow:
+    var(--reflex-control),
+    inset 0 0 0 1px color-mix(in srgb, var(--b) calc(var(--k-ctrl) * 3), var(--hairline)),
+    0 10px 22px -12px color-mix(in srgb, var(--b) calc(var(--k-ctrl) * 5), rgba(20, 24, 40, 0.3));
+}
+.btn-danger:not(.btn-quiet) {
+  --b: #ff8a7a;
+}
+html[data-theme="dark"] .btn:not(.btn-primary):not(.btn-quiet):not(.btn-danger-solid) {
+  background-color: color-mix(in srgb, var(--b) var(--k-ctrl), rgba(255, 255, 255, 0.06));
 }
 
-.group .switch[aria-checked="true"]::after,
-.switch[aria-checked="true"]::after {
+.seg,
+.group .seg {
+  background-color: color-mix(in srgb, var(--g, var(--h1a)) var(--k-ctrl), var(--tint-well));
+  box-shadow:
+    var(--reflex-well),
+    inset 0 0 0 1px color-mix(in srgb, var(--g2, var(--h1b)) var(--k-ctrl), transparent);
+}
+.liquid-pill {
+  box-shadow:
+    var(--reflex-control),
+    inset 0 0 0 1px color-mix(in srgb, var(--g2, var(--h1b)) calc(var(--k-ctrl) * 1.8), transparent),
+    0 4px 12px -6px color-mix(in srgb, var(--g2, var(--h1b)) calc(var(--k-ctrl) * 4), rgba(20, 24, 40, 0.18));
+}
+.input,
+.select-trigger {
+  background-color: color-mix(in srgb, var(--g, var(--h1a)) calc(var(--k-ctrl) * 0.6), var(--tint-control));
+  box-shadow:
+    var(--reflex-well),
+    inset 0 0 0 1px color-mix(in srgb, var(--g2, var(--h1b)) var(--k-ctrl), var(--hairline));
+}
+.input:focus {
+  box-shadow:
+    var(--reflex-well),
+    0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent);
+}
+.chip {
+  background-color: color-mix(in srgb, var(--g, var(--h1a)) calc(var(--k-ctrl) * 0.8), var(--tint-control));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--g2, var(--h1b)) calc(var(--k-ctrl) * 1.5), var(--hairline));
+}
+
+/* "On" states: the section's hue, the accent in Hybrid, graphite in None */
+.chip.is-on,
+.cv-presets .chip.is-on,
+.switch[aria-checked="true"],
+.group .switch[aria-checked="true"] {
+  color: #fff;
+  background: linear-gradient(160deg, var(--g, var(--accent)), var(--g2, var(--accent)));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 5px 12px -6px color-mix(in srgb, var(--g2, var(--accent)) 70%, transparent);
+}
+html[data-tint="hybrid"] :is(.chip.is-on, .cv-presets .chip.is-on, .switch[aria-checked="true"], .group .switch[aria-checked="true"]) {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent));
+}
+html[data-tint="none"] :is(.chip.is-on, .cv-presets .chip.is-on, .switch[aria-checked="true"], .group .switch[aria-checked="true"]) {
+  color: var(--c-bg);
+  background: var(--c-content);
+  box-shadow: none;
+}
+.switch[aria-checked="true"]::after,
+.group .switch[aria-checked="true"]::after {
   background: #fff;
 }
-
+html[data-tint="none"] .switch[aria-checked="true"]::after {
+  background: var(--c-bg);
+}
 .group .switch:hover {
   box-shadow:
     var(--reflex-well),
     0 0 0 4px var(--accent-soft);
 }
-
-.group .switch[aria-checked="true"]:hover {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 0 0 4px var(--accent-soft);
-}
-
+.range::-webkit-slider-runnable-track,
 .group .range::-webkit-slider-runnable-track {
   background: linear-gradient(
     90deg,
-    var(--accent) 0,
-    var(--accent) var(--fill-pct, 50%),
-    color-mix(in srgb, var(--c-content) 13%, transparent) var(--fill-pct, 50%)
+    var(--g, var(--accent)) 0,
+    var(--g2, var(--accent)) var(--fill-pct, 50%),
+    color-mix(in srgb, var(--c-content) 14%, transparent) var(--fill-pct, 50%)
   );
 }
-
-.cv-presets .chip.is-on {
-  color: #fff;
-  background: var(--accent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    0 4px 10px -5px color-mix(in srgb, var(--accent) 80%, transparent);
+html[data-tint="hybrid"] .range::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, var(--accent) 0, var(--accent) var(--fill-pct, 50%), color-mix(in srgb, var(--c-content) 14%, transparent) var(--fill-pct, 50%));
+}
+html[data-tint="none"] .range::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, var(--c-content) 0, var(--c-content) var(--fill-pct, 50%), color-mix(in srgb, var(--c-content) 14%, transparent) var(--fill-pct, 50%));
 }
 
-/* Capture cards: neutral glass, the type shown by its badge only */
+/* Primary: dark call to action with a thin wash of the palette */
+.btn-primary {
+  background-image: linear-gradient(135deg, color-mix(in srgb, var(--h1a) calc(var(--k-ctrl) * 1.4), transparent), color-mix(in srgb, var(--h4a) var(--k-ctrl), transparent));
+}
+
+#nav > .liquid-pill {
+  background-color: color-mix(in srgb, #fff 84%, transparent);
+}
+html[data-theme="dark"] #nav > .liquid-pill {
+  background-color: color-mix(in srgb, #fff 12%, transparent);
+}
+
+/* ── Cards: their type's colour, at the chosen strength ────────────────── */
+
 .card.glass,
 .card.glass[data-tone] {
+  --g: var(--tone-a, var(--h1a));
+  --g2: var(--tone-b, var(--h1b));
   box-shadow:
     var(--reflex-panel),
-    inset 0 0 0 1px var(--hairline);
+    inset 0 0 0 1px color-mix(in srgb, var(--g2) calc(var(--k-card) * 1.8), var(--hairline));
 }
-
-.card.glass::before,
-html[data-theme="dark"] .card.glass::before {
-  background-color: var(--tint-panel);
+.card.glass::before {
+  background-color: color-mix(in srgb, var(--g) var(--k-card), var(--glass-base));
+  background-image: radial-gradient(120% 140px at 0% 0%, color-mix(in srgb, var(--g) calc(var(--k-card) * 1.6), transparent), transparent 72%);
 }
-
-.card.glass[data-tone]:hover,
-.card.glass:hover {
-  box-shadow:
-    var(--reflex-panel),
-    inset 0 0 0 1px color-mix(in srgb, var(--c-content) 12%, transparent),
-    0 20px 40px -22px rgba(15, 20, 40, 0.4);
+.card[data-tone] .card-meta {
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--g) var(--k-meta), transparent),
+    color-mix(in srgb, var(--g2) calc(var(--k-meta) * 0.35), transparent)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 50%, transparent);
 }
-
-html[data-theme="dark"] .card.glass:hover {
-  box-shadow:
-    var(--reflex-panel),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 20px 40px -20px rgba(0, 0, 0, 0.8);
-}
-
-.card[data-tone] .card-meta,
 html[data-theme="dark"] .card[data-tone] .card-meta {
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--g) calc(var(--k-meta) * 0.7), transparent),
+    color-mix(in srgb, var(--g2) calc(var(--k-meta) * 0.3), transparent)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+}
+.grid.is-list .card[data-tone] .card-meta,
+.grid[data-size="s"] .card[data-tone] .card-meta {
   background: none;
   box-shadow: none;
 }
-
+.card.glass:hover,
+.card.glass[data-tone]:hover {
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px color-mix(in srgb, var(--g2) calc(var(--k-card) * 3), var(--hairline)),
+    0 22px 42px -22px color-mix(in srgb, var(--g2) calc(var(--k-card) * 4), rgba(20, 24, 40, 0.3));
+}
 .card.is-selected,
 .card.glass.is-selected,
 .card.glass[data-tone].is-selected {
   box-shadow:
     var(--reflex-panel),
-    0 0 0 2px var(--accent),
-    0 12px 30px -18px color-mix(in srgb, var(--accent) 70%, transparent);
+    0 0 0 2.5px var(--accent),
+    0 14px 32px -16px color-mix(in srgb, var(--accent) 60%, transparent);
 }
-
 .card.is-selected::before,
 .card.glass.is-selected::before {
-  background-color: color-mix(in srgb, var(--accent) 10%, var(--tint-panel));
+  background-color: color-mix(in srgb, var(--accent) 12%, var(--glass-base));
 }
-
 .card.is-selected .card-select {
   color: #fff;
-  background-color: var(--accent);
-  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--accent) 70%, transparent);
+  background: var(--accent);
+  box-shadow: 0 3px 10px -3px color-mix(in srgb, var(--accent) 70%, transparent);
 }
-
+html[data-theme="dark"][data-palette="mono"] .card.is-selected .card-select {
+  color: #111;
+}
 .card-title[contenteditable="true"] {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.act:hover {
+  color: var(--accent);
 }
 
-/* Toasts: neutral glass, the outcome in the tile */
+/* Selection bar, marquee, meter */
+.bulk-badge {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 72%, #fff), var(--accent));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 5px 12px -5px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.bulk-pick,
+.bulk-close {
+  background-color: color-mix(in srgb, var(--h1a) var(--k-ctrl), var(--tint-well));
+}
+.bulk-btn:hover {
+  background-color: color-mix(in srgb, var(--h1a) var(--k-ctrl), var(--tint-hover));
+}
+.marquee {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent),
+    0 0 0 0.5px color-mix(in srgb, #fff 40%, transparent);
+}
+.group-head.is-all .group-pick {
+  color: var(--accent);
+}
+.meter i {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+/* Toasts: the outcome's colour (green, red…) at a gentle strength */
 .toast,
 html[data-theme="dark"] .toast {
-  background-color: var(--tint-dense);
-  background-image: none;
+  background-color: color-mix(in srgb, var(--tone-a) 14%, var(--tint-dense));
+  background-image: linear-gradient(105deg, color-mix(in srgb, var(--tone-a) 18%, transparent), transparent 62%);
   box-shadow:
     var(--reflex-panel),
-    inset 0 0 0 1px var(--hairline),
-    0 18px 38px -16px rgba(15, 20, 40, 0.4);
+    inset 0 0 0 1px color-mix(in srgb, var(--tone-b) 22%, transparent),
+    0 18px 38px -16px color-mix(in srgb, var(--tone-b) 40%, rgba(20, 24, 40, 0.3));
 }
 
-/* Batch Converter link in the sidebar */
-.tool-link {
-  background-color: var(--tint-control);
-  box-shadow: var(--reflex-control);
-}
-
-.tool-link:hover {
-  background-color: var(--tint-hover);
-  box-shadow: var(--reflex-control), var(--lift);
-}
-
-/* Converter drop zone: neutral glass, the accent only when something is
-   on its way in */
-.cv-drop {
-  --tone-a: #6f95ff;
-  --tone-b: #3366f0;
-  background-color: var(--tint-panel);
-  background-image: none;
+/* Empty state and preview */
+.empty-art .pane {
+  background-color: color-mix(in srgb, var(--h1a) var(--k-frame), var(--glass-base));
   box-shadow:
     var(--reflex-panel),
-    inset 0 0 0 1px var(--hairline),
-    var(--panel-shadow);
+    inset 0 0 0 1px color-mix(in srgb, var(--h1b) var(--k-edge), var(--hairline));
+}
+.empty-art .pane-2 {
+  background-color: color-mix(in srgb, var(--h3a) var(--k-frame), var(--glass-base));
+}
+.empty-art .pane-3 {
+  background-color: color-mix(in srgb, var(--h4a) var(--k-frame), var(--glass-base));
+}
+.lightbox {
+  background:
+    radial-gradient(70% 60% at 0% 0%, color-mix(in srgb, var(--field-1) 60%, transparent), transparent 70%),
+    radial-gradient(60% 60% at 100% 100%, color-mix(in srgb, var(--field-3) 60%, transparent), transparent 70%),
+    color-mix(in srgb, var(--c-bg) 86%, transparent);
 }
 
+/* Popup */
+.popup-foot .btn:not(.btn-primary) {
+  --b: var(--tone-a);
+}
+.action:hover {
+  background-color: color-mix(in srgb, var(--tone-a) calc(var(--k-ctrl) + 6%), transparent);
+}
+
+/* ── Notices ───────────────────────────────────────────────────────────── */
+
+.issues {
+  position: relative;
+}
+.issues[hidden] {
+  display: none;
+}
+.issues-btn {
+  position: relative;
+}
+.issues[data-kind="error"] .issues-btn .icon {
+  color: #e5484d;
+}
+.issues[data-kind="warn"] .issues-btn .icon {
+  color: #d98b00;
+}
+.issues.is-new .issues-btn .p-bell {
+  transform-origin: 12px 4px;
+  animation: bell-ring 900ms var(--spring) 2;
+}
+@keyframes bell-ring {
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-4deg); }
+}
+.issues-count {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 99em;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  background: #e5484d;
+  box-shadow: 0 0 0 2px var(--c-bg);
+}
+.issues[data-kind="warn"] .issues-count {
+  background: #e09300;
+}
+.issues-pop {
+  --g: var(--h2a);
+  --g2: var(--h2b);
+  position: absolute;
+  z-index: 70;
+  top: calc(100% + 10px);
+  right: -6px;
+  width: min(380px, 80vw);
+  max-height: min(460px, 70vh);
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border-radius: 20px;
+  animation: rise-in 220ms var(--glide) both;
+}
+.issues-pop[hidden] {
+  display: none;
+}
+.issues-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 8px;
+}
+.issues-head b {
+  font-size: 14px;
+  font-weight: 700;
+}
+.issues-clear {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.issues-clear:hover {
+  color: var(--text);
+  background: var(--tint-well);
+}
+.issues-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.issue {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 8px 10px 10px;
+  border-radius: 14px;
+  background: var(--tint-control);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  transition:
+    opacity 160ms ease,
+    transform 180ms var(--glide);
+}
+.issue.is-leaving {
+  opacity: 0;
+  transform: translateX(16px);
+}
+.issue-glyph {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  color: #fff;
+  background: linear-gradient(160deg, #ff8a8a, #e5323b);
+}
+.issue.is-warn .issue-glyph {
+  background: linear-gradient(160deg, #ffc548, #e88a00);
+}
+.issue-glyph .icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.2;
+}
+.issue-text {
+  flex: 1;
+  min-width: 0;
+}
+.issue-text b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.issue-text p {
+  margin: 3px 0 4px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.issue-text small {
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+.issue-dismiss {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+.issue-dismiss .icon {
+  width: 14px;
+  height: 14px;
+}
+.issue-dismiss:hover {
+  color: var(--text);
+  background: var(--tint-well);
+}
+
+/* ── Batch Converter as a view of the Gallery ─────────────────────────── */
+
+body.is-tool .topbar :is(.search, .capture-group, #view-toggle, #size-toggle, #open-settings) {
+  display: none;
+}
+body.is-tool .topbar-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding-left: 10px;
+  animation: fade-in 240ms ease both;
+}
+body.is-tool .topbar-title > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.is-convert .topbar .sync {
+  display: none;
+}
+
+.tool-canvas {
+  padding: 6px 6px 120px;
+}
+#convert-view .cv-layout {
+  width: min(1180px, 100%);
+  margin: 4px auto 0;
+}
+#convert-view .cv-side {
+  top: 6px;
+}
+#convert-view .cv-summary {
+  top: 6px;
+}
+#convert-view .cv-main > *,
+#convert-view .cv-side > .group {
+  animation: rise-in 360ms var(--glide) both;
+}
+#convert-view .cv-side > .group:nth-child(2) {
+  animation-delay: 50ms;
+}
+#convert-view .cv-side > .group:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.cv-drop-actions {
+  display: flex;
+  gap: 8px;
+}
+.cv-drop-glyph {
+  background: linear-gradient(160deg, var(--h1a), var(--h1b));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    0 12px 26px -10px color-mix(in srgb, var(--h1b) 70%, transparent);
+}
 .cv-drop::after {
-  border-color: color-mix(in srgb, var(--c-content) 16%, transparent);
+  border-color: color-mix(in srgb, var(--h1b) 38%, transparent);
 }
-
-.cv-drop:hover::after {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-}
-
+.cv-drop:hover::after,
 .cv-drop.is-over::after {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 75%, transparent);
 }
-
 .cv-drop.is-over {
-  background-color: color-mix(in srgb, var(--accent) 7%, var(--tint-panel));
   box-shadow:
     var(--reflex-panel),
-    inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent),
-    0 26px 50px -26px color-mix(in srgb, var(--accent) 70%, transparent);
+    inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 26px 50px -24px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+/* Each row is glass in the colour of its state */
+.cv-item.glass {
+  --g: var(--h1a);
+  --g2: var(--h1b);
+}
+.cv-item.glass[data-state="working"] {
+  --g: var(--h2a);
+  --g2: var(--h2b);
+}
+.cv-item.glass[data-state="done"] {
+  --g: #b7ea5a;
+  --g2: #4f9e12;
+}
+.cv-item.glass[data-state="error"] {
+  --g: #ff9a7a;
+  --g2: #e5323b;
+}
+.cv-item .act[hidden] {
+  display: none;
 }
 
 .cv-summary {
-  box-shadow:
-    var(--reflex-panel),
-    inset 0 0 0 1px var(--hairline),
-    var(--panel-shadow);
+  position: sticky;
+  overflow: hidden;
+}
+.cv-progress {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--c-content) 8%, transparent);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.cv-progress > i {
+  display: block;
+  height: 100%;
+  width: var(--pct, 0%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 260ms var(--glide);
+}
+.cv-summary.is-busy .cv-progress {
+  opacity: 1;
+}
+#cv-zip[hidden] {
+  display: none;
+}
+.cv-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.cv-privacy .icon {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  color: var(--g2);
+}
+@media (max-width: 1240px) {
+  #convert-view .cv-summary .btn > span {
+    display: none;
+  }
+  #convert-view .cv-summary .btn:not(.btn-icon) {
+    padding: 0 12px;
+  }
+  #convert-view .cv-summary #cv-download-all > span {
+    display: inline;
+  }
+}
+@media (max-width: 1100px) {
+  #convert-view .cv-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #convert-view .cv-side {
+    position: static;
+  }
 }
 
-/* Meter and links follow the accent */
-.meter i {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent));
+/* ── Section motion ──────────────────────────────────────────────────────
+   Section switches animate from script and never block input. The preview
+   uses a View Transition: the card's thumbnail grows into the preview and
+   shrinks back on close. */
+
+/* The section switch animates the stage from script (gallery.js); the
+   older entrance animations would run a second time underneath it. */
+#settings-view:not([hidden]),
+body:not(.is-settings) #canvas {
+  animation: none;
 }
 
-/* Lightbox: the same calm field as the canvas */
-.lightbox {
-  background: color-mix(in srgb, var(--c-bg) 86%, transparent);
+/* Clicks go straight through to the page while a transition plays, so
+   moving quickly down the sidebar never loses a click. */
+:root::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-group(stage) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-old(stage) {
+  animation: vt-out 150ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+::view-transition-new(stage) {
+  animation: vt-in 320ms cubic-bezier(0.22, 1, 0.36, 1) 30ms both;
+}
+html[data-vt="up"]::view-transition-old(stage) {
+  animation-name: vt-out-up;
+}
+html[data-vt="up"]::view-transition-new(stage) {
+  animation-name: vt-in-up;
+}
+::view-transition-old(topbar),
+::view-transition-new(topbar) {
+  animation-duration: 220ms;
+}
+::view-transition-old(sidebar),
+::view-transition-new(sidebar) {
+  animation: none;
+}
+::view-transition-group(lb-hero) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-old(lb-hero),
+::view-transition-new(lb-hero) {
+  animation-duration: 380ms;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+  overflow: clip;
 }
 
-.cv-bar.glass {
-  background-image: none;
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.985);
+    filter: blur(5px);
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.99);
+    filter: blur(6px);
+  }
+}
+@keyframes vt-out-up {
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+    filter: blur(5px);
+  }
+}
+@keyframes vt-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.99);
+    filter: blur(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* 20. COMPACT SIDEBAR ────────────────────────────────────────────────────
+   Two views per row (Library, capture types, Trash beside Settings) so the
+   whole sidebar fits without a scroll bar; the converter keeps a full row
+   with a one-line hint. Tiles carry the colour, labels stay short. */
+
+.sidebar {
+  padding: 18px 12px 12px;
+}
+.brand {
+  padding: 0 8px 14px;
+}
+.brand .logo {
+  --logo-h: 38px;
+}
+.nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 3px;
+}
+.nav-label,
+.nav-sep,
+.nav-item[data-filter="convert"] {
+  grid-column: 1 / -1;
+}
+.nav-label {
+  padding: 12px 10px 5px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.nav-label:first-child {
+  padding-top: 0;
+}
+.nav-item {
+  position: relative;
+  gap: 8px;
+  height: 40px;
+  min-width: 0;
+  padding: 0 8px 0 6px;
+  border-radius: 13px;
+  font-size: 13.5px;
+}
+.nav .liquid-pill {
+  border-radius: 13px;
+}
+.nav-item .icon {
+  flex-shrink: 0;
+  width: 27px;
+  height: 27px;
+  padding: 5.5px;
+  border-radius: 8.5px;
+}
+.nav-item span:first-of-type {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.nav-count {
+  min-width: 0;
+  font-size: 11.5px;
+}
+.nav-count:empty {
+  display: none;
+}
+.nav-item[data-filter="convert"] {
+  height: 46px;
+}
+.nav-item[data-filter="convert"] span:first-of-type {
+  flex: 0 1 auto;
+}
+.nav-hint {
+  flex: 1;
+  min-width: 0;
+  margin-left: 2px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-sep {
+  margin: 8px 10px;
+}
+.sidebar-scroll {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+.sidebar-foot {
+  margin-top: 8px;
+  padding: 10px 6px 0;
+}
+.telemetry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 6px;
+  font-size: 12.5px;
+}
+.telemetry i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+.sidebar-foot .meter {
+  margin: 8px 0 10px;
+}
+.sidebar-foot #clear-all {
+  height: 34px;
+  font-size: 13px;
+}
+@media (max-height: 760px) {
+  .nav-item {
+    height: 36px;
+  }
+  .nav-label {
+    padding-top: 8px;
+  }
+  .brand {
+    padding-bottom: 8px;
+  }
+}
+
+@media (min-width: 901px) {
+  .app {
+    grid-template-columns: 296px minmax(0, 1fr);
+  }
+}
+.nav-item {
+  gap: 7px;
+  padding: 0 7px 0 5px;
+  font-size: 13px;
+}
+.nav-item .icon {
+  width: 25px;
+  height: 25px;
+  padding: 5px;
+  border-radius: 8px;
+}
+.nav-count {
+  font-size: 11px;
+}
+
+.issues-btn[aria-expanded="true"]::after {
+  display: none;
+}
+
+/* Library views read best as a list: one per line */
+.nav-item:is([data-filter="all"], [data-filter="favorites"], [data-filter="recent"], [data-filter="earlier"]) {
+  grid-column: 1 / -1;
+  gap: 10px;
+  padding: 0 12px 0 6px;
+  font-size: 13.5px;
+}
+.nav-item:is([data-filter="all"], [data-filter="favorites"], [data-filter="recent"], [data-filter="earlier"]) .nav-count {
+  font-size: 12px;
 }

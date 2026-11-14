@@ -3,6 +3,7 @@ import {
   toggleCursor,
   detectStandaloneMediaOrActiveBounds,
   writeImageBlobToClipboard,
+  reportIssue,
 } from "./utils.js";
 import { deliverCanvas } from "./deliver.js";
 
@@ -116,8 +117,9 @@ export async function handleCaptureVisible(options = {}) {
       type: options?.type || "visible",
     });
   } catch (err) {
-    console.error("handleCaptureVisible error:", err);
-    window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
+    console.warn("SwiftSelect: visible capture failed:", err?.message || err);
+    reportIssue("Visible capture failed", err);
+    window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error", false, { detail: "Details are in the Gallery" });
   } finally {
     toggleCursor(false);
   }
@@ -190,8 +192,9 @@ export async function captureAndCrop(viewRect, shouldFlash = false) {
       flashRect: viewRect,
     });
   } catch (err) {
-    console.error("captureAndCrop error:", err);
-    window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error");
+    console.warn("SwiftSelect: region capture failed:", err?.message || err);
+    reportIssue("Region capture failed", err);
+    window.SwiftSelect.ui.setStatus("Capture failed", 3000, "error", false, { detail: "Details are in the Gallery" });
     throw err;
   } finally {
     toggleCursor(false);

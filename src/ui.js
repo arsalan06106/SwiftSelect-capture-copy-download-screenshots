@@ -21,10 +21,10 @@ import {
   isPageDark,
 } from "./theme.js";
 import { removeListeners } from "./events.js";
-import { getOutputSettingsSync } from "./capture/utils.js";
+import { getOutputSettingsSync, pickToolbarLook, currentToolbarLook } from "./capture/utils.js";
 import { openAnnotationEditor } from "./capture/annotate.js";
 import { handleSaveAction, getLastBlob } from "./capture/download.js";
-import { armPeek, closePeek, isPeekDetached } from "./peek.js";
+import { openPeek, closePeek, isPeekOpen } from "./peek.js";
 import stylesCss from "./styles.min.css";
 
 export let overlayHost = null;
@@ -85,9 +85,9 @@ export let safetyListenersAdded = false;
 export let cachedCssText = stylesCss;
 
 /**
- * Selawik ships with the extension. @font-face inside a shadow root is
- * ignored, so the faces are registered on the document under a private
- * family name ("SS Selawik") that no page stylesheet will ever ask for.
+ * Manrope ships with the extension. @font-face inside a shadow root
+ * is ignored, so the faces are registered on the document under a private
+ * family name ("SS Manrope") that no page stylesheet will ever ask for.
  * They are read as bytes, so a strict page CSP (font-src) cannot block them.
  * Until they arrive (or if they cannot), the stack falls back to Segoe UI /
  * the system font, so nothing waits on this.
@@ -97,16 +97,15 @@ export function loadFonts() {
   if (fontsRequested) return;
   fontsRequested = true;
   const faces = [
-    ["selawk.ttf", "400 500"],
-    ["selawksb.ttf", "600"],
-    ["selawkb.ttf", "700 900"],
+    ["manrope-latin.woff2", "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"],
+    ["manrope-latin-ext.woff2", "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+20A0-20AB, U+20AD-20C0, U+2C60-2C7F, U+A720-A7FF"],
   ];
-  for (const [file, weight] of faces) {
+  for (const [file, unicodeRange] of faces) {
     (async () => {
       try {
         const res = await fetch(chrome.runtime.getURL(`fonts/${file}`));
         if (!res.ok) return;
-        const face = new FontFace("SS Selawik", await res.arrayBuffer(), { weight, display: "swap" });
+        const face = new FontFace("SS Manrope", await res.arrayBuffer(), { weight: "200 800", display: "swap", unicodeRange });
         await face.load();
         document.fonts.add(face);
       } catch {}
@@ -306,6 +305,8 @@ function makeGuideDraggable(el) {
   };
   el.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
+    // Captures in the open drawer are dragged into the page, not the bar.
+    if (e.target.closest?.(".qs-peek-drawer")) return;
     suppressClick = false;
     const r = el.getBoundingClientRect();
     drag = { sx: e.clientX, sy: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, w: r.width, h: r.height, id: e.pointerId, active: false };
@@ -353,7 +354,7 @@ function makeGuideDraggable(el) {
     true,
   );
   el.addEventListener("dblclick", (e) => {
-    if (e.target.closest?.("button")) return;
+    if (e.target.closest?.("button, .qs-peek-drawer")) return;
     _guidePos = null;
     applyGuidePos(el);
     try {
@@ -475,6 +476,8 @@ export async function ensureUi() {
     guideHost = host;
     guideEl = el;
     guideShadow = shadow;
+    // A fresh look each time the toolbar opens (or the one chosen in Settings).
+    guideEl.dataset.look = pickToolbarLook();
 
     const surface = document.createElement("div");
     surface.className = "qs-glass-surface";
@@ -485,9 +488,6 @@ export async function ensureUi() {
     guideEl.appendChild(buttonsSet);
     makeGuideDraggable(guideEl);
 
-    const segmented = document.createElement("div");
-    segmented.className = "qs-segmented";
-    buttonsSet.appendChild(segmented);
 
     // Visible Area
     const visibleBtn = document.createElement("button");
@@ -515,25 +515,10 @@ export async function ensureUi() {
     visibleSpan.textContent = "Visible Area";
     visibleBtn.appendChild(eyeSvg);
     visibleBtn.appendChild(visibleSpan);
-    segmented.appendChild(visibleBtn);
+    buttonsSet.appendChild(visibleBtn);
 
-    // Horizontal Wide View
-    const horizontalBtn = document.createElement("button");
-    horizontalBtn.className = "qs-guide-btn";
-    horizontalBtn.dataset.action = "capture-horizontal";
-    horizontalBtn.dataset.tooltip = "Save Horizontal View (H)";
-    const hzSvg = createSvg("0 0 24 24", [
-      {
-        class: "hz-screen",
-        d: "M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm2 0v12h16V6H4z",
-      },
-      {
-        class: "hz-arrows",
-        d: "M7 12l2.5-2.5v1.5h5V9.5l2.5 2.5-2.5 2.5v-1.5h-5v1.5L7 12z",
-      },
-    ]);
-    horizontalBtn.appendChild(hzSvg);
-    segmented.appendChild(horizontalBtn);
+    // Horizontal capture left the toolbar (rarely used): it stays on Alt+H,
+    // the H key, the quick menu and the context menu.
 
     // Full Page
     const fullBtn = document.createElement("button");
@@ -566,10 +551,9 @@ export async function ensureUi() {
         d: "M367.74-567.74h225.09v-65.09H367.74v65.09Zm0 120h225.09v-65.09H367.74v65.09Zm0 120h225.09v-65.09H367.74v65.09Z",
       },
     ]);
-    const fpSpan = document.createElement("span");
-    fpSpan.textContent = "Full Page";
     fullBtn.appendChild(fpSvg);
-    fullBtn.appendChild(fpSpan);
+    fullBtn.classList.add("qs-icon-btn");
+    fullBtn.setAttribute("aria-label", "Full Page");
     buttonsSet.appendChild(fullBtn);
 
     // Annotate Button
@@ -601,32 +585,67 @@ export async function ensureUi() {
       e?.stopPropagation?.();
       handleCaptureVisible();
     };
-    horizontalBtn.onclick = (e) => {
-      e?.preventDefault?.();
-      e?.stopPropagation?.();
-      handleCaptureHorizontal();
-    };
     fullBtn.onclick = (e) => {
       e?.preventDefault?.();
       e?.stopPropagation?.();
       handleCaptureFullPage();
     };
-    // Gallery: the quick menu is no longer the default, so the toolbar is
-    // where the gallery has to be one click away.
-    const galleryBtn = document.createElement("button");
-    galleryBtn.className = "qs-guide-btn qs-gallery-btn";
-    galleryBtn.dataset.action = "gallery";
-    galleryBtn.setAttribute("aria-label", "Open Gallery");
-    galleryBtn.innerHTML =
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect class="gal-frame" x="3" y="4" width="18" height="16" rx="3"/><circle class="gal-sun" cx="8.5" cy="9.5" r="1.6"/><path class="gal-hills" d="m4 17 5-4.5 3.5 3L16 12l4.5 4.5"/></svg>';
-    buttonsSet.appendChild(galleryBtn);
-    galleryBtn.onclick = (e) => {
+    // Gallery, Convert and Settings: three tiles that open the toolbar's own
+    // panel on that tab. While the panel is open they fuse into its tabs, and
+    // the chevron at the end folds it away again.
+    const TILE_ICONS = {
+      gallery:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect class="gal-frame" x="3" y="4" width="18" height="16" rx="3"/><circle class="gal-sun" cx="8.5" cy="9.5" r="1.6"/><path class="gal-hills" d="m4 17 5-4.5 3.5 3L16 12l4.5 4.5"/></svg>',
+      convert:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="cv-r" d="M4 8h13M13.5 4.5 17 8l-3.5 3.5"/><path class="cv-l" d="M20 16H7M10.5 12.5 7 16l3.5 3.5"/></svg>',
+      settings:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="st-a" d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle class="st-b" cx="15" cy="7" r="2"/><circle class="st-c" cx="9" cy="17" r="2"/></svg>',
+    };
+    const TILE_LABEL = { gallery: "Gallery", convert: "Convert", settings: "Settings" };
+    const tiles = {};
+    for (const tab of ["convert", "gallery", "settings"]) {
+      const b = document.createElement("button");
+      // Convert opens the full Batch Converter; Gallery and Settings open
+      // the panel and fuse into its tabs while it is open.
+      b.className = `qs-guide-btn qs-gallery-btn qs-tile-${tab}${tab === "convert" ? "" : " qs-fuse"}`;
+      b.dataset.action = tab;
+      b.setAttribute("aria-label", TILE_LABEL[tab]);
+      b.innerHTML = TILE_ICONS[tab];
+      b.onclick = (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        hideCustomTooltip();
+        if (tab === "convert") {
+          closePeek({ immediate: true });
+          window.SwiftSelect?.events?.cleanup?.();
+          cleanup();
+          try {
+            chrome.runtime.sendMessage({ type: "open-convert" }, () => void chrome.runtime.lastError);
+          } catch {}
+          return;
+        }
+        openPeek(b, tab);
+      };
+      buttonsSet.appendChild(b);
+      tiles[tab] = b;
+    }
+    const galleryBtn = tiles.gallery;
+
+    const expandBtn = document.createElement("button");
+    expandBtn.className = "qs-guide-btn qs-expand-btn";
+    expandBtn.dataset.action = "expand";
+    expandBtn.setAttribute("aria-label", "Show more");
+    expandBtn.setAttribute("aria-expanded", "false");
+    expandBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+    expandBtn.onclick = (e) => {
       e?.preventDefault?.();
       e?.stopPropagation?.();
-      window.SwiftSelect?.events?.cleanup?.();
-      cleanup();
-      openGallery();
+      hideCustomTooltip();
+      if (isPeekOpen()) closePeek();
+      else openPeek(expandBtn);
     };
+    buttonsSet.appendChild(expandBtn);
 
     annotateBtn.onclick = (e) => {
       e?.preventDefault?.();
@@ -640,7 +659,6 @@ export async function ensureUi() {
       typeof navigator !== "undefined" &&
       /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent);
     const keyS = isMac ? "Ctrl+S" : "Alt+S";
-    const keyH = isMac ? "Ctrl+H" : "Alt+H";
     const keyF = isMac ? "Ctrl+F" : "Alt+F";
     const keyA = getOutputSettingsSync().toolbarShortcuts ? "A" : "";
 
@@ -651,24 +669,16 @@ export async function ensureUi() {
       keyS,
     );
     attachTooltip(
-      horizontalBtn,
-      "Horizontal View",
-      "Captures the full horizontal scrollable width at your current view.",
-      keyH,
-    );
-    attachTooltip(
       fullBtn,
       "Full Page",
       "Scrolls and stitches the entire webpage into one complete high-resolution image.",
       keyF,
     );
-    attachTooltip(
-      galleryBtn,
-      "Gallery",
-      "Click to open it. Keep the pointer here to slide your recent captures in, ready to drag into the page.",
-      getOutputSettingsSync().toolbarShortcuts ? "G" : "",
-    );
-    armPeek(galleryBtn);
+    // These four are explored rather than known: their tooltips come quickly.
+    attachTooltip(tiles.convert, "Batch Converter", "Opens in a new tab: drop images, convert, resize, compress.", "", 350);
+    attachTooltip(galleryBtn, "Gallery", "Recent captures, ready to drag into the page or copy.", "", 350);
+    attachTooltip(tiles.settings, "Settings", "The settings you change most, without leaving the page.", "", 350);
+    attachTooltip(expandBtn, "More", "Gallery and Settings in one panel.", "", 350);
     attachTooltip(
       annotateBtn,
       "Annotate Editor",
@@ -766,7 +776,18 @@ export function showCustomTooltip(btn, title, desc = "", key = "", host = null) 
     ${desc ? `<div class="qs-tooltip-desc">${desc}</div>` : ""}
   `;
 
-  applyElementTheme(menuTooltipEl, currentUserTheme);
+  // A tooltip wears the tone of the bar it belongs to. Sampling the page
+  // under it instead gave light glass with dark text over dark pages.
+  const surface = btn.closest?.(".qs-theme-glass, .qs-theme-dark");
+  menuTooltipEl.classList.remove("qs-theme-dark", "qs-theme-glass", "qs-theme-glass-dark");
+  menuTooltipEl.dataset.look = btn.closest?.("[data-look]")?.dataset.look || currentToolbarLook();
+  if (surface) {
+    const dark = surface.classList.contains("qs-theme-glass-dark") || surface.classList.contains("qs-theme-dark");
+    menuTooltipEl.classList.add("qs-theme-glass");
+    if (dark) menuTooltipEl.classList.add("qs-theme-glass-dark");
+  } else {
+    applyElementTheme(menuTooltipEl, currentUserTheme);
+  }
   menuTooltipEl.style.display = "flex";
 
   const btnRect = btn.getBoundingClientRect();
@@ -1395,9 +1416,8 @@ export async function hideUiForCapture() {
 
 export function cleanup(preserveStatus = false, preserveFreeze = false) {
   removeFlash();
-  // The recent-captures tray belongs to the toolbar, unless the person has
-  // already taken a capture out of it (then it stays until they are done).
-  if (!isPeekDetached()) closePeek({ immediate: true });
+  // The recent-captures drawer lives inside the toolbar: it goes with it.
+  closePeek({ immediate: true });
   hideCustomTooltip();
   menuTooltipEl = null;
   removeCrosshairCursor();
@@ -1468,6 +1488,7 @@ export function cleanup(preserveStatus = false, preserveFreeze = false) {
 
 export function hideGuide(immediately = false) {
   hideCustomTooltip();
+  closePeek({ immediate: true });
   if (hideGuideTimer) {
     clearTimeout(hideGuideTimer);
     hideGuideTimer = null;

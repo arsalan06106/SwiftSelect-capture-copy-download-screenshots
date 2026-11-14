@@ -57,7 +57,7 @@ function watchStickyHead() {
 // ─── Rendering from state ────────────────────────────────────────────
 
 function renderSegments() {
-  document.querySelectorAll(".seg[data-key]").forEach((seg) => {
+  document.querySelectorAll("#settings-view .seg[data-key]").forEach((seg) => {
     const value = String(settings[seg.dataset.key]);
     seg.querySelectorAll("button").forEach((btn) => {
       const on = btn.dataset.value === value;
@@ -183,7 +183,7 @@ async function renderGallerySummary() {
 // ─── Wiring ──────────────────────────────────────────────────────────
 
 function wireSegments() {
-  document.querySelectorAll(".seg[data-key]").forEach((seg) => {
+  document.querySelectorAll("#settings-view .seg[data-key]").forEach((seg) => {
     pillSyncs.push(mountPill(seg, '[aria-checked="true"]'));
     const key = seg.dataset.key;
     const cast = (v) => (seg.dataset.type === "number" ? Number(v) : v);

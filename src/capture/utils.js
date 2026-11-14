@@ -60,7 +60,37 @@ function toOutputSettings(raw) {
     flash: n.captureFlash,
     toolbarShortcuts: n.toolbarShortcuts,
     editorShortcuts: n.editorShortcuts,
+    colour: n.uiColour,
+    raw: n,
   };
+}
+
+/** The full normalized settings (for the in-page settings tab). */
+export function getAllSettingsSync() {
+  return getOutputSettingsSync().raw || {};
+}
+
+// ─── Toolbar look ────────────────────────────────────────────────────
+// The in-page surfaces (capture toolbar, its panel, the editor, tooltips)
+// wear one of five glass looks. With Colour on Dynamic a different one is
+// picked each time the toolbar opens; Calm and Plain keep the quiet "clear"
+// look. The editor keeps whichever the toolbar last wore.
+export const TOOLBAR_LOOKS = ["clear", "sunset", "ocean", "aurora", "mint"];
+let _look = null;
+
+export function pickToolbarLook() {
+  if ((getOutputSettingsSync().colour || "dynamic") !== "dynamic") {
+    _look = "clear";
+    return _look;
+  }
+  const choices = TOOLBAR_LOOKS.filter((l) => l !== _look);
+  _look = choices[Math.floor(Math.random() * choices.length)];
+  return _look;
+}
+
+export function currentToolbarLook() {
+  if ((getOutputSettingsSync().colour || "dynamic") !== "dynamic") return "clear";
+  return _look || pickToolbarLook();
 }
 
 let _rawSettings = {};
@@ -281,4 +311,26 @@ export async function cropSnapshotToMedia(dataUrl) {
   } catch {
     return dataUrl;
   }
+}
+
+/** Keep a capture failure for the Gallery's notices (never throws). */
+const FRIENDLY = [
+  [/MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND/i, "Chrome allows only a couple of captures per second. Wait a moment and try again."],
+  [/timed out/i, "The browser took too long to hand over the picture. Try again; if it keeps happening, reload the page."],
+  [/cannot access|cannot be scripted|chrome:\/\/|webstore/i, "Chrome does not let extensions capture this kind of page."],
+  [/Extension context invalidated/i, "SwiftSelect was updated or reloaded. Reload the page, then capture again."],
+];
+
+/** Plain words for the errors people actually meet. */
+export function friendlyError(err) {
+  const raw = err ? err.message || String(err) : "";
+  const hit = FRIENDLY.find(([re]) => re.test(raw));
+  return hit ? hit[1] : raw;
+}
+
+export function reportIssue(title, err, kind = "error") {
+  try {
+    const detail = err ? friendlyError(err) : "";
+    chrome.runtime.sendMessage({ type: "record-issue", issue: { kind, title, detail, source: location.href } }, () => void chrome.runtime.lastError);
+  } catch {}
 }
