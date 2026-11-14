@@ -73,6 +73,9 @@ const FILTER_TITLE = {
   trash: "Trash",
 };
 
+/** Title for a library view; Settings (and anything unknown) reads as All. */
+const filterTitle = (filter) => FILTER_TITLE[filter] || FILTER_TITLE.all;
+
 const state = {
   records: [],
   filter: "all",
@@ -376,7 +379,7 @@ function renderCounts() {
 }
 
 function renderHead(shown, counts) {
-  $("section-title").textContent = FILTER_TITLE[state.filter] || FILTER_TITLE.all;
+  $("section-title").textContent = filterTitle(state.filter);
   $("section-count").textContent = shown.length ? `${formatNumber(shown.length)} item${shown.length === 1 ? "" : "s"}` : "";
 
   const actions = $("canvas-actions");
@@ -413,7 +416,7 @@ function renderEmpty(counts) {
   if (searching) {
     glyph.innerHTML = icon("search");
     title.textContent = "No captures match";
-    body.textContent = `Nothing in ${FILTER_TITLE[state.filter].toLowerCase()} matches “${state.query.trim()}”.`;
+    body.textContent = `Nothing in ${filterTitle(state.filter).toLowerCase()} matches “${state.query.trim()}”.`;
     cta.innerHTML = "Clear search";
     cta.dataset.mode = "clear-search";
   } else if (inTrashView()) {
@@ -438,7 +441,7 @@ function renderEmpty(counts) {
   } else {
     glyph.innerHTML = icon("gallery");
     title.textContent = "Nothing here yet";
-    body.textContent = `You have no ${FILTER_TITLE[state.filter].toLowerCase()} right now.`;
+    body.textContent = `You have no ${filterTitle(state.filter).toLowerCase()} right now.`;
     cta.innerHTML = "Show all screenshots";
     cta.dataset.mode = "show-all";
   }
@@ -483,6 +486,9 @@ function renderBulkBar() {
 
 function render({ animate = false } = {}) {
   const counts = renderCounts();
+  // While Settings is open the library is hidden: keep the sidebar counts
+  // live and leave the grid for when a library view comes back.
+  if (state.filter === "settings") return;
   const shown = visibleRecords();
   renderHead(shown, counts);
 

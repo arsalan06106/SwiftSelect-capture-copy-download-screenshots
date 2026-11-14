@@ -95,7 +95,25 @@ export async function deliverCanvas(canvas, { type = "visible", flashRect = null
   const alwaysFile = type === "fullpage" || type === "horizontal";
   const download = alwaysFile || wantsDownload(destination);
 
-  const exportBlob = await canvasToBlob(canvas, mime, quality);
+  // The shot is taken the moment the pixels are in the canvas: say so now,
+  // not after encoding and the clipboard (that used to cost a visible beat).
+  if (flash && settings.flash) ui.triggerFlash?.(flashRect || undefined);
+
+  // Encode the file and the clipboard PNG side by side. toBlob runs off the
+  // main thread, so the second encode no longer waits for the first.
+  const exportP = canvasToBlob(canvas, mime, quality);
+  const pngP = copy ? (mime === "image/png" ? exportP : canvasToBlob(canvas, "image/png")) : null;
+
+  let clipboardOk = false;
+  if (copy) {
+    try {
+      clipboardOk = await writeImageBlobToClipboard(await pngP);
+    } catch {
+      clipboardOk = false;
+    }
+  }
+
+  const exportBlob = await exportP;
   setLastBlob(exportBlob, ext);
 
   // A quiet second line on the status: what was captured, so a wrong-sized
@@ -105,34 +123,29 @@ export async function deliverCanvas(canvas, { type = "visible", flashRect = null
   const size = kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(kb))} KB`;
   const detail = `${canvas.width.toLocaleString()} × ${canvas.height.toLocaleString()} · ${fmt} · ${size}`;
   const statusOpts = { sourceBlob: exportBlob, downloaded: download, detail };
-  const fireFlash = () => {
-    if (flash && settings.flash) ui.triggerFlash?.(flashRect || undefined);
+
+  // The gallery copy travels to the worker as a large message; start it once
+  // the person already has their result, so it never delays the status.
+  const queueGallery = () => {
+    const run = () => saveToGallery(exportBlob, { type, width: canvas.width, height: canvas.height });
+    if (typeof requestIdleCallback === "function") requestIdleCallback(run, { timeout: 1200 });
+    else setTimeout(run, 60);
   };
-
-  // Gallery write runs alongside delivery and never delays the status pill.
-  saveToGallery(exportBlob, { type, width: canvas.width, height: canvas.height });
-
-  let clipboardOk = false;
-  if (copy) {
-    // The async clipboard only accepts PNG.
-    const pngBlob = mime === "image/png" ? exportBlob : await canvasToBlob(canvas, "image/png");
-    clipboardOk = await writeImageBlobToClipboard(pngBlob);
-  }
 
   if (destination === "clipboard" && !alwaysFile) {
     if (!clipboardOk) {
       // Nothing must be lost: fall back to a file when the clipboard refuses.
       handleSaveAction(ext);
       ui.setStatus("Saved (Clipboard Blocked)", 5000, "saved", false, { ...statusOpts, downloaded: true });
+      queueGallery();
       return exportBlob;
     }
-    fireFlash();
     ui.setStatus("Copied to Clipboard", 5000, "success", false, statusOpts);
+    queueGallery();
     return exportBlob;
   }
 
   if (download) handleSaveAction(ext);
-  fireFlash();
 
   if (!copy && !download) {
     ui.setStatus(settings.saveToGallery ? "Saved to Gallery" : "Captured", 5000, "success", false, statusOpts);
@@ -141,5 +154,6 @@ export async function deliverCanvas(canvas, { type = "visible", flashRect = null
   } else {
     ui.setStatus("Image Saved", 5000, "saved", false, statusOpts);
   }
+  queueGallery();
   return exportBlob;
 }

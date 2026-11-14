@@ -309,10 +309,24 @@ async function injectAndStart(tab, messageType) {
     }
 
     const tabId = tab.id;
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      files: ["contentScript.js"],
+    // The content script stays on the page between captures. Re-running a
+    // 290 KB bundle on every shortcut cost a noticeable beat, so ask first
+    // and inject only when nobody answers.
+    const alive = await new Promise((resolve) => {
+      try {
+        chrome.tabs.sendMessage(tabId, { type: "ss-ping" }, (resp) => {
+          resolve(!chrome.runtime.lastError && !!resp?.pong);
+        });
+      } catch {
+        resolve(false);
+      }
     });
+    if (!alive) {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["contentScript.js"],
+      });
+    }
 
     chrome.tabs.sendMessage(tabId, { type: messageType }, () => {
       if (chrome.runtime.lastError) {

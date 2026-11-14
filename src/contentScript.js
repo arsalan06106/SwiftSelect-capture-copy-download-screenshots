@@ -40,6 +40,10 @@ if (typeof window !== "undefined" && window === window.top && !window.__swiftSel
 
   // Synchronous listener registration so zero messages are dropped
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type === "ss-ping") {
+      sendResponse({ pong: true });
+      return false;
+    }
     getModules().then(({ theme, ui, events, region, fullpage }) => {
       if (message.type === "start-selection") {
         if (document.getElementById("swiftselect-annotate-root")) {
