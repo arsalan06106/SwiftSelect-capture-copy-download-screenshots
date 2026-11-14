@@ -171,6 +171,7 @@ Single-key shortcuts are **off by default** so typing on a page never triggers a
 | <kbd>A</kbd> | Annotate the current view |
 | <kbd>C</kbd> | Copy the colour under the cursor |
 | <kbd>G</kbd> | Open the gallery |
+| Hold the pointer on the Gallery button (3 s) | Slide in your recent captures, ready to drag into the page or click to copy |
 | <kbd>,</kbd> or <kbd>O</kbd> | Open Settings |
 | <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + hover | Snap to the element under the cursor |
 | <kbd>Shift</kbd> while dragging | Constrain to a square |
@@ -196,7 +197,7 @@ Editor shortcuts are **off by default** too (Settings › Shortcuts). <kbd>Esc</
 | <kbd>Delete</kbd> | Remove the selected shape |
 | <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> | Nudge the selected shape 1 px (10 px with <kbd>Shift</kbd>). Always on |
 | <kbd>Ctrl</kbd>+<kbd>D</kbd> | Duplicate the selected shape |
-| <kbd>Esc</kbd> | Close |
+| <kbd>Esc</kbd> | Put the selected shape down, then close. With unsaved marks, press it twice |
 
 ### In the gallery
 
@@ -205,7 +206,10 @@ Editor shortcuts are **off by default** too (Settings › Shortcuts). <kbd>Esc</
 | <kbd>/</kbd> or <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> | Focus search |
 | <kbd>←</kbd> <kbd>→</kbd> | Previous and next capture in the preview |
 | <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>A</kbd> | Select every visible capture |
-| <kbd>Delete</kbd> | Move the selection to Trash (delete forever inside Trash) |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>I</kbd> | Invert the selection |
+| <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>C</kbd> | Copy the previewed capture, or the one selected capture |
+| <kbd>−</kbd> / <kbd>+</kbd> (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + wheel) | Smaller / larger thumbnails |
+| <kbd>Delete</kbd> | Move the selection (or the previewed capture) to Trash (delete forever inside Trash) |
 | <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>V</kbd> | Add an image from the clipboard |
 | <kbd>Esc</kbd> | Close the preview, clear the selection or clear the search |
 
@@ -220,7 +224,8 @@ Editor shortcuts are **off by default** too (Settings › Shortcuts). <kbd>Esc</
 - **Favorites**: star a capture to keep it. Favorites are never auto-deleted.
 - **Trash**: deleting is reversible. Captures wait in Trash for 7 or 30 days, with Restore, Restore all, Delete forever and Empty Trash.
 - **Drag and drop**: drag a capture (or a whole selection) onto the Trash or Favorites dock that rises from the bottom, or onto Trash and Favorites in the sidebar. Drag a single capture out of the browser to drop it as a file on the desktop or into another app.
-- **Selection**: <kbd>Ctrl</kbd>/<kbd>⌘</kbd>-click, <kbd>Shift</kbd>-click for a range, or the check circle on each card. A bulk bar offers Favorite, Download and Move to Trash.
+- **Selection**: <kbd>Ctrl</kbd>/<kbd>⌘</kbd>-click, <kbd>Shift</kbd>-click for a range, the check circle on each card, **drag a box** across empty space (<kbd>Shift</kbd> adds, <kbd>Ctrl</kbd>/<kbd>⌘</kbd> toggles; the view scrolls near the edges), or **Select** on a day heading. The selection bar shows the count and offers All, Invert, Copy (one capture), Favorite, Download, Convert and Trash.
+- **Thumbnail sizes**: small, medium and large, from the top bar, <kbd>−</kbd> / <kbd>+</kbd> or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + wheel. Remembered between visits.
 - **Rename**: double-click a title.
 - **Import**: drop image files from the desktop onto the gallery, or paste an image, to keep it alongside your captures. Imports are labelled Imported.
 - **Guided drag**: while a capture is dragged, the other cards dim, a hint names the targets and the Trash zone pulses with its lid tipping until the pointer is over it.
@@ -237,7 +242,13 @@ Captures never leave the device. They live in the extension's own IndexedDB data
 
 ## Annotation editor
 
-Open it from the capture status pill, with <kbd>A</kbd> in the capture toolbar, or from any gallery card.
+Open it from the capture status pill, with <kbd>A</kbd> in the capture toolbar, from any gallery card, or from the recent-captures tray.
+
+On a web page the editor is staged like the gallery preview: the page behind is frosted over and tinted to the theme, the capture sits in a rounded frame, and a caption names its source and size. Closing with unsaved marks (Esc, the close button or a click outside) asks for a second press, so nothing is lost by accident. Toolbar tooltips stay out of the way while the Style panel is open.
+
+### Recent-captures tray
+
+Hold the pointer on the **Gallery** button of the capture toolbar. A ring fills for three seconds, then your newest captures slide in along the bottom of the page (along the top when the toolbar sits in the lower half). Drag one straight into the page, where it arrives as an image file, or out of the browser to save it. Click a capture to copy it; hover for Download and Annotate. Once you copy or drag, the capture toolbar steps aside and the tray stays until you press <kbd>Esc</kbd> or click elsewhere. With an empty gallery, or with gallery saving turned off, the tray says so and points to the fix.
 
 | Tool | Behaviour |
 | :--- | :--- |
@@ -347,6 +358,8 @@ SwiftSelect/
 │   ├── annotatePage.js      Standalone editor entry
 │   ├── settings.js          Settings schema, normalisation, filename template
 │   ├── storage.js           IndexedDB gallery engine
+│   ├── peekData.js          Worker side of the recent-captures tray
+│   ├── peek.js              Recent-captures tray on web pages
 │   ├── pageKit.js           Page toolkit: icons, pill, toast, dialog, locale
 │   ├── pageTheme.js         Pre-paint theme bootstrap for pages
 │   ├── ui.js                Shadow DOM hosts, toolbar, status pill, tooltips

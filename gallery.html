@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Swift Gallery</title>
-    <link rel="icon" href="icons/app32.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon32.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon64.png" />
     <script src="src/pageTheme.js"></script>
     <link rel="stylesheet" href="pages.css" />
   </head>
@@ -102,6 +103,18 @@
             </button>
             <button type="button" class="btn btn-primary" data-capture="region" data-tip="Select a region" data-tip-pos="bottom">
               <i data-icon="region"></i><span>Region</span>
+            </button>
+          </div>
+
+          <div class="seg seg-icons" id="size-toggle" role="radiogroup" aria-label="Thumbnail size">
+            <button type="button" role="radio" data-size="s" aria-checked="false" aria-label="Small thumbnails" data-tip="Small  ·  −" data-tip-pos="bottom">
+              <i data-icon="size-s"></i>
+            </button>
+            <button type="button" role="radio" data-size="m" aria-checked="true" aria-label="Medium thumbnails" data-tip="Medium" data-tip-pos="bottom">
+              <i data-icon="size-m"></i>
+            </button>
+            <button type="button" role="radio" data-size="l" aria-checked="false" aria-label="Large thumbnails" data-tip="Large  ·  +" data-tip-pos="bottom">
+              <i data-icon="size-l"></i>
             </button>
           </div>
 
@@ -399,19 +412,27 @@
 
         <!-- Bulk actions for a selection -->
         <div class="bulk-bar glass glass-dense" id="bulk-bar" role="toolbar" aria-label="Selection">
-          <span class="bulk-count" id="bulk-count">0 selected</span>
-          <span id="bulk-live">
-            <button type="button" class="btn btn-quiet" data-bulk="favorite"><i data-icon="star"></i>Favorite</button>
-            <button type="button" class="btn btn-quiet" data-bulk="download"><i data-icon="download"></i>Download</button>
-            <button type="button" class="btn btn-quiet" data-bulk="convert"><i data-icon="convert"></i>Convert</button>
-            <button type="button" class="btn btn-quiet btn-danger" data-bulk="trash"><i data-icon="trash"></i>Move to Trash</button>
-          </span>
-          <span id="bulk-trash" hidden>
-            <button type="button" class="btn btn-quiet" data-bulk="restore"><i data-icon="restore"></i>Restore</button>
-            <button type="button" class="btn btn-quiet btn-danger" data-bulk="purge"><i data-icon="trash"></i>Delete forever</button>
-          </span>
+          <div class="bulk-lead" aria-live="polite">
+            <b class="bulk-badge" id="bulk-count">0</b>
+            <span class="bulk-label"><b id="bulk-noun">selected</b><small id="bulk-of"></small></span>
+          </div>
+          <div class="bulk-group bulk-pick">
+            <button type="button" class="bulk-btn bulk-btn-text" data-bulk="all" data-tip="Select everything shown · Ctrl A"><i data-icon="select"></i><span>All</span></button>
+            <button type="button" class="bulk-btn bulk-btn-text" data-bulk="invert" data-tip="Swap selected and unselected"><i data-icon="invert"></i><span>Invert</span></button>
+          </div>
           <span class="bulk-sep"></span>
-          <button type="button" class="btn btn-icon btn-quiet" data-bulk="clear" aria-label="Clear selection" data-tip="Clear selection"><i data-icon="close"></i></button>
+          <div class="bulk-group" id="bulk-live">
+            <button type="button" class="bulk-btn" data-bulk="copy" data-tip="Copy to clipboard"><i data-icon="copy"></i><span>Copy</span></button>
+            <button type="button" class="bulk-btn" data-bulk="favorite" data-tip="Add to Favorites"><i data-icon="star"></i><span class="bulk-fav-label">Favorite</span></button>
+            <button type="button" class="bulk-btn" data-bulk="download" data-tip="Download the files"><i data-icon="download"></i><span>Download</span></button>
+            <button type="button" class="bulk-btn" data-bulk="convert" data-tip="Open in the Batch Converter"><i data-icon="convert"></i><span>Convert</span></button>
+            <button type="button" class="bulk-btn bulk-btn-danger" data-bulk="trash" data-tip="Move to Trash · Del"><i data-icon="trash"></i><span>Trash</span></button>
+          </div>
+          <div class="bulk-group" id="bulk-trash" hidden>
+            <button type="button" class="bulk-btn" data-bulk="restore" data-tip="Put back in the gallery"><i data-icon="restore"></i><span>Restore</span></button>
+            <button type="button" class="bulk-btn bulk-btn-danger" data-bulk="purge" data-tip="Delete forever · Del"><i data-icon="trash"></i><span>Delete forever</span></button>
+          </div>
+          <button type="button" class="bulk-close" data-bulk="clear" aria-label="Clear selection" data-tip="Clear selection · Esc"><i data-icon="close"></i></button>
         </div>
       </main>
     </div>

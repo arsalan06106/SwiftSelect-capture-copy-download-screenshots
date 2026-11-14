@@ -209,6 +209,28 @@ export function listCaptures() {
   });
 }
 
+/**
+ * The newest captures that are not in Trash, without walking the whole
+ * store. Resolves with { records, more } where `more` says whether older
+ * live captures exist beyond the limit.
+ */
+export function listRecentCaptures(limit = 12) {
+  return run("readonly", (store, done) => {
+    const out = [];
+    const req = store.index("createdAt").openCursor(null, "prev");
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (!cursor) return done({ records: out, more: false });
+      const r = cursor.value;
+      if (!r.deletedAt) {
+        if (out.length >= limit) return done({ records: out, more: true });
+        out.push(r);
+      }
+      cursor.continue();
+    };
+  });
+}
+
 export function getCapture(id) {
   return run("readonly", (store, done) => {
     const req = store.get(Number(id));

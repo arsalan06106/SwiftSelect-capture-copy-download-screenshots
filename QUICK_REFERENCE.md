@@ -67,8 +67,10 @@ Responses are `{ success, error? }` plus the fields listed.
 | `update-badge` | `text`, `color?` | none |
 | `gallery-save` | `dataUrl`, `meta` | `id` |
 | `gallery-save-chunk` | `key`, `index`, `total`, `chunk`, `meta?` (last chunk) | `id` (last chunk) |
+| `gallery-peek` | `limit?` | `enabled`, `more`, `items[]` (`id`, `title`, `url`, `type`, `width`, `height`, `size`, `mime`, `name`, `createdAt`, `thumb` data URL) |
+| `gallery-peek-chunk` | `id`, `index` | `mime`, `size`, `total`, `index`, `data` (base64 of a 6 MiB slice) |
 | `run-capture` | `mode`, `tabId?` | `tabId`, or `error: "no-target"` |
-| `open-gallery` | | |
+| `open-gallery` | `id?` (opens that capture's preview) | |
 | `open-settings` | `hash?` | |
 | `open-annotate` | `id` | |
 | `restore-tab-action` | | none |
@@ -172,6 +174,7 @@ The extension is appended automatically.
 | :--- | :--- |
 | `ss-theme` | Mirror of `userTheme` for flash-free first paint |
 | `ss-gallery-view` | `grid` or `list` |
+| `ss-gallery-size` | `s`, `m` or `l` (thumbnail size) |
 
 ### IndexedDB
 

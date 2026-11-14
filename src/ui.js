@@ -24,6 +24,7 @@ import { removeListeners } from "./events.js";
 import { getOutputSettingsSync } from "./capture/utils.js";
 import { openAnnotationEditor } from "./capture/annotate.js";
 import { handleSaveAction, getLastBlob } from "./capture/download.js";
+import { armPeek, closePeek, isPeekDetached } from "./peek.js";
 import stylesCss from "./styles.min.css";
 
 export let overlayHost = null;
@@ -664,9 +665,10 @@ export async function ensureUi() {
     attachTooltip(
       galleryBtn,
       "Gallery",
-      "Every capture you have taken, ready to copy, download or annotate.",
+      "Click to open it. Keep the pointer here to slide your recent captures in, ready to drag into the page.",
       getOutputSettingsSync().toolbarShortcuts ? "G" : "",
     );
+    armPeek(galleryBtn);
     attachTooltip(
       annotateBtn,
       "Annotate Editor",
@@ -713,6 +715,17 @@ export function trackSheen(root, selector = ".qs-guide-btn, .qs-save-btn, .qs-st
 
 export let menuTooltipEl = null;
 let tooltipTimer = null;
+let tooltipGuard = null;
+
+/**
+ * Let the surface that owns the buttons veto a tooltip, e.g. while a panel
+ * opens where the tooltip would land, or while another preview is showing.
+ * The guard gets the button and returns false to keep the tooltip hidden.
+ */
+export function setTooltipGuard(fn) {
+  tooltipGuard = typeof fn === "function" ? fn : null;
+  if (tooltipGuard) hideCustomTooltip();
+}
 
 export function hideCustomTooltip() {
   if (tooltipTimer) {
@@ -726,7 +739,10 @@ export function hideCustomTooltip() {
 }
 
 export function showCustomTooltip(btn, title, desc = "", key = "", host = null) {
-  if (!btn) return;
+  if (!btn || !btn.isConnected) return;
+  try {
+    if (tooltipGuard && tooltipGuard(btn) === false) return;
+  } catch {}
   const parent = host || guideShadow || document.getElementById("swiftselect-annotate-root") || document.body;
   if (!parent) return;
 
@@ -1039,8 +1055,10 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     statusEl.classList.add("qs-success");
     const saveBtn = document.createElement("button");
     saveBtn.className = "qs-save-btn";
-    saveBtn.title = "Save Screenshot";
-    saveBtn.title = "Download";
+    // A custom tooltip, not a native title: a title tooltip appears late and
+    // lingers over whatever opens next (the editor, the gallery tray).
+    saveBtn.setAttribute("aria-label", "Download");
+    attachTooltip(saveBtn, "Download", "", "", 450, statusEl.getRootNode());
     // Stroke icon, same weight as the annotate pen beside it.
     const dlIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     dlIcon.setAttribute("viewBox", "0 0 24 24");
@@ -1074,7 +1092,8 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
   if ((type === "success" || type === "saved") && !isAnnotateActive && kind !== "color") {
     const annotateBtn = document.createElement("button");
     annotateBtn.className = "qs-save-btn qs-status-annotate-btn";
-    annotateBtn.title = "Annotate";
+    annotateBtn.setAttribute("aria-label", "Annotate");
+    attachTooltip(annotateBtn, "Annotate", "", "", 450, statusEl.getRootNode());
     const annSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     annSvg.setAttribute("viewBox", "0 0 24 24");
     annSvg.setAttribute("class", "ann-icon-svg");
@@ -1092,6 +1111,7 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     annotateBtn.appendChild(annSvg);
 
     annotateBtn.onclick = () => {
+      hideCustomTooltip();
       const source = options?.sourceBlob || getLastBlob?.();
       if (source) {
         openAnnotationEditor(source);
@@ -1142,6 +1162,7 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
   if (timeout > 0) {
     hideStatusTimer = setTimeout(() => {
       if (!statusEl) return;
+      if (menuTooltipEl && menuTooltipEl.getRootNode() === statusEl.getRootNode()) hideCustomTooltip();
       statusEl.classList.add("qs-hiding");
       setTimeout(() => {
         if (statusEl?.classList?.contains("qs-hiding")) {
@@ -1374,6 +1395,9 @@ export async function hideUiForCapture() {
 
 export function cleanup(preserveStatus = false, preserveFreeze = false) {
   removeFlash();
+  // The recent-captures tray belongs to the toolbar, unless the person has
+  // already taken a capture out of it (then it stays until they are done).
+  if (!isPeekDetached()) closePeek({ immediate: true });
   hideCustomTooltip();
   menuTooltipEl = null;
   removeCrosshairCursor();

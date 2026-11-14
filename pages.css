@@ -4313,7 +4313,7 @@ html[data-theme="dark"] .card.glass {
   display: none;
 }
 
-body.is-settings .topbar :is(.search, .capture-group, #view-toggle, #open-settings) {
+body.is-settings .topbar :is(.search, .capture-group, #view-toggle, #size-toggle, #open-settings) {
   display: none;
 }
 
@@ -5750,4 +5750,689 @@ html[data-theme="dark"] .cv-delta.is-larger {
   height: 28px;
   padding: 6px;
   border-radius: 8.5px;
+}
+
+/* 18. GALLERY TOOLS · thumbnail sizes, box selection, selection bar ──────
+   Three thumbnail sizes (also on − / + and Ctrl+wheel), a selection box
+   drawn across empty space, a "Select" button on every day heading, and a
+   selection bar that leads with the count. */
+
+/* Thumbnail sizes */
+.grid {
+  --card-min: 268px;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
+  transition: gap 200ms var(--glide);
+}
+
+.grid[data-size="s"] {
+  --card-min: 176px;
+  gap: 12px;
+}
+
+.grid[data-size="l"] {
+  --card-min: 392px;
+  gap: 22px;
+}
+
+.grid[data-size="s"] .card {
+  padding: 5px;
+  border-radius: 18px;
+  contain-intrinsic-size: auto 170px;
+}
+
+.grid[data-size="s"] .card-thumb {
+  border-radius: 13px;
+}
+
+.grid[data-size="s"] .card-meta,
+.grid[data-size="s"] .card[data-tone] .card-meta {
+  margin: 4px 0 0;
+  padding: 5px 6px 3px;
+}
+
+.grid[data-size="s"] .card-title {
+  font-size: 13px;
+}
+
+.grid[data-size="s"] .card-when {
+  display: none;
+}
+
+.grid[data-size="s"] .card-sub {
+  margin-top: 2px;
+  font-size: 11.5px;
+}
+
+.grid[data-size="s"] .card-sub > :nth-child(n + 4) {
+  display: none;
+}
+
+.grid[data-size="s"] .chip-over {
+  height: 21px;
+  padding: 0 8px;
+  font-size: 10.5px;
+}
+
+.grid[data-size="s"] .act {
+  width: 28px;
+  height: 28px;
+}
+
+.grid[data-size="s"] .act .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.grid[data-size="s"] .card-select,
+.grid[data-size="s"] .card-fav {
+  top: 7px;
+  width: 26px;
+  height: 26px;
+}
+
+.grid[data-size="s"] .card-select {
+  left: 7px;
+}
+
+.grid[data-size="s"] .card-fav {
+  right: 7px;
+}
+
+.grid[data-size="s"] .card-type {
+  left: 7px;
+  bottom: 7px;
+}
+
+.grid[data-size="s"] .card-actions {
+  right: 7px;
+  bottom: 7px;
+  gap: 4px;
+}
+
+.grid[data-size="l"] .card-thumb {
+  aspect-ratio: 16 / 10.5;
+}
+
+.grid[data-size="l"] .card-title {
+  font-size: 15.5px;
+}
+
+/* List view: the size picks the thumbnail width */
+.grid.is-list[data-size="s"] .card-thumb {
+  width: 76px;
+}
+
+.grid.is-list[data-size="l"] .card-thumb {
+  width: 168px;
+}
+
+.grid.is-list[data-size="s"] .card {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+#size-toggle .icon {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 1180px) {
+  #size-toggle > button {
+    width: 32px;
+  }
+}
+
+/* Day headings: select a whole day in one click */
+.group-head {
+  align-items: center;
+}
+
+.group-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  margin-left: 2px;
+  padding: 0 10px 0 7px;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  opacity: 0;
+  translate: -4px 0;
+  transition:
+    opacity 140ms ease,
+    translate 180ms var(--glide),
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.group-pick .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.group-head:hover .group-pick,
+.group-pick:focus-visible,
+.is-selecting .group-pick {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.group-pick:hover {
+  color: var(--text);
+  background-color: var(--tint-well);
+}
+
+.group-head.is-all .group-pick {
+  color: var(--accent);
+}
+
+/* Selection box */
+.marquee {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  left: 0;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent),
+    0 0 0 0.5px color-mix(in srgb, #fff 40%, transparent);
+  pointer-events: none;
+  will-change: transform, width, height;
+}
+
+.is-marquee,
+.is-marquee * {
+  user-select: none !important;
+  cursor: crosshair !important;
+}
+
+.is-marquee .card {
+  transition: none;
+}
+
+.is-marquee .card:hover {
+  transform: none;
+}
+
+/* Selection bar */
+.bulk-bar {
+  gap: 4px;
+  padding: 6px;
+  border-radius: 24px;
+  box-shadow:
+    var(--reflex-panel),
+    0 22px 48px -20px rgba(15, 20, 40, 0.42),
+    0 6px 16px -8px rgba(15, 20, 40, 0.22);
+}
+
+html[data-theme="dark"] .bulk-bar {
+  box-shadow:
+    var(--reflex-panel),
+    0 22px 48px -18px rgba(0, 0, 0, 0.8),
+    0 6px 16px -8px rgba(0, 0, 0, 0.5);
+}
+
+.bulk-bar.is-open {
+  animation: bulk-in 260ms var(--glide) both;
+}
+
+@keyframes bulk-in {
+  from {
+    transform: translate(-50%, 24px) scale(0.96);
+    opacity: 0;
+  }
+}
+
+.bulk-lead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 0 4px;
+}
+
+.bulk-badge {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 78%, #fff), var(--accent));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 4px 10px -4px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+
+.bulk-badge.is-bump {
+  animation: bulk-bump 320ms var(--bounce);
+}
+
+@keyframes bulk-bump {
+  40% {
+    transform: scale(1.18);
+  }
+}
+
+.bulk-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.bulk-label b {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.bulk-label small {
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.bulk-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.bulk-group[hidden] {
+  display: none;
+}
+
+.bulk-pick {
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background-color: var(--tint-well);
+}
+
+.bulk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px 0 12px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    scale 140ms var(--release);
+}
+
+.bulk-btn .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-2);
+  transition: color 120ms ease;
+}
+
+.bulk-btn:hover {
+  background-color: var(--tint-hover);
+  box-shadow: var(--reflex-control);
+}
+
+.bulk-btn:hover .icon {
+  color: var(--text);
+}
+
+.bulk-btn:active {
+  scale: 0.95;
+}
+
+.bulk-btn[hidden] {
+  display: none;
+}
+
+.bulk-btn[disabled] {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.bulk-pick .bulk-btn {
+  height: 32px;
+  padding: 0 11px 0 9px;
+  font-size: 12.5px;
+}
+
+.bulk-pick .bulk-btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.bulk-btn.is-on .icon {
+  color: var(--c-fav);
+  fill: var(--c-fav);
+}
+
+.bulk-btn-danger,
+.bulk-btn-danger .icon {
+  color: var(--c-danger);
+}
+
+.bulk-btn-danger:hover {
+  color: var(--c-danger);
+  background-color: color-mix(in srgb, var(--c-danger) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-danger) 22%, transparent);
+}
+
+.bulk-btn-danger:hover .icon {
+  color: var(--c-danger);
+}
+
+.bulk-close {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-left: 4px;
+  border-radius: 50%;
+  color: var(--text-2);
+  background-color: var(--tint-well);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    rotate 220ms var(--bounce);
+}
+
+.bulk-close .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.bulk-close:hover {
+  color: var(--text);
+  background-color: var(--tint-hover);
+  rotate: 90deg;
+}
+
+.bulk-sep {
+  height: 26px;
+  margin: 0 6px;
+}
+
+/* Labels say it all on a wide screen; tooltips only when the bar is icons. */
+.bulk-group:not(.bulk-pick) .bulk-btn[data-tip]::after {
+  display: none;
+}
+
+@media (max-width: 1240px) {
+  .bulk-group:not(.bulk-pick) .bulk-btn > span {
+    display: none;
+  }
+  .bulk-group:not(.bulk-pick) .bulk-btn {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+  .bulk-group:not(.bulk-pick) .bulk-btn[data-tip]::after {
+    display: block;
+  }
+}
+
+@media (max-width: 760px) {
+  .bulk-pick .bulk-btn > span,
+  .bulk-label small {
+    display: none;
+  }
+}
+
+/* 19. CALM PALETTE ──────────────────────────────────────────────────────
+   Neutral glass everywhere text lives (settings, converter, card footers,
+   toasts), one accent blue for state, and colour kept to the small tiles
+   and badges that identify things. The canvas is a quiet cool field rather
+   than five colour pools. */
+
+:root,
+html[data-theme="light"] {
+  --accent: #3366f0;
+  --accent-soft: color-mix(in srgb, #3366f0 12%, transparent);
+  --c-action: #3366f0;
+  --c-bg: #f4f5f8;
+  --tint-panel: color-mix(in srgb, #fff 74%, transparent);
+  --panel-shadow:
+    0 1px 2px rgba(20, 26, 50, 0.05),
+    0 18px 40px -28px rgba(20, 26, 50, 0.3);
+  --canvas:
+    radial-gradient(70% 60% at 0% 0%, rgba(128, 156, 255, 0.2), transparent 70%),
+    radial-gradient(60% 60% at 100% 100%, rgba(150, 160, 210, 0.16), transparent 72%),
+    linear-gradient(180deg, #f6f7fa, #eff1f5);
+}
+
+html[data-theme="dark"] {
+  --accent: #7c9dff;
+  --accent-soft: color-mix(in srgb, #7c9dff 16%, transparent);
+  --c-action: #7c9dff;
+  --c-bg: #0d0e13;
+  --tint-panel: color-mix(in srgb, #1c1e27 78%, transparent);
+  --panel-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 20px 44px -26px rgba(0, 0, 0, 0.8);
+  --canvas:
+    radial-gradient(70% 60% at 0% 0%, rgba(72, 98, 210, 0.22), transparent 70%),
+    radial-gradient(60% 60% at 100% 100%, rgba(96, 90, 170, 0.12), transparent 72%),
+    linear-gradient(180deg, #0e0f14, #0a0b0f);
+}
+
+/* Sidebar, top bar and popup panels: plain glass */
+.sidebar.glass,
+.topbar.glass,
+html[data-theme="dark"] .sidebar.glass,
+.actions.glass,
+.recent.glass {
+  background-image: none;
+}
+
+/* Settings and converter panels */
+.group,
+html[data-theme="dark"] .group {
+  background-color: var(--tint-panel);
+  background-image: none;
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px var(--hairline),
+    var(--panel-shadow);
+}
+
+.group:hover,
+html[data-theme="dark"] .group:hover {
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px color-mix(in srgb, var(--c-content) 12%, transparent),
+    var(--panel-shadow);
+}
+
+.group .seg {
+  background-color: var(--tint-well);
+}
+
+.group .row + .row,
+.group .row + .shortcut-block,
+.group .shortcut-block + .row {
+  border-top-color: var(--hairline);
+}
+
+/* One accent for "on" */
+.group .switch[aria-checked="true"],
+.switch[aria-checked="true"] {
+  background: var(--accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.group .switch[aria-checked="true"]::after,
+.switch[aria-checked="true"]::after {
+  background: #fff;
+}
+
+.group .switch:hover {
+  box-shadow:
+    var(--reflex-well),
+    0 0 0 4px var(--accent-soft);
+}
+
+.group .switch[aria-checked="true"]:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 0 0 4px var(--accent-soft);
+}
+
+.group .range::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0,
+    var(--accent) var(--fill-pct, 50%),
+    color-mix(in srgb, var(--c-content) 13%, transparent) var(--fill-pct, 50%)
+  );
+}
+
+.cv-presets .chip.is-on {
+  color: #fff;
+  background: var(--accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 4px 10px -5px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+
+/* Capture cards: neutral glass, the type shown by its badge only */
+.card.glass,
+.card.glass[data-tone] {
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px var(--hairline);
+}
+
+.card.glass::before,
+html[data-theme="dark"] .card.glass::before {
+  background-color: var(--tint-panel);
+}
+
+.card.glass[data-tone]:hover,
+.card.glass:hover {
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px color-mix(in srgb, var(--c-content) 12%, transparent),
+    0 20px 40px -22px rgba(15, 20, 40, 0.4);
+}
+
+html[data-theme="dark"] .card.glass:hover {
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 20px 40px -20px rgba(0, 0, 0, 0.8);
+}
+
+.card[data-tone] .card-meta,
+html[data-theme="dark"] .card[data-tone] .card-meta {
+  background: none;
+  box-shadow: none;
+}
+
+.card.is-selected,
+.card.glass.is-selected,
+.card.glass[data-tone].is-selected {
+  box-shadow:
+    var(--reflex-panel),
+    0 0 0 2px var(--accent),
+    0 12px 30px -18px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.card.is-selected::before,
+.card.glass.is-selected::before {
+  background-color: color-mix(in srgb, var(--accent) 10%, var(--tint-panel));
+}
+
+.card.is-selected .card-select {
+  color: #fff;
+  background-color: var(--accent);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.card-title[contenteditable="true"] {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* Toasts: neutral glass, the outcome in the tile */
+.toast,
+html[data-theme="dark"] .toast {
+  background-color: var(--tint-dense);
+  background-image: none;
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px var(--hairline),
+    0 18px 38px -16px rgba(15, 20, 40, 0.4);
+}
+
+/* Batch Converter link in the sidebar */
+.tool-link {
+  background-color: var(--tint-control);
+  box-shadow: var(--reflex-control);
+}
+
+.tool-link:hover {
+  background-color: var(--tint-hover);
+  box-shadow: var(--reflex-control), var(--lift);
+}
+
+/* Converter drop zone: neutral glass, the accent only when something is
+   on its way in */
+.cv-drop {
+  --tone-a: #6f95ff;
+  --tone-b: #3366f0;
+  background-color: var(--tint-panel);
+  background-image: none;
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px var(--hairline),
+    var(--panel-shadow);
+}
+
+.cv-drop::after {
+  border-color: color-mix(in srgb, var(--c-content) 16%, transparent);
+}
+
+.cv-drop:hover::after {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.cv-drop.is-over::after {
+  border-color: var(--accent);
+}
+
+.cv-drop.is-over {
+  background-color: color-mix(in srgb, var(--accent) 7%, var(--tint-panel));
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent),
+    0 26px 50px -26px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.cv-summary {
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px var(--hairline),
+    var(--panel-shadow);
+}
+
+/* Meter and links follow the accent */
+.meter i {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent));
+}
+
+/* Lightbox: the same calm field as the canvas */
+.lightbox {
+  background: color-mix(in srgb, var(--c-bg) 86%, transparent);
+}
+
+.cv-bar.glass {
+  background-image: none;
 }

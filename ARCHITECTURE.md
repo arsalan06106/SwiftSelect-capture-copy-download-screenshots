@@ -137,8 +137,10 @@ All messages are plain objects with a `type`. Async handlers return `true` and a
 | `update-badge` | `text`, `color?` | none | Per-tab badge |
 | `gallery-save` | `dataUrl`, `meta` | `{ success, id }` | Store one capture |
 | `gallery-save-chunk` | `key`, `index`, `total`, `chunk`, `meta?` | `{ success, id? }` | Ordered chunks, `meta` on the last |
+| `gallery-peek` | `limit?` | `{ success, enabled, more, items }` | Newest live captures with small previews, for the recent-captures tray (`src/peekData.js`) |
+| `gallery-peek-chunk` | `id`, `index` | `{ success, mime, size, total, index, data }` | One base64 slice of a capture's file; the tray reassembles it into a `File` |
 | `run-capture` | `mode`, `tabId?` | `{ success, tabId }` or `error: "no-target"` | From popup, gallery, settings |
-| `open-gallery` | none | `{ success }` | Focus or open the dashboard |
+| `open-gallery` | `id?` | `{ success }` | Focus or open the dashboard, on that capture's preview when `id` is given |
 | `open-settings` | `hash?` | `{ success }` | Focus or open the Gallery on `#settings` (plus `/section`) |
 | `open-annotate` | `id` | `{ success }` | Open the standalone editor |
 | `restore-tab-action` | none | none | Popup closed, restore per-tab state |

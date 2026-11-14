@@ -19,7 +19,7 @@
 import { getSmartFilename, getOutputSettings, getOutputSettingsSync, cropSnapshotToMedia } from "./utils.js";
 import { setLastBlob, downloadBlob } from "./download.js";
 import { saveToGallery } from "./deliver.js";
-import { loadStyles, getCachedCssText, attachTooltip, hideCustomTooltip, trackSheen } from "../ui.js";
+import { loadStyles, getCachedCssText, attachTooltip, hideCustomTooltip, trackSheen, setTooltipGuard } from "../ui.js";
 
 let _annotateHost = null;
 let _toolbarEl = null;
@@ -462,6 +462,9 @@ export async function openAnnotationEditor(source, options = {}) {
   _onClose = typeof options.onClose === "function" ? options.onClose : null;
   _sourceMeta = { title: options.title, url: options.url };
 
+  // The editor takes the whole screen: put the recent-captures tray away.
+  window.SwiftSelect?.peek?.closePeek?.({ immediate: true });
+
   // Immediately deactivate selection mode & drag listeners on the webpage
   window.SwiftSelect?.events?.cleanup?.();
   window.SwiftSelect?.ui?.setSelecting?.(false);
@@ -536,7 +539,7 @@ export async function openAnnotationEditor(source, options = {}) {
 
   // Mathematically crop out native browser scrollbar if present in full-screen capture.
   // Only meaningful for a capture of this very tab, never for a gallery image.
-  if (img && !_standalone) {
+  if (img && !_standalone && !options.fromGallery) {
     const dpr = window.devicePixelRatio || 1;
     const docW = Math.round(document.documentElement.clientWidth * dpr);
     const docH = Math.round(document.documentElement.clientHeight * dpr);
@@ -629,6 +632,7 @@ function selectTool(toolId) {
   if (_cropBtn) {
     _cropBtn.classList.toggle("active", _currentTool === "crop");
   }
+  _annotateHost?.classList.toggle("qs-cropping", _currentTool === "crop");
   if (_annotateCanvas) {
     _annotateCanvas.style.cursor = getToolCursor(_currentTool);
   }
@@ -663,6 +667,93 @@ function flashDone(btn, ok) {
   }, 1400);
 }
 
+// ─── Stage: the gallery-preview look ─────────────────────────────────
+
+let _closeArmed = false;
+let _closeArmTimer = 0;
+let _savedLen = 0;
+let _savedTop = null;
+let _infoEl = null;
+
+/** Frost and tint the page behind the editor, light or dark like the toolbar. */
+function applyStageTone(dark) {
+  if (!_annotateHost) return;
+  _annotateHost.dataset.tone = dark ? "dark" : "light";
+  const tint = dark ? "rgba(11, 12, 17, 0.82)" : "rgba(244, 245, 249, 0.8)";
+  _annotateHost.style.setProperty("background", tint, "important");
+  _annotateHost.style.setProperty("backdrop-filter", "blur(28px) saturate(140%)", "important");
+  _annotateHost.style.setProperty("-webkit-backdrop-filter", "blur(28px) saturate(140%)", "important");
+  _annotateHost.style.setProperty("color-scheme", dark ? "dark" : "light");
+}
+
+/** The current marks count as saved (just opened, copied, downloaded or stored). */
+function _markSaved() {
+  _savedLen = _undoStack.length;
+  _savedTop = _undoStack[_undoStack.length - 1] || null;
+}
+
+function hasUnsavedMarks() {
+  return _undoStack.length !== _savedLen || (_undoStack[_undoStack.length - 1] || null) !== _savedTop;
+}
+
+/**
+ * Close on purpose, not by accident: with unsaved marks the first Esc,
+ * backdrop click or close button only warns, the second one discards.
+ */
+function requestClose() {
+  if (!hasUnsavedMarks() || _closeArmed) {
+    clearTimeout(_closeArmTimer);
+    _closeArmed = false;
+    closeAnnotationEditor();
+    return;
+  }
+  _closeArmed = true;
+  clearTimeout(_closeArmTimer);
+  _closeArmTimer = setTimeout(() => {
+    _closeArmed = false;
+  }, 2600);
+  hideCustomTooltip();
+  window.SwiftSelect?.ui?.setStatus?.("Unsaved marks", 2600, "info", false, {
+    showAnnotate: false,
+    detail: "Press again to close without saving",
+  });
+}
+
+/** Caption under the image: where it came from and how big it is. */
+function updateStageInfo() {
+  if (!_infoEl || !_annotateCanvas) return;
+  const dims = `${_annotateCanvas.width.toLocaleString()} × ${_annotateCanvas.height.toLocaleString()}`;
+  const dimEl = _infoEl.querySelector(".qs-stage-dims");
+  if (dimEl && dimEl.textContent !== dims) dimEl.textContent = dims;
+}
+
+function buildStageInfo() {
+  const info = document.createElement("div");
+  info.className = "qs-stage-info";
+  const title = _sourceMeta.title || (_standalone ? "" : document.title) || "Screenshot";
+  let host = "";
+  try {
+    host = new URL(_sourceMeta.url || (_standalone ? "" : location.href)).hostname;
+  } catch {}
+  const b = document.createElement("b");
+  b.className = "qs-stage-title";
+  b.textContent = title;
+  const meta = document.createElement("span");
+  meta.className = "qs-stage-meta";
+  const dims = document.createElement("span");
+  dims.className = "qs-stage-dims";
+  meta.appendChild(dims);
+  if (host) {
+    const dot = document.createElement("i");
+    const h = document.createElement("span");
+    h.textContent = host;
+    meta.append(dot, h);
+  }
+  info.append(b, meta);
+  info.addEventListener("pointerdown", (e) => e.stopPropagation());
+  return info;
+}
+
 function buildAnnotationUI() {
   if (_annotateHost) {
     _annotateHost.remove();
@@ -672,6 +763,9 @@ function buildAnnotationUI() {
   _annotateHost = document.createElement("div");
   _annotateHost.id = "swiftselect-annotate-root";
   _annotateHost.className = "qs-annotate-root";
+  // The stage is the gallery's preview: the page behind is frosted over and
+  // tinted to the theme, so the capture is the only thing in focus. The tint
+  // follows the toolbar (set once the toolbar's theme is known, below).
   _annotateHost.style.cssText = `
     all: initial;
     position: fixed;
@@ -681,12 +775,13 @@ function buildAnnotationUI() {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: ${_standalone ? "transparent" : "rgba(0, 0, 0, 0.14)"};
     user-select: none;
     font-family: 'SS Selawik', 'Selawik', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     opacity: 0;
-    transition: opacity 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   `;
+  _closeArmed = false;
+  _markSaved();
 
   // Inject styles.css text directly into _annotateHost (bypasses CSP on sites like Google Gemini)
   const styleTag = document.createElement("style");
@@ -722,13 +817,94 @@ function buildAnnotationUI() {
     }
     @keyframes qsCanvasIn {
       0% {
-        transform: scale(0.97);
+        transform: scale(0.96);
         opacity: 0;
       }
       100% {
         transform: scale(1);
         opacity: 1;
       }
+    }
+    @keyframes qsStageInfoIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+    #swiftselect-annotate-root .qs-stage-info {
+      all: initial;
+      position: fixed;
+      left: 22px;
+      bottom: 18px;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-width: min(30vw, 420px);
+      padding: 9px 16px 10px;
+      border-radius: 16px;
+      box-sizing: border-box;
+      font-family: 'SS Selawik', 'Selawik', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      color: #1b1c2a;
+      background: rgba(255, 255, 255, 0.62);
+      box-shadow: inset 0 0 0 1px rgba(20, 24, 40, 0.07), 0 6px 18px -10px rgba(20, 24, 40, 0.3);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      animation: qsStageInfoIn 260ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+      transition: opacity 160ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: auto;
+      user-select: none;
+    }
+    #swiftselect-annotate-root[data-tone="dark"] .qs-stage-info {
+      color: #eef0f6;
+      background: rgba(30, 32, 42, 0.62);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 18px -10px rgba(0, 0, 0, 0.6);
+    }
+    #swiftselect-annotate-root .qs-stage-title {
+      all: unset;
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.35;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #swiftselect-annotate-root .qs-stage-meta {
+      all: unset;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      font-size: 11.5px;
+      line-height: 1.35;
+      opacity: 0.62;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    #swiftselect-annotate-root .qs-stage-meta span {
+      all: unset;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #swiftselect-annotate-root .qs-stage-meta i {
+      all: unset;
+      flex-shrink: 0;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    #swiftselect-annotate-root.qs-cropping .qs-stage-info,
+    #swiftselect-annotate-root.qs-closing .qs-stage-info {
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+    }
+    @media (max-width: 960px) {
+      #swiftselect-annotate-root .qs-stage-info { display: none; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      #swiftselect-annotate-root .qs-stage-info { background: #fff; }
+      #swiftselect-annotate-root[data-tone="dark"] .qs-stage-info { background: #1e2029; }
     }
   `;
   _annotateHost.appendChild(animStyles);
@@ -741,9 +917,10 @@ function buildAnnotationUI() {
 
   // Apply active theme variables (Glass / Dark Glass)
   const uiTheme = window.SwiftSelect?.theme;
-  if (uiTheme?.applyElementTheme) {
-    uiTheme.applyElementTheme(toolbar, "glass");
-  }
+  const stageDark = uiTheme?.applyElementTheme
+    ? !!uiTheme.applyElementTheme(toolbar, uiTheme.currentUserTheme || "glass")
+    : true;
+  applyStageTone(stageDark);
 
   // Tools configuration
   const tools = [
@@ -1250,6 +1427,7 @@ function buildAnnotationUI() {
 
   function setPopoverOpen(open) {
     if (open) {
+      hideCustomTooltip();
       popover.className = "qs-stroke-popover";
       toolbar.classList.forEach((c) => {
         if (c.startsWith("qs-theme")) popover.classList.add(c);
@@ -1284,6 +1462,15 @@ function buildAnnotationUI() {
     if (!path.includes(popover) && !path.includes(toolbar)) setPopoverOpen(false);
   };
   window.addEventListener("pointerdown", _closePopoverHandler, true);
+
+  // Toolbar tooltips open below the bar, which is exactly where the style
+  // panel sits. While the panel is open, or a stroke is being drawn, they
+  // stay hidden instead of stacking on top of it.
+  setTooltipGuard((btn) => {
+    if (_isDrawing) return false;
+    if (popover.style.display !== "none" && (toolbar.contains(btn) || popover.contains(btn))) return false;
+    return true;
+  });
 
   // Reflect the selected shape's own style in the toolbar.
   _syncStyleUI = () => updateStrokeUI();
@@ -1405,7 +1592,7 @@ function buildAnnotationUI() {
   closeBtn.onclick = (e) => {
     e?.stopPropagation?.();
     hideCustomTooltip();
-    closeAnnotationEditor();
+    requestClose();
   };
   actionsGroup.appendChild(closeBtn);
 
@@ -1424,29 +1611,33 @@ function buildAnnotationUI() {
     align-items: center;
     justify-content: center;
     overflow: auto;
-    padding: 70px 20px 24px 20px;
+    padding: 88px 56px 64px;
     box-sizing: border-box;
   `;
 
+  // Framed like the gallery preview: rounded, a hairline edge and one soft
+  // shadow, sized to leave room for the toolbar above and the caption below.
+  const stageDarkNow = _annotateHost.dataset.tone === "dark";
   _annotateCanvas = document.createElement("canvas");
   _annotateCanvas.style.cssText = `
     box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.28),
-      0 0 0 3.5px #ffffff,
-      0 0 0 4.5px rgba(0, 0, 0, 0.35),
-      0 16px 48px -6px rgba(0, 0, 0, 0.75),
-      0 32px 80px -10px rgba(0, 0, 0, 0.85);
+      0 0 0 1px ${stageDarkNow ? "rgba(255, 255, 255, 0.1)" : "rgba(20, 24, 40, 0.1)"},
+      0 24px 60px -20px rgba(0, 0, 0, ${stageDarkNow ? 0.7 : 0.38}),
+      0 8px 20px -10px rgba(0, 0, 0, ${stageDarkNow ? 0.5 : 0.18});
     border-radius: 12px;
     overflow: hidden;
     cursor: ${getToolCursor(_currentTool)};
-    max-width: 95vw;
-    max-height: 85vh;
+    max-width: calc(100vw - 112px);
+    max-height: calc(100vh - 152px);
     object-fit: contain;
-    animation: qsCanvasIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation: qsCanvasIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   `;
 
   viewport.appendChild(_annotateCanvas);
   _annotateHost.appendChild(viewport);
+
+  _infoEl = buildStageInfo();
+  _annotateHost.appendChild(_infoEl);
 
   // Close annotation editor when clicking outside the canvas on the backdrop
   const handleBackdropClick = (e) => {
@@ -1465,13 +1656,15 @@ function buildAnnotationUI() {
       }
       e.preventDefault();
       e.stopPropagation();
-      if (_standalone) {
-        // The editor owns this tab: an empty click only deselects.
+      if (_standalone || _selectedShapeIndex !== -1) {
+        // The editor owns this tab, or a shape is in hand: an empty click
+        // only puts the selection down.
         _selectedShapeIndex = -1;
         renderCanvas();
+        _syncStyleUI();
         return;
       }
-      closeAnnotationEditor();
+      requestClose();
     }
   };
 
@@ -1481,6 +1674,7 @@ function buildAnnotationUI() {
   // Attach Pointer Listeners to Canvas & Window
   _annotateCanvas.addEventListener("pointerdown", (e) => {
     e.stopPropagation();
+    hideCustomTooltip();
     onCanvasPointerDown(e);
   });
   _annotateCanvas.addEventListener("dblclick", (e) => {
@@ -1897,6 +2091,7 @@ function renderCanvas() {
   if (_activeShape) {
     drawShape(_annotateCtx, _activeShape, false);
   }
+  updateStageInfo();
 
   if (_hoverShapeIndex !== -1 && _shapes[_hoverShapeIndex] && !_isDrawing) {
     drawHoverOutline(_annotateCtx, _shapes[_hoverShapeIndex], w);
@@ -3315,6 +3510,7 @@ async function handleCopyAnnotated() {
 
   try {
     await navigator.clipboard.write([new ClipboardItem({ "image/png": out.blob })]);
+    _markSaved();
     notify("Copied to clipboard");
     return true;
   } catch {
@@ -3333,6 +3529,7 @@ async function handleCopyAnnotated() {
       };
       reader.readAsDataURL(out.blob);
     });
+    if (ok) _markSaved();
     notify(ok ? "Copied to clipboard" : "Clipboard blocked", ok ? "success" : "error");
     return ok;
   }
@@ -3345,6 +3542,7 @@ async function handleSaveAnnotated() {
 
   setLastBlob(out.blob, ext);
   const ok = await downloadBlob(out.blob, getSmartFilename("annotated", ext));
+  if (ok) _markSaved();
   notify(ok ? "Saved to downloads" : "Download failed", ok ? "saved" : "error");
   return ok;
 }
@@ -3360,6 +3558,7 @@ async function handleSaveToGallery() {
     { type: "annotated", width: out.width, height: out.height, title: _sourceMeta.title, url: _sourceMeta.url },
     { force: true },
   );
+  if (ok) _markSaved();
   notify(ok ? "Saved to Gallery" : "Gallery save failed", ok ? "saved" : "error");
   return ok;
 }
@@ -3378,7 +3577,14 @@ function onAnnotateKeyDown(e) {
       selectTool("select");
       return;
     }
-    closeAnnotationEditor();
+    if (_selectedShapeIndex !== -1) {
+      // First Esc puts the shape down, the next one leaves.
+      _selectedShapeIndex = -1;
+      renderCanvas();
+      _syncStyleUI();
+      return;
+    }
+    requestClose();
     return;
   }
 
@@ -3488,6 +3694,7 @@ function onAnnotateKeyDown(e) {
 export function closeAnnotationEditor() {
   if (!_annotateHost || _annotateHost.classList.contains("qs-closing")) return;
   _annotateHost.classList.add("qs-closing");
+  hideCustomTooltip();
 
   if (_textInputOverlay) {
     _textInputOverlay.remove();
@@ -3527,6 +3734,10 @@ export function closeAnnotationEditor() {
       _annotateHost.parentNode.removeChild(_annotateHost);
     }
     _annotateHost = null;
+    setTooltipGuard(null);
+    _infoEl = null;
+    _closeArmed = false;
+    clearTimeout(_closeArmTimer);
     _toolbarEl = null;
     _annotateCanvas = null;
     _annotateCtx = null;

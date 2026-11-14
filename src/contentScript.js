@@ -7,6 +7,7 @@ import * as events from "./events.js";
 import * as region from "./capture/region.js";
 import * as fullpage from "./capture/fullpage.js";
 import { openAnnotationEditor } from "./capture/annotate.js";
+import * as peek from "./peek.js";
 import { getOutputSettings, getOutputSettingsSync } from "./capture/utils.js";
 
 /**
@@ -30,6 +31,7 @@ if (typeof window !== "undefined" && window === window.top && !window.__swiftSel
   window.SwiftSelect.ui = ui;
   window.SwiftSelect.events = events;
   window.SwiftSelect.capture = { ...region, ...fullpage };
+  window.SwiftSelect.peek = peek;
   theme.init();
 
   function getModules() {

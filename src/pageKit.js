@@ -46,6 +46,10 @@ const ICONS = {
   drag: '<g class="p-hand"><path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10V5a1.5 1.5 0 0 1 3 0v5"/><path d="M14 10.5V7a1.5 1.5 0 0 1 3 0v6.5a6.5 6.5 0 0 1-6.5 6.5h-.6a5.5 5.5 0 0 1-4.4-2.2L4.2 15a1.6 1.6 0 0 1 2.5-2L8 14.5"/></g>',
   info: '<circle cx="12" cy="12" r="8.5"/><path class="p-dot" d="M12 11v5M12 8h.01"/>',
   convert: '<path class="p-right" d="M4 8h13M13.5 4.5 17 8l-3.5 3.5"/><path class="p-left" d="M20 16H7M10.5 12.5 7 16l3.5 3.5"/>',
+  "size-s": '<g class="p-q1"><rect x="3.5" y="3.5" width="4.5" height="4.5" rx="1.2"/><rect x="9.75" y="3.5" width="4.5" height="4.5" rx="1.2"/><rect x="16" y="3.5" width="4.5" height="4.5" rx="1.2"/></g><g class="p-q2"><rect x="3.5" y="9.75" width="4.5" height="4.5" rx="1.2"/><rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1.2"/><rect x="16" y="9.75" width="4.5" height="4.5" rx="1.2"/></g><g class="p-q3"><rect x="3.5" y="16" width="4.5" height="4.5" rx="1.2"/><rect x="9.75" y="16" width="4.5" height="4.5" rx="1.2"/><rect x="16" y="16" width="4.5" height="4.5" rx="1.2"/></g>',
+  "size-m": '<rect class="p-q1" x="4" y="4" width="6.5" height="6.5" rx="1.75"/><rect class="p-q2" x="13.5" y="4" width="6.5" height="6.5" rx="1.75"/><rect class="p-q3" x="4" y="13.5" width="6.5" height="6.5" rx="1.75"/><rect class="p-q4" x="13.5" y="13.5" width="6.5" height="6.5" rx="1.75"/>',
+  "size-l": '<rect class="p-q1" x="4" y="4" width="16" height="16" rx="3.5"/>',
+  invert: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path class="p-half" d="M12 3.5v17"/><path d="M12 3.5h4.5a4 4 0 0 1 4 4v9a4 4 0 0 1-4 4H12z" fill="currentColor" stroke="none" opacity=".35"/>',
   plus: '<g class="p-x"><path d="M12 5.5v13M5.5 12h13"/></g>',
   sparkle: '<path class="p-star" d="M12 3.5c.6 3.9 2.6 5.9 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.6 5.9-2.6 6.5-6.5z"/>',
 };

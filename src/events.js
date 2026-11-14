@@ -84,7 +84,8 @@ export function isEventOnUi(e) {
         el.className.includes("qs-countdown") ||
         el.className.includes("qs-save-btn") ||
         el.className.includes("qs-theme-toggle") ||
-        el.className.includes("qs-annotate")
+        el.className.includes("qs-annotate") ||
+        el.className.includes("qs-peek")
       ) {
         return true;
       }
@@ -97,7 +98,8 @@ export function isEventOnUi(e) {
         el.classList.contains("qs-modal") ||
         el.classList.contains("qs-key-pill") ||
         el.classList.contains("qs-save-btn") ||
-        el.classList.contains("qs-annotate-root")
+        el.classList.contains("qs-annotate-root") ||
+        el.classList.contains("qs-peek")
       ) {
         return true;
       }
@@ -443,6 +445,13 @@ export function onPointerUp(e) {
 }
 
 export function onKeyDown(e) {
+  if (e.key === "Escape" && window.SwiftSelect?.peek?.isPeekOpen?.()) {
+    // Esc puts the recent-captures tray away first; the toolbar stays.
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    window.SwiftSelect.peek.closePeek();
+    return;
+  }
   if (e.key === "Escape") {
     e.preventDefault();
     window.SwiftSelect.ui.setStatus("Canceled", 900);

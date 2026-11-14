@@ -5,7 +5,9 @@
  * Trash     Soft delete with restore; purged after the configured days.
  * Gestures  Drag cards onto the dock or sidebar to favorite or trash them,
  *           or out of the browser to save the file. Ctrl/⌘-click and
- *           Shift-click select; the bulk bar acts on the selection.
+ *           Shift-click select, dragging across empty space draws a
+ *           selection box; the bulk bar acts on the selection.
+ * Sizes     Small, medium and large thumbnails (−/+ keys, Ctrl+wheel).
  */
 import {
   addCapture,
@@ -76,6 +78,7 @@ const state = {
   filter: "all",
   query: "",
   view: "grid",
+  size: "m",
   settings: null,
   lightboxId: null,
   selected: new Set(),
@@ -91,6 +94,9 @@ const lightbox = $("lightbox");
 
 let syncNavPill = () => {};
 let syncViewPill = () => {};
+let syncSizePill = () => {};
+
+const SIZES = ["s", "m", "l"];
 
 // ─── Data ────────────────────────────────────────────────────────────
 
@@ -203,6 +209,7 @@ function buildCard(r, index) {
   const card = document.createElement("article");
   card.className = "card glass";
   card.dataset.id = r.id;
+  if (!trash) card.dataset.bucket = bucketOf(r.createdAt).key;
   card.style.setProperty("--i", index);
   card.draggable = !trash;
   if (r.favorite) card.classList.add("is-favorite");
@@ -439,15 +446,39 @@ function renderEmpty(counts) {
 
 function renderBulkBar() {
   const n = state.selected.size;
-  $("bulk-bar").classList.toggle("is-open", n > 0);
+  const bar = $("bulk-bar");
+  const wasOpen = bar.classList.contains("is-open");
+  bar.classList.toggle("is-open", n > 0);
   grid.classList.toggle("is-selecting", n > 0);
-  $("bulk-count").textContent = `${formatNumber(n)} selected`;
+  if (!n) return;
+
+  const shown = visibleRecords().length;
+  const badge = $("bulk-count");
+  const next = formatNumber(n);
+  if (badge.textContent !== next) {
+    badge.textContent = next;
+    if (wasOpen) {
+      badge.classList.remove("is-bump");
+      void badge.offsetWidth;
+      badge.classList.add("is-bump");
+    }
+  }
+  $("bulk-noun").textContent = "selected";
+  $("bulk-of").textContent = shown ? `of ${formatNumber(shown)}` : "";
   $("bulk-live").hidden = inTrashView();
   $("bulk-trash").hidden = !inTrashView();
-  const allFav = n > 0 && [...state.selected].every((id) => byId(id)?.favorite);
-  const favBtn = document.querySelector('[data-bulk="favorite"]');
-  favBtn.lastChild.textContent = allFav ? "Unfavorite" : "Favorite";
+
+  const allShown = shown > 0 && n >= shown && visibleRecords().every((r) => state.selected.has(r.id));
+  bar.querySelector('[data-bulk="all"]').disabled = allShown;
+  // The clipboard holds one image at a time.
+  bar.querySelector('[data-bulk="copy"]').hidden = n !== 1;
+
+  const allFav = [...state.selected].every((id) => byId(id)?.favorite);
+  const favBtn = bar.querySelector('[data-bulk="favorite"]');
+  favBtn.querySelector(".bulk-fav-label").textContent = allFav ? "Unfavorite" : "Favorite";
+  favBtn.dataset.tip = allFav ? "Remove from Favorites" : "Add to Favorites";
   favBtn.dataset.mode = allFav ? "off" : "on";
+  favBtn.classList.toggle("is-on", allFav);
 }
 
 function render({ animate = false } = {}) {
@@ -478,6 +509,14 @@ function render({ animate = false } = {}) {
         const c = document.createElement("span");
         c.textContent = formatNumber(n);
         head.appendChild(c);
+        head.dataset.bucket = b.key;
+        const pick = document.createElement("button");
+        pick.type = "button";
+        pick.className = "group-pick";
+        pick.dataset.bucket = b.key;
+        pick.innerHTML = `${icon("select")}<span>Select</span>`;
+        pick.setAttribute("aria-label", `Select everything from ${b.label}`);
+        head.appendChild(pick);
         frag.appendChild(head);
       }
     }
@@ -488,11 +527,13 @@ function render({ animate = false } = {}) {
   grid.classList.toggle("is-settled", !animate);
   grid.replaceChildren(frag);
   grid.classList.toggle("is-list", state.view === "list");
+  grid.dataset.size = state.size;
   grid.hidden = shown.length === 0;
 
   $("empty").hidden = shown.length !== 0;
   if (!shown.length) renderEmpty(counts);
   renderBulkBar();
+  syncGroupPicks();
   if (lightbox.classList.contains("is-open")) syncLightbox();
 }
 
@@ -664,6 +705,7 @@ function setSelected(ids, on) {
     card.querySelector(".card-select")?.setAttribute("aria-pressed", String(on));
   });
   renderBulkBar();
+  syncGroupPicks();
 }
 
 function toggleSelect(id, { range = false } = {}) {
@@ -682,6 +724,167 @@ function clearSelection() {
   if (!state.selected.size) return;
   setSelected([...state.selected], false);
   state.anchorId = null;
+}
+
+function invertSelection() {
+  const shown = visibleRecords().map((r) => r.id);
+  const on = shown.filter((id) => !state.selected.has(id));
+  const off = shown.filter((id) => state.selected.has(id));
+  off.forEach((id) => state.selected.delete(id));
+  on.forEach((id) => state.selected.add(id));
+  cardsFor(shown).forEach((card) => {
+    const sel = state.selected.has(Number(card.dataset.id));
+    card.classList.toggle("is-selected", sel);
+    card.querySelector(".card-select")?.setAttribute("aria-pressed", String(sel));
+  });
+  renderBulkBar();
+  syncGroupPicks();
+}
+
+/** Reflect the selection on each card's checkbox and on the day headings. */
+function syncGroupPicks() {
+  grid.querySelectorAll(".group-head[data-bucket]").forEach((head) => {
+    const cards = grid.querySelectorAll(`.card[data-bucket="${head.dataset.bucket}"]`);
+    const all = cards.length > 0 && [...cards].every((c) => c.classList.contains("is-selected"));
+    head.classList.toggle("is-all", all);
+    const label = head.querySelector(".group-pick span");
+    if (label) label.textContent = all ? "Deselect" : "Select";
+  });
+}
+
+// ─── Marquee selection ───────────────────────────────────────────────
+// Press on empty space and drag: every card the box touches is selected.
+// Shift or Ctrl/⌘ adds to what is already selected; Ctrl/⌘ toggles.
+// The view scrolls on its own near the top and bottom edges.
+
+function wireMarquee() {
+  const canvas = $("canvas");
+  const box = document.createElement("div");
+  box.className = "marquee";
+  box.hidden = true;
+  canvas.appendChild(box);
+
+  let m = null;
+
+  const isBlank = (target) =>
+    !target.closest(".card, button, a, input, textarea, select, label, [contenteditable], .canvas-head .btn, .empty");
+
+  const toCanvas = (x, y) => {
+    const r = canvas.getBoundingClientRect();
+    return { x: x - r.left + canvas.scrollLeft, y: y - r.top + canvas.scrollTop };
+  };
+
+  function update() {
+    if (!m) return;
+    const p = toCanvas(m.cx, m.cy);
+    const left = Math.min(m.sx, p.x);
+    const top = Math.min(m.sy, p.y);
+    const w = Math.abs(p.x - m.sx);
+    const h = Math.abs(p.y - m.sy);
+    box.style.transform = `translate(${left}px, ${top}px)`;
+    box.style.width = `${w}px`;
+    box.style.height = `${h}px`;
+
+    const cr = canvas.getBoundingClientRect();
+    const sel = { l: left + cr.left - canvas.scrollLeft, t: top + cr.top - canvas.scrollTop };
+    sel.r = sel.l + w;
+    sel.b = sel.t + h;
+    const next = new Set(m.base);
+    for (const card of m.cards) {
+      const r = card.getBoundingClientRect();
+      const hit = r.left < sel.r && r.right > sel.l && r.top < sel.b && r.bottom > sel.t;
+      if (!hit) continue;
+      const id = Number(card.dataset.id);
+      if (m.toggle && m.base.has(id)) next.delete(id);
+      else next.add(id);
+    }
+    // Only touch cards whose state changes.
+    for (const card of m.cards) {
+      const id = Number(card.dataset.id);
+      const on = next.has(id);
+      if (card.classList.contains("is-selected") !== on) {
+        card.classList.toggle("is-selected", on);
+        card.querySelector(".card-select")?.setAttribute("aria-pressed", String(on));
+      }
+    }
+    state.selected = next;
+    renderBulkBar();
+  }
+
+  function tick() {
+    if (!m) return;
+    const r = canvas.getBoundingClientRect();
+    const edge = 56;
+    let dy = 0;
+    if (m.cy < r.top + edge) dy = -Math.ceil(((r.top + edge - m.cy) / edge) * 18);
+    else if (m.cy > r.bottom - edge) dy = Math.ceil(((m.cy - (r.bottom - edge)) / edge) * 18);
+    if (dy) {
+      canvas.scrollTop += dy;
+      update();
+    }
+    m.raf = requestAnimationFrame(tick);
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || e.pointerType === "touch" || state.filter === "settings") return;
+    if (lightbox.classList.contains("is-open") || !isBlank(e.target)) return;
+    // The scrollbar is not empty space.
+    if (e.clientX - canvas.getBoundingClientRect().left > canvas.clientLeft + canvas.clientWidth) return;
+    const p = toCanvas(e.clientX, e.clientY);
+    const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+    m = {
+      id: e.pointerId,
+      sx: p.x,
+      sy: p.y,
+      cx: e.clientX,
+      cy: e.clientY,
+      active: false,
+      toggle: e.ctrlKey || e.metaKey,
+      base: additive ? new Set(state.selected) : new Set(),
+      cards: [],
+      raf: 0,
+    };
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    if (!m || e.pointerId !== m.id) return;
+    m.cx = e.clientX;
+    m.cy = e.clientY;
+    if (!m.active) {
+      const p = toCanvas(e.clientX, e.clientY);
+      if (Math.hypot(p.x - m.sx, p.y - m.sy) < 6) return;
+      m.active = true;
+      m.cards = [...grid.querySelectorAll(".card")];
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {}
+      document.body.classList.add("is-marquee");
+      box.hidden = false;
+      getSelection()?.removeAllRanges();
+      m.raf = requestAnimationFrame(tick);
+    }
+    e.preventDefault();
+    update();
+  });
+
+  const end = (e) => {
+    if (!m || (e && e.pointerId !== m.id)) return;
+    const wasActive = m.active;
+    cancelAnimationFrame(m.raf);
+    const base = m.base;
+    m = null;
+    box.hidden = true;
+    document.body.classList.remove("is-marquee");
+    if (wasActive) {
+      syncGroupPicks();
+      return;
+    }
+    // A plain click on empty space puts the selection down.
+    if (!base.size && e?.type === "pointerup") clearSelection();
+  };
+  canvas.addEventListener("pointerup", end);
+  canvas.addEventListener("pointercancel", end);
+  canvas.addEventListener("lostpointercapture", (e) => m?.active && end(e));
 }
 
 // ─── Rename ──────────────────────────────────────────────────────────
@@ -921,6 +1124,16 @@ function hideSettings() {
 /** #settings, #settings/shortcuts, #trash, #favorites … */
 function routeFromHash() {
   const [view, section] = location.hash.replace(/^#/, "").split("/");
+  if (view === "capture") {
+    // #capture/<id>: opened from a web page's recent-captures tray.
+    if (state.filter !== "all") setFilter("all", { fromHash: true });
+    const r = byId(section);
+    if (r && !r.deletedAt) openLightbox(r);
+    try {
+      history.replaceState(null, "", location.pathname);
+    } catch {}
+    return;
+  }
   const known = [...document.querySelectorAll(".nav-item")].map((n) => n.dataset.filter);
   if (view && known.includes(view)) setFilter(view, { section, fromHash: true });
 }
@@ -965,12 +1178,49 @@ function setView(view) {
   render({ animate: true });
 }
 
+function setSize(size, { announce = false } = {}) {
+  const next = SIZES.includes(size) ? size : "m";
+  if (next === state.size && grid.dataset.size === next) return;
+  // Keep the card under the middle of the view in place while the grid reflows.
+  const canvas = $("canvas");
+  const mid = canvas.getBoundingClientRect();
+  const anchor = document.elementFromPoint(mid.left + mid.width / 2, mid.top + mid.height / 2)?.closest?.(".card");
+  const before = anchor?.getBoundingClientRect().top;
+
+  state.size = next;
+  grid.dataset.size = next;
+  document.querySelectorAll("#size-toggle button").forEach((b) => {
+    b.setAttribute("aria-checked", String(b.dataset.size === next));
+  });
+  syncSizePill();
+  try {
+    localStorage.setItem("ss-gallery-size", next);
+  } catch {}
+  if (anchor && before !== undefined) {
+    canvas.scrollTop += anchor.getBoundingClientRect().top - before;
+  }
+  if (announce) toast({ s: "Small thumbnails", m: "Medium thumbnails", l: "Large thumbnails" }[next], { duration: 1100 });
+}
+
+function stepSize(delta) {
+  const i = SIZES.indexOf(state.size);
+  const next = SIZES[Math.max(0, Math.min(SIZES.length - 1, i + delta))];
+  if (next !== state.size) setSize(next, { announce: true });
+}
+
 function selectedRecords() {
   return [...state.selected].map(byId).filter(Boolean);
 }
 
 function wireGrid() {
   grid.addEventListener("click", (e) => {
+    const pick = e.target.closest(".group-pick");
+    if (pick) {
+      const ids = [...grid.querySelectorAll(`.card[data-bucket="${pick.dataset.bucket}"]`)].map((c) => Number(c.dataset.id));
+      const allOn = ids.length && ids.every((id) => state.selected.has(id));
+      setSelected(ids, !allOn);
+      return;
+    }
     const target = e.target.closest("[data-action]");
     const card = e.target.closest(".card");
     const r = byId(card?.dataset.id);
@@ -1031,6 +1281,12 @@ function wireHeaderAndBulk() {
     const ids = [...state.selected];
     const kind = b.dataset.bulk;
     if (kind === "clear") clearSelection();
+    else if (kind === "all") setSelected(visibleRecords().map((r) => r.id), true);
+    else if (kind === "invert") invertSelection();
+    else if (kind === "copy") {
+      const r = byId(ids[0]);
+      if (r) copyRecord(r, cardsFor([r.id])[0] || null);
+    }
     else if (kind === "favorite") toggleFavorite(ids, b.dataset.mode !== "off");
     else if (kind === "download") downloadRecords(selectedRecords());
     else if (kind === "convert") location.href = `convert.html?ids=${ids.join(",")}`;
@@ -1099,9 +1355,17 @@ function wireKeyboard() {
     if (state.filter === "settings") return;
 
     if (lightbox.classList.contains("is-open")) {
+      const r = currentLightboxRecord();
       if (e.key === "Escape") closeLightbox();
       else if (e.key === "ArrowRight") stepLightbox(1);
       else if (e.key === "ArrowLeft") stepLightbox(-1);
+      else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c" && r && !getSelection()?.toString()) {
+        e.preventDefault();
+        copyRecord(r, null);
+      } else if ((e.key === "Delete" || e.key === "Backspace") && r && !r.deletedAt) {
+        e.preventDefault();
+        $("lb-trash").click();
+      }
       return;
     }
 
@@ -1122,6 +1386,19 @@ function wireKeyboard() {
     }
     if (e.key === "Escape") {
       clearSelection();
+    } else if (!e.metaKey && !e.ctrlKey && !e.altKey && (e.key === "-" || e.key === "_")) {
+      e.preventDefault();
+      stepSize(-1);
+    } else if (!e.metaKey && !e.ctrlKey && !e.altKey && (e.key === "=" || e.key === "+")) {
+      e.preventDefault();
+      stepSize(1);
+    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c" && state.selected.size === 1 && !getSelection()?.toString()) {
+      e.preventDefault();
+      const r = byId([...state.selected][0]);
+      if (r && !r.deletedAt) copyRecord(r, cardsFor([r.id])[0] || null);
+    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i" && state.selected.size) {
+      e.preventDefault();
+      invertSelection();
     } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a") {
       e.preventDefault();
       setSelected(
@@ -1148,6 +1425,33 @@ async function init() {
 
   syncNavPill = mountPill($("nav"), '.nav-item[aria-current="true"]');
   syncViewPill = mountPill($("view-toggle"), '[aria-checked="true"]');
+  syncSizePill = mountPill($("size-toggle"), '[aria-checked="true"]');
+  try {
+    state.size = SIZES.includes(localStorage.getItem("ss-gallery-size")) ? localStorage.getItem("ss-gallery-size") : "m";
+  } catch {}
+  grid.dataset.size = state.size;
+  document.querySelectorAll("#size-toggle button").forEach((b) => {
+    b.setAttribute("aria-checked", String(b.dataset.size === state.size));
+  });
+  syncSizePill();
+  $("size-toggle").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-size]");
+    if (b) setSize(b.dataset.size);
+  });
+  // Ctrl/⌘ + wheel over the captures resizes the thumbnails instead of the page.
+  let wheelAt = 0;
+  $("canvas").addEventListener(
+    "wheel",
+    (e) => {
+      if (!(e.ctrlKey || e.metaKey) || state.filter === "settings") return;
+      e.preventDefault();
+      const now = Date.now();
+      if (now - wheelAt < 220 || Math.abs(e.deltaY) < 4) return;
+      wheelAt = now;
+      stepSize(e.deltaY < 0 ? 1 : -1);
+    },
+    { passive: false },
+  );
 
   try {
     state.view = localStorage.getItem("ss-gallery-view") === "list" ? "list" : "grid";
@@ -1200,6 +1504,7 @@ async function init() {
   wireLightbox();
   wireKeyboard();
   wireDragAndDrop();
+  wireMarquee();
   wireImport();
 
   // Stay live: captures from other tabs, retention runs, other gallery tabs.

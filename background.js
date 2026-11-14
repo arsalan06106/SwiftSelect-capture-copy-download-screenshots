@@ -8,6 +8,7 @@
  */
 import { addCapture, applyRetention } from "./src/storage.js";
 import { DEFAULTS, getSettings, normalizeTheme } from "./src/settings.js";
+import { handlePeekMessage } from "./src/peekData.js";
 
 const QUICK_MENU = "popup.html";
 
@@ -436,9 +437,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // --- Gallery peek: recent captures for the tray on web pages ---
+  if (handlePeekMessage(message, sendResponse)) return true;
+
   // --- Navigation to the full-tab pages ---
   if (message?.type === "open-gallery") {
-    openExtensionPage("gallery.html", { hash: "#all" });
+    // With an id, the gallery opens straight onto that capture's preview.
+    const id = Number(message.id);
+    openExtensionPage("gallery.html", { hash: id > 0 ? `#capture/${id}` : "#all" });
     sendResponse?.({ success: true });
     return false;
   }
