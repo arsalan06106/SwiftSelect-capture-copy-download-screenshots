@@ -25,14 +25,15 @@ export function mountSettingsTab(root) {
   root.innerHTML = `
     <div class="qs-ps">
       <div class="qs-ps-grid">
-        ${field("Theme", "userTheme", [["light", "Light"], ["dark", "Dark"], ["system", "Auto"]])}
+        ${field("Theme", "userTheme", [["light", "Light"], ["dark", "Dark"], ["system", "System"]])}
         ${field("Colour", "uiColour", [["dynamic", "Dynamic"], ["calm", "Calm"], ["plain", "Plain"]])}
         ${field("Format", "outputFormat", [["png", "PNG"], ["jpg", "JPG"], ["webp", "WebP"]])}
         ${field("Delay", "captureDelay", [["0", "Off"], ["3", "3 s"], ["5", "5 s"]])}
       </div>
       <div class="qs-ps-field qs-ps-quality">
-        <span class="qs-ps-label">Quality <b class="qs-ps-q"></b></span>
+        <span class="qs-ps-label">Quality</span>
         <input type="range" min="50" max="100" step="1" data-range="outputQuality" aria-label="Quality">
+        <b class="qs-ps-q"></b>
       </div>
       <div class="qs-ps-field">
         <span class="qs-ps-label">After a capture</span>
@@ -59,7 +60,7 @@ export function mountSettingsTab(root) {
     q.disabled = lossless;
     q.style.setProperty("--fill", `${((q.value - 50) / 50) * 100}%`);
     root.querySelector(".qs-ps-quality").classList.toggle("is-off", lossless);
-    root.querySelector(".qs-ps-q").textContent = lossless ? "PNG is lossless" : q.value;
+    root.querySelector(".qs-ps-q").textContent = lossless ? "Lossless" : q.value;
     const on = {
       copy: wantsCopy(settings.outputDestination),
       download: wantsDownload(settings.outputDestination),

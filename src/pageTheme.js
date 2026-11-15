@@ -9,11 +9,11 @@
 (function () {
   var root = document.documentElement;
   var media = window.matchMedia("(prefers-color-scheme: dark)");
-  var pref = "light";
+  var pref = "system";
 
-  // Light unless the user picked Dark or System in Settings.
+  // System (follow the OS) unless the user picked Light or Dark in Settings.
   function normalize(value) {
-    return value === "dark" || value === "system" ? value : "light";
+    return value === "dark" || value === "light" ? value : "system";
   }
 
   function apply() {

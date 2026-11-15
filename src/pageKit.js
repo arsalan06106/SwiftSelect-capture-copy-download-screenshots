@@ -116,18 +116,9 @@ const SHEEN_HOSTS = ".btn, .act, .nav-item, .action, .link-row, .select-trigger,
  * writes --mx / --my on the control under the pointer; pages.css paints a
  * soft highlight there. Nothing is created or destroyed per frame.
  */
-export function enableSheen(root = document) {
-  root.addEventListener(
-    "pointermove",
-    (e) => {
-      const host = e.target.closest?.(SHEEN_HOSTS);
-      if (!host) return;
-      const r = host.getBoundingClientRect();
-      host.style.setProperty("--mx", `${Math.round(e.clientX - r.left)}px`);
-      host.style.setProperty("--my", `${Math.round(e.clientY - r.top)}px`);
-    },
-    { passive: true },
-  );
+export function enableSheen() {
+  // Retired: no rule reads --mx / --my, and writing them on every mouse move
+  // forced a layout and a style pass per event. Hover light is pure CSS.
 }
 
 /** Kept for callers written against 2.0. */

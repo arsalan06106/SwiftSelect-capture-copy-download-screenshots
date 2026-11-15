@@ -7,7 +7,7 @@
  */
 
 export const DEFAULTS = Object.freeze({
-  userTheme: "light", // light | dark | system   (legacy: glass | standard)
+  userTheme: "system", // system | light | dark   (legacy: glass | standard)
   uiLanguage: "auto", // auto | en
   outputFormat: "jpg", // png | jpg | webp
   outputQuality: 0.92, // 0.5 – 1.0, ignored for png
@@ -46,7 +46,7 @@ const FORMATS = {
 export function normalizeTheme(value) {
   if (value === "light" || value === "dark" || value === "standard" || value === "system") return value;
   if (value === "glass") return "system"; // pre-2.0 name
-  return "light"; // nothing stored: light is the default
+  return "system"; // nothing stored: follow the OS and the page
 }
 
 export function normalizeSettings(raw = {}) {

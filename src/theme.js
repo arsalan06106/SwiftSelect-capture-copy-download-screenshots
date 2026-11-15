@@ -7,12 +7,11 @@
  * "dark". "glass" is the pre-2.0 name for "system" and
  * "standard" is the legacy flat palette, still honoured if present.
  */
-export let currentUserTheme = "light";
+export let currentUserTheme = "system";
 
 function _normalizeTheme(value) {
   if (value === "light" || value === "dark" || value === "standard" || value === "system") return value;
-  if (value === "glass") return "system";
-  return "light";
+  return "system";
 }
 
 export function init() {

@@ -107,7 +107,7 @@
 /* Main Menu Container */
 .qs-guide {
   all: initial;
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   font-weight: 500;
   font-size: 14px;
 
@@ -330,7 +330,7 @@
   transform: translate(-50%, 0);
   padding: 12px 24px;
   position: fixed;
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   font-weight: 500;
   font-size: 16px;
   line-height: 1.4;
@@ -1145,7 +1145,7 @@
   min-width: 220px;
   max-width: 280px;
   border-radius: 18px;
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   color: #1f1f1f;
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -1345,7 +1345,7 @@
   padding: 6px 16px;
   border-radius: 50px;
   font-size: 13px;
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   font-weight: 600;
   pointer-events: none;
   z-index: 2147483649;
@@ -2170,7 +2170,7 @@
     0 16px 36px -4px rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   color: #f4f4f5;
   user-select: none;
   pointer-events: auto;
@@ -2296,7 +2296,7 @@
     0 24px 48px -6px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   color: #ffffff;
   user-select: none;
   animation: liquidCountdownIn 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -2467,7 +2467,7 @@
   min-height: 50px !important;
   max-height: 50px !important;
   box-sizing: border-box !important;
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
 }
 
 .qs-annotate-toolbar {
@@ -2663,7 +2663,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   color: var(--c-content);
   border-radius: 22px;
   background-color: color-mix(in srgb, var(--c-bg) 72%, transparent);
@@ -3821,7 +3821,7 @@
 }
 
 .qs-crop-controls .qs-guide-btn.pill.qs-crop-ratio-btn[data-ratio="free"] {
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
 }
 
 .qs-crop-controls .qs-guide-btn.pill.qs-crop-ratio-btn:hover {
@@ -3853,7 +3853,7 @@
   padding: 0 14px 0 12px !important;
   gap: 7px !important;
   border-radius: 999px !important;
-  font: 600 13px/1 "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
+  font: 600 13px/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
 }
 
 .qs-crop-controls .qs-guide-btn.pill.qs-crop-apply-btn {
@@ -3900,7 +3900,7 @@
 }
 
 .qs-crop-controls .qs-crop-unit {
-  font: italic 500 11px/1 "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
+  font: italic 500 11px/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
   opacity: 0.6 !important;
   color: inherit !important;
 }
@@ -4825,7 +4825,7 @@
   min-width: 0;
   margin: 0 2px;
   opacity: 0;
-  font-family: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   font-size: 13px;
   line-height: 1.35;
   font-weight: 400;
@@ -6089,4 +6089,502 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+
+/* ==========================================================================
+   13. FINAL POLISH · readable glass everywhere
+   Light glass used to be a thin white tint, so it only read as light over
+   light pages; over a dark page it turned to grey murk and its dark text
+   sank into it (the same problem dark glass had in reverse). Light glass now
+   carries its own frosted body: enough white to hold contrast on any page,
+   still translucent, still blurred, with the same reflex edges and wash.
+   The panel's controls share one language: a raised white pill means
+   "selected", the look's accent marks state (check, slider, tab icon).
+   ========================================================================== */
+
+/* ── Shell ─────────────────────────────────────────────────────────────── */
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass:not(.qs-theme-glass-dark) > .qs-glass-surface {
+  background-color: rgb(250 251 255 / 0.7);
+  background-image: linear-gradient(110deg, var(--tb1), var(--tb2) 50%, var(--tb3));
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(28px) saturate(190%);
+  transition: background-color 320ms ease;
+}
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass:not(.qs-theme-glass-dark).qs-grow > .qs-glass-surface {
+  background-color: rgb(250 251 255 / 0.84);
+  background-image:
+    radial-gradient(120% 240px at 0% 0%, var(--tb1), transparent 70%),
+    radial-gradient(120% 240px at 100% 100%, var(--tb3), transparent 70%),
+    linear-gradient(110deg, color-mix(in srgb, var(--tb2) 55%, transparent), color-mix(in srgb, var(--tb2) 55%, transparent));
+}
+/* An outer hairline and a deeper drop shadow keep the light shell crisp on
+   white pages and lifted on dark ones. */
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass:not(.qs-theme-glass-dark) > .qs-glass-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 1px rgba(20, 24, 50, 0.07),
+    0 18px 40px -14px rgba(20, 24, 50, 0.32),
+    0 4px 12px -4px rgba(20, 24, 50, 0.14);
+}
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark.qs-grow > .qs-glass-surface {
+  background-color: rgb(var(--qs-ink) / 0.9);
+}
+
+/* Pills: raised white glass on the frosted shell */
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass:not(.qs-theme-glass-dark) .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle) {
+  color: #141522 !important;
+  background-color: rgb(255 255 255 / 0.62) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass:not(.qs-theme-glass-dark) .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle):hover {
+  background-color: rgb(255 255 255 / 0.88) !important;
+}
+
+/* Editor bars, crop bar, size readout, key guide: the same frosted body */
+.qs-theme-glass.qs-annotate-toolbar:not(.qs-theme-glass-dark),
+.qs-theme-glass.qs-crop-controls:not(.qs-theme-glass-dark),
+.qs-theme-glass.qs-hud:not(.qs-theme-glass-dark),
+.qs-theme-glass.qs-key-guide:not(.qs-theme-glass-dark) {
+  background-color: rgb(250 251 255 / 0.74) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(190%) !important;
+  backdrop-filter: blur(26px) saturate(190%) !important;
+}
+.qs-status.qs-theme-glass:not(.qs-theme-glass-dark)[data-kind] {
+  background-color: color-mix(in srgb, var(--qs-tone-a) 16%, rgba(252, 252, 255, 0.76)) !important;
+}
+
+/* ── Panel tokens: text that holds on any page ─────────────────────────── */
+.qs-peek-drawer {
+  --pk-text: #141522;
+  --pk-soft: rgba(20, 21, 34, 0.7);
+  --pk-faint: rgba(20, 21, 34, 0.52);
+  --pk-card: rgba(255, 255, 255, 0.7);
+  --pk-card-hover: #fff;
+  --pk-well: rgba(20, 24, 50, 0.07);
+  --pk-raised: #fff;
+  --pk-raised-shadow: 0 1px 2px rgba(20, 24, 50, 0.16), 0 0 0 1px rgba(20, 24, 50, 0.05);
+  font-size: 13px;
+}
+.qs-theme-glass-dark .qs-peek-drawer {
+  --pk-text: #f5f6fb;
+  --pk-soft: rgba(245, 246, 251, 0.72);
+  --pk-faint: rgba(245, 246, 251, 0.5);
+  --pk-card: rgba(255, 255, 255, 0.08);
+  --pk-card-hover: rgba(255, 255, 255, 0.15);
+  --pk-well: rgba(255, 255, 255, 0.07);
+  --pk-raised: rgba(255, 255, 255, 0.18);
+  --pk-raised-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.qs-grow .qs-peek-drawer {
+  min-width: min(492px, calc(100vw - 40px));
+  margin: 0 4px;
+}
+.qs-peek-inner {
+  gap: 12px;
+}
+
+/* While the panel is open the two labelled pills share the row's width, so
+   the buttons line up with the panel's edges instead of floating centred. */
+.qs-guide-buttons > .qs-guide-btn:is([data-action="capture-visible"], [data-action="annotate"]) {
+  flex-grow: 0;
+  transition:
+    flex-grow 380ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 87ms cubic-bezier(0.2, 0, 0, 1),
+    background-color 94ms ease,
+    box-shadow 94ms ease !important;
+}
+.qs-grow-in .qs-guide-buttons > .qs-guide-btn:is([data-action="capture-visible"], [data-action="annotate"]) {
+  flex-grow: 1;
+}
+.qs-guide.qs-grow > .qs-guide-buttons {
+  align-self: stretch !important;
+  justify-content: space-between !important;
+}
+.qs-guide-buttons > .qs-guide-btn.qs-expand-btn {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  margin-left: 0 !important;
+}
+
+/* ── Head ──────────────────────────────────────────────────────────────── */
+.qs-peek-head {
+  gap: 10px;
+  padding: 0;
+}
+.qs-panel-tabs {
+  padding: 3px;
+  background: var(--pk-well);
+  box-shadow: inset 0 0 0 1px var(--pk-line);
+}
+.qs-panel-tab-pill,
+.qs-theme-glass-dark .qs-panel-tab-pill {
+  background: var(--pk-raised);
+  box-shadow: var(--pk-raised-shadow);
+}
+:where(.qs-peek-drawer) .qs-panel-tab {
+  height: 32px;
+  padding: 0 15px 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--pk-soft);
+}
+.qs-panel-tab svg {
+  width: 16px;
+  height: 16px;
+  opacity: 1;
+}
+.qs-peek-head .qs-peek-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pk-soft);
+}
+.qs-peek-open {
+  height: 34px;
+  padding: 0 12px 0 14px !important;
+  font-size: 12.5px !important;
+  color: var(--pk-text) !important;
+  background: var(--pk-raised) !important;
+  box-shadow: var(--pk-raised-shadow) !important;
+  transition:
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 160ms ease !important;
+}
+.qs-peek-open svg {
+  color: var(--pk-accent);
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.qs-peek-open:hover {
+  background: var(--pk-raised) !important;
+  transform: translateY(-1px);
+}
+.qs-peek-open:hover svg {
+  transform: translate(1.5px, -1.5px);
+}
+.qs-peek-open:active {
+  transform: scale(0.97);
+}
+
+/* ── Gallery tab: one row, every card as wide as its picture ───────────── */
+.qs-peek-strip {
+  gap: 10px;
+  padding: 2px 2px 8px;
+  margin: 0;
+  scroll-snap-type: x proximity;
+  scroll-padding: 2px;
+  --fade-l: 0px;
+  --fade-r: 0px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent);
+}
+.qs-peek-strip.can-left {
+  --fade-l: 28px;
+}
+.qs-peek-strip.can-right {
+  --fade-r: 28px;
+}
+.qs-peek-strip::-webkit-scrollbar {
+  height: 6px;
+}
+.qs-peek-strip::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: var(--pk-line);
+}
+.qs-peek-strip:hover::-webkit-scrollbar-thumb {
+  background: var(--pk-faint);
+}
+.qs-peek-card,
+.qs-peek-skeleton {
+  flex: 0 0 var(--w, 136px) !important;
+  width: var(--w, 136px);
+  min-width: 0;
+  max-width: var(--w, 136px);
+  padding: 5px;
+  border-radius: 16px;
+}
+.qs-peek-skeleton {
+  height: 132px !important;
+}
+.qs-peek-thumb {
+  height: 86px;
+  border-radius: 11px;
+}
+.qs-peek-thumb img {
+  object-position: center top;
+}
+.qs-peek-card.is-wide .qs-peek-thumb img,
+.qs-peek-card.is-small .qs-peek-thumb img {
+  object-fit: contain;
+  object-position: center;
+}
+.qs-peek-meta {
+  padding: 7px 4px 2px;
+  gap: 2px;
+}
+.qs-peek-meta b {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--pk-text);
+}
+.qs-peek-meta span {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--pk-soft);
+}
+.qs-peek-badge {
+  height: 18px;
+  padding: 0 7px;
+  font-size: 10px;
+  background: rgba(14, 16, 26, 0.68);
+}
+.qs-peek-act {
+  width: 24px;
+  height: 24px;
+  padding: 5.5px !important;
+  color: #141522;
+  background: #fff;
+}
+.qs-theme-glass-dark .qs-peek-act {
+  color: #f5f6fb;
+  background: rgba(30, 32, 44, 0.94);
+}
+/* The actions sit on a soft scrim so they read over any picture */
+.qs-peek-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 40px;
+  pointer-events: none;
+  background: linear-gradient(rgba(10, 12, 20, 0.42), transparent);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.qs-peek-card:hover .qs-peek-thumb::after,
+.qs-peek-card:focus-within .qs-peek-thumb::after {
+  opacity: 1;
+}
+.qs-peek-acts {
+  z-index: 1;
+}
+.qs-peek-flag,
+.qs-peek-spin {
+  z-index: 2;
+}
+.qs-peek-more {
+  flex: 0 0 96px !important;
+  height: 132px;
+  border-radius: 16px;
+}
+.qs-peek-more > span:not(.qs-peek-more-ic) {
+  color: var(--pk-soft);
+}
+.qs-peek-empty-text span {
+  color: var(--pk-soft);
+}
+
+/* ── Settings tab ──────────────────────────────────────────────────────── */
+.qs-ps {
+  gap: 12px;
+  padding: 0;
+}
+.qs-ps-grid {
+  gap: 12px 12px;
+}
+.qs-ps-field {
+  gap: 6px;
+}
+.qs-ps-label {
+  padding-left: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--pk-soft);
+}
+.qs-ps-label b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.qs-ps-seg {
+  padding: 3px;
+}
+:where(.qs-peek-drawer) .qs-ps-seg button {
+  height: 30px;
+  font-size: 12.5px;
+  color: var(--pk-soft);
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 120ms ease;
+}
+.qs-ps-seg button:hover:not([aria-checked="true"]) {
+  color: var(--pk-text);
+  background: color-mix(in srgb, var(--pk-raised) 45%, transparent);
+}
+.qs-ps-seg button:active {
+  transform: scale(0.96);
+}
+.qs-ps-seg button[aria-checked="true"],
+.qs-theme-glass-dark .qs-ps-seg button[aria-checked="true"] {
+  color: var(--pk-text);
+  background: var(--pk-raised);
+  box-shadow: var(--pk-raised-shadow);
+}
+
+/* Quality: label · track · value, on one well so it reads as one control */
+.qs-ps-quality {
+  gap: 12px;
+  min-height: 36px;
+  padding: 0 14px 0 12px;
+  border-radius: 99em;
+  background: var(--pk-well);
+  box-shadow: inset 0 0 0 1px var(--pk-line);
+  transition: opacity 200ms ease;
+}
+.qs-ps-quality .qs-ps-label {
+  min-width: 0;
+  padding: 0;
+}
+.qs-ps-quality .qs-ps-q {
+  order: 3;
+  flex: 0 0 auto;
+  min-width: 26px;
+  text-align: right;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pk-text);
+}
+.qs-ps-quality input {
+  height: 6px;
+  background: linear-gradient(90deg, var(--tba1), var(--tba2) var(--fill, 50%), color-mix(in srgb, var(--pk-text) 16%, transparent) var(--fill, 50%));
+}
+.qs-ps-quality input::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.qs-ps-quality input:hover::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.qs-ps-quality input:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--tba2) 40%, transparent),
+    0 1px 4px rgba(0, 0, 0, 0.32);
+}
+.qs-ps-quality.is-off {
+  opacity: 1;
+}
+.qs-ps-quality.is-off input {
+  opacity: 0.35;
+}
+.qs-ps-quality.is-off .qs-ps-q {
+  min-width: 0;
+  font-weight: 600;
+  color: var(--pk-soft);
+}
+
+/* After a capture: switches. Off is a quiet well, on is a raised pill with
+   the accent in its check; never white text on a saturated fill. */
+.qs-ps-chips {
+  gap: 8px;
+}
+:where(.qs-peek-drawer) .qs-ps-chip {
+  justify-content: flex-start;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px 0 9px;
+  font-size: 12.5px;
+  color: var(--pk-soft);
+  background: var(--pk-well);
+  box-shadow: inset 0 0 0 1px var(--pk-line);
+  white-space: nowrap;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 120ms ease;
+}
+.qs-ps-chip:hover {
+  color: var(--pk-text);
+}
+.qs-ps-chip:active {
+  transform: scale(0.97);
+}
+.qs-ps-chip i {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  opacity: 1;
+  color: var(--pk-faint);
+  box-shadow: inset 0 0 0 1.5px currentColor;
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 260ms cubic-bezier(0.34, 1.5, 0.64, 1);
+}
+.qs-ps-chip i svg {
+  width: 11px;
+  height: 11px;
+  color: #fff;
+}
+.qs-ps-chip[aria-checked="true"] {
+  color: var(--pk-text);
+  background: var(--pk-raised);
+  box-shadow: var(--pk-raised-shadow);
+}
+.qs-ps-chip[aria-checked="true"] i {
+  background: linear-gradient(160deg, var(--tba1), var(--tba2));
+  box-shadow: 0 2px 6px -2px color-mix(in srgb, var(--tba2) 80%, transparent);
+  transform: scale(1.04);
+}
+
+@media (max-width: 560px) {
+  .qs-ps-chips {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .qs-peek-head .qs-peek-sub {
+    display: none;
+  }
+  .qs-panel-tabs {
+    margin-right: auto;
+  }
+}
+.qs-grow-in > .qs-peek-drawer {
+  margin-top: 14px;
+}
+.qs-grow-up.qs-grow-in > .qs-peek-drawer {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+/* ── Editor: style panel ───────────────────────────────────────────────── */
+.qs-pop-swatches {
+  grid-template-columns: repeat(9, 1fr);
+  gap: 5px;
+}
+
+/* ── Rendering cost ──────────────────────────────────────────────────────
+   A blur inside the already blurred panel is redrawn on every hover and
+   shows nothing the tint does not. */
+.qs-peek-badge,
+.qs-peek-flag {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.qs-peek-badge {
+  background: rgba(14, 16, 26, 0.76);
 }

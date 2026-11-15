@@ -237,8 +237,8 @@ function initAllTabs() {
 async function migrateSettings() {
   const data = await chrome.storage.local.get(["userTheme", "settingsSchema", "retentionDays"]);
   const schema = data.settingsSchema || 1;
-  if (schema >= 5) return;
-  const patch = { settingsSchema: 5 };
+  if (schema >= 6) return;
+  const patch = { settingsSchema: 6 };
   if (schema < 2) {
     const theme = normalizeTheme(data.userTheme);
     // "standard" was the flat legacy palette. 2.x is Liquid Glass throughout.
@@ -255,6 +255,12 @@ async function migrateSettings() {
   // stored "system" is almost always the old default, not a choice.
   if (schema < 5 && (patch.userTheme || data.userTheme || "system") === "system") {
     patch.userTheme = "light";
+  }
+  // 2.2.0: dark glass now has a body of its own, so System is the default
+  // again. A stored "light" is almost always the 2.3-era default, not a
+  // choice; anyone who wants Light picks it once in Settings.
+  if (schema < 6 && (patch.userTheme || data.userTheme || "light") === "light") {
+    patch.userTheme = "system";
   }
   // 2.2: captures older than three months move to Trash by default.
   if (!Number(data.retentionDays)) patch.retentionDays = 90;

@@ -10,20 +10,22 @@
    3. Controls      6. Gallery
    ========================================================================== */
 
-/* Manrope (SIL OFL 1.1) ships with the extension, so the interface looks
-   the same on every machine. One variable file per script range covers
-   every weight. See fonts/LICENSE-Manrope.txt. */
+/* Type: San Francisco on Macs (the system font, first in the stack). It
+   cannot be redistributed, so everywhere else Inter (SIL OFL 1.1) ships with
+   the extension: one variable file per script range, every weight, with an
+   optical-size axis so headings tighten the way SF Display does.
+   See fonts/LICENSE-Inter.txt. */
 @font-face {
-  font-family: "SS Manrope";
-  src: url("fonts/manrope-latin.woff2") format("woff2");
-  font-weight: 200 800;
+  font-family: "SS Inter";
+  src: url("fonts/inter-latin.woff2") format("woff2");
+  font-weight: 100 900;
   font-display: swap;
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "SS Manrope";
-  src: url("fonts/manrope-latin-ext.woff2") format("woff2");
-  font-weight: 200 800;
+  font-family: "SS Inter";
+  src: url("fonts/inter-latin-ext.woff2") format("woff2");
+  font-weight: 100 900;
   font-display: swap;
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
@@ -149,7 +151,7 @@ html[data-theme="dark"] {
 
   --blur: blur(22px) saturate(var(--saturation));
 
-  --font: "SS Manrope", "Manrope", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
   --ease: cubic-bezier(0.2, 0, 0, 1);
@@ -7334,4 +7336,242 @@ html[data-vt="up"]::view-transition-new(stage) {
 }
 .nav-item:is([data-filter="all"], [data-filter="favorites"], [data-filter="recent"], [data-filter="earlier"]) .nav-count {
   font-size: 12px;
+}
+
+
+/* ── Final polish ────────────────────────────────────────────────────────
+   Small holes found in a last pass over every page. */
+
+/* Search: at laptop widths the field lost the tug-of-war with the spacer
+   and showed "Sea…". It now takes the free space first and sheds its key
+   hints as it narrows, so the placeholder always reads in full. */
+.search {
+  flex: 6 1 260px;
+  min-width: 190px;
+  container-type: inline-size;
+}
+.topbar-spacer {
+  flex: 1 1 0;
+  min-width: 0;
+}
+@container (max-width: 300px) {
+  .search-hint .kbd:first-child {
+    display: none;
+  }
+  .search .input {
+    padding-right: 70px;
+  }
+}
+@container (max-width: 236px) {
+  .search-hint {
+    display: none;
+  }
+  .search .input {
+    padding-right: 14px;
+  }
+}
+
+/* Quality reads as a percentage everywhere (Settings, converter, toolbar). */
+.quality output {
+  min-width: 62px;
+  font-family: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.quality.is-off {
+  opacity: 0.5;
+}
+
+
+/* ── Rendering cost ──────────────────────────────────────────────────────
+   Hover and press felt laggy because of what each frame had to redraw, not
+   because of how long the transitions were.
+
+   1. Backdrop blur is recomputed for a surface whenever anything inside it
+      repaints. Every card carried six blurred layers (its body, four action
+      buttons, the "Copied" badge), every settings group one more. All of
+      them rest on the still colour field, and a blurred soft gradient looks
+      the same as the gradient itself, so these surfaces keep their tint,
+      wash and reflex edges and simply stop asking for the blur. Blur stays
+      where glass floats over moving content: bars, menus, dialogs, toasts.
+   2. The card buttons' entrance stagger was a transition-delay on the
+      button, so it also held back that button's own hover by up to 90 ms.
+      The stagger now applies to the entrance only. */
+.group,
+.cv-drop,
+.cv-summary,
+.canvas-note,
+.cv-item.glass,
+.card.glass::before,
+.pane.glass,
+.sidebar.glass,
+.topbar.glass,
+.actions.glass,
+.recent.glass,
+.notice,
+.act,
+.badge-copied {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.card-actions .act:nth-child(n) {
+  transition-delay: 0s;
+}
+.card:hover .card-actions .act:nth-child(2) {
+  transition-delay: 30ms, 30ms, 0s, 0s, 0s, 0s;
+}
+.card:hover .card-actions .act:nth-child(3) {
+  transition-delay: 60ms, 60ms, 0s, 0s, 0s, 0s;
+}
+.card:hover .card-actions .act:nth-child(4) {
+  transition-delay: 90ms, 90ms, 0s, 0s, 0s, 0s;
+}
+
+/* Light arrives at once and leaves gently. */
+:is(.btn, .act, .nav-item, .action, .link-row, .select-trigger, .chip, .notice-cta, .dock-zone, [data-sheen]):hover::before {
+  transition-duration: 80ms;
+}
+
+/* Cards are independent of each other: a hover on one never asks the
+   browser to lay out or restyle the rest of the grid. */
+.card {
+  contain: layout style;
+}
+
+/* ── Dark, refined ───────────────────────────────────────────────────────
+   The palettes were drawn for light glass: pastel hues that read as colour
+   on white. Mixed into dark ink the warm ones (amber, tan, olive, gold)
+   turned to brown and khaki, and the frame around the Gallery looked muddy.
+   Dark now keeps its panels a cool, nearly neutral ink and puts the colour
+   where it stays clean: a deep jewel-toned field behind the glass, the lit
+   edges, the tiles and the accents. */
+html[data-theme="dark"] {
+  --fd-1: rgba(70, 110, 255, 0.38);
+  --fd-2: rgba(150, 90, 240, 0.26);
+  --fd-3: rgba(30, 170, 160, 0.26);
+  --fd-4: rgba(90, 80, 220, 0.24);
+  --field-dark-base: #0b0c12;
+  --text-2: color-mix(in srgb, var(--c-content) 72%, transparent);
+  --text-3: color-mix(in srgb, var(--c-content) 52%, transparent);
+  --hairline: color-mix(in srgb, var(--c-content) 10%, transparent);
+  --tint-panel: color-mix(in srgb, #1a1c27 72%, transparent);
+  --tint-dense: color-mix(in srgb, #181a24 94%, transparent);
+  --glass-base: color-mix(in srgb, #1a1c28 76%, transparent);
+  --canvas:
+    radial-gradient(58% 58% at 0% 0%, var(--fd-1), transparent 70%),
+    radial-gradient(48% 52% at 100% 0%, var(--fd-2), transparent 70%),
+    radial-gradient(58% 62% at 100% 100%, var(--fd-3), transparent 70%),
+    radial-gradient(52% 54% at 0% 100%, var(--fd-4), transparent 70%),
+    var(--field-dark-base);
+}
+html[data-theme="dark"][data-palette="ocean"] {
+  --fd-1: rgba(30, 130, 255, 0.42);
+  --fd-2: rgba(20, 190, 175, 0.28);
+  --fd-3: rgba(90, 100, 255, 0.3);
+  --fd-4: rgba(20, 160, 210, 0.28);
+  --field-dark-base: #080c13;
+}
+html[data-theme="dark"][data-palette="aurora"] {
+  --fd-1: rgba(135, 80, 255, 0.42);
+  --fd-2: rgba(235, 70, 150, 0.3);
+  --fd-3: rgba(30, 180, 160, 0.28);
+  --fd-4: rgba(70, 100, 255, 0.3);
+  --field-dark-base: #0c0a14;
+}
+html[data-theme="dark"][data-palette="sunset"] {
+  --fd-1: rgba(255, 112, 72, 0.3);
+  --fd-2: rgba(240, 60, 130, 0.32);
+  --fd-3: rgba(130, 80, 255, 0.34);
+  --fd-4: rgba(200, 60, 160, 0.24);
+  --field-dark-base: #0f0b13;
+}
+html[data-theme="dark"][data-palette="forest"] {
+  --fd-1: rgba(30, 190, 120, 0.32);
+  --fd-2: rgba(20, 170, 170, 0.26);
+  --fd-3: rgba(40, 130, 200, 0.26);
+  --fd-4: rgba(110, 190, 70, 0.16);
+  --field-dark-base: #090e0d;
+}
+html[data-theme="dark"][data-tint="none"] {
+  --canvas:
+    radial-gradient(60% 60% at 0% 0%, rgba(120, 130, 150, 0.12), transparent 70%),
+    radial-gradient(60% 60% at 100% 100%, rgba(120, 130, 150, 0.1), transparent 70%),
+    #0d0e11;
+}
+
+/* How much of the hue the dark panels take: a breath, not a wash. */
+html[data-theme="dark"],
+html[data-theme="dark"][data-tint="full"] {
+  --k-panel: 8%;
+  --k-pool: 16%;
+  --k-edge: 26%;
+  --k-frame: 6%;
+  --k-fpool: 12%;
+  --k-ctrl: 8%;
+  --k-card: 8%;
+  --k-meta: 16%;
+}
+html[data-theme="dark"][data-tint="hybrid"] {
+  --k-panel: 0%;
+  --k-pool: 8%;
+  --k-edge: 18%;
+  --k-frame: 6%;
+  --k-fpool: 12%;
+  --k-ctrl: 8%;
+  --k-card: 3%;
+  --k-meta: 8%;
+}
+html[data-theme="dark"][data-tint="none"] {
+  --k-panel: 0%;
+  --k-pool: 0%;
+  --k-edge: 0%;
+  --k-frame: 0%;
+  --k-fpool: 0%;
+  --k-ctrl: 0%;
+  --k-card: 0%;
+  --k-meta: 0%;
+}
+/* The frame's wash comes from the saturated end of each hue, so even a warm
+   palette glows instead of going brown. */
+html[data-theme="dark"] :is(.sidebar.glass, .topbar.glass, .bulk-bar, .lightbox-bar, .dock, .actions.glass, .recent.glass) {
+  --g: var(--accent);
+}
+html[data-theme="dark"] .sidebar.glass {
+  background-image:
+    radial-gradient(140% 260px at 0% 0%, color-mix(in srgb, var(--accent) var(--k-fpool), transparent), transparent 70%),
+    radial-gradient(120% 260px at 100% 100%, color-mix(in srgb, var(--accent-2) var(--k-fpool), transparent), transparent 72%);
+}
+html[data-theme="dark"] .topbar.glass {
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--accent) var(--k-fpool), transparent),
+    transparent 50%,
+    color-mix(in srgb, var(--accent-2) var(--k-fpool), transparent)
+  );
+}
+html[data-theme="dark"][data-palette="mono"] :is(.sidebar.glass, .topbar.glass) {
+  background-image: none;
+}
+/* Cards: the capture type tints the body from its deep end, lightly. The
+   badge already names the type; the body only needs to agree with it. */
+html[data-theme="dark"] .card.glass::before {
+  background-color: color-mix(in srgb, var(--g2) calc(var(--k-card) + 4%), var(--glass-base));
+  background-image: radial-gradient(120% 150px at 0% 0%, color-mix(in srgb, var(--g2) 15%, transparent), transparent 72%);
+}
+html[data-theme="dark"][data-tint="none"] .card.glass::before {
+  background-color: var(--glass-base);
+  background-image: none;
+}
+/* Panels: an older rule gave every dark group a 30% pastel pool, which is
+   where the bronze cast on Settings came from. A soft light from the deep
+   end of the section's hue instead. */
+html[data-theme="dark"] :is(.group, .cv-drop, .cv-summary, .modal, .select-menu, .canvas-note, .cv-item.glass, .issues-pop) {
+  background-image:
+    radial-gradient(130% 200px at 0% 0%, color-mix(in srgb, var(--g2) calc(var(--k-pool) + 6%), transparent), transparent 70%),
+    linear-gradient(150deg, transparent 46%, color-mix(in srgb, var(--g) 5%, transparent));
+}
+html[data-theme="dark"][data-tint="none"] :is(.group, .cv-drop, .cv-summary, .modal, .select-menu, .canvas-note, .cv-item.glass, .issues-pop) {
+  background-image: none;
 }

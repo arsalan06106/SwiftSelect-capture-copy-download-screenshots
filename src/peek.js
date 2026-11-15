@@ -287,7 +287,7 @@ export async function openPeek(anchor = s.anchor, tab = null) {
   // Grow downward, or upward when the toolbar sits in the lower part of the
   // page (pin its bottom edge so the buttons stay where the pointer is).
   const r = guide.getBoundingClientRect();
-  const drawerH = 330;
+  const drawerH = 340;
   s.up = r.bottom + drawerH > window.innerHeight - 12 && r.top > drawerH;
   s.saved = {
     top: guide.style.getPropertyValue("top"),
@@ -478,6 +478,7 @@ function renderItems(resp) {
     });
     strip.appendChild(more);
   }
+  requestAnimationFrame(markStripEdges);
 }
 
 function buildCard(item, i) {
@@ -487,6 +488,10 @@ function buildCard(item, i) {
   card.tabIndex = 0;
   card.draggable = true;
   card.style.setProperty("--i", String(i));
+  const fit = cardFit(item);
+  card.style.setProperty("--w", `${fit.width}px`);
+  if (fit.wide) card.classList.add("is-wide");
+  if (fit.small) card.classList.add("is-small");
   card.title = "";
   card.setAttribute("aria-label", `${titleOf(item)}. Drag into the page, or press Enter to copy.`);
 
@@ -520,11 +525,44 @@ function buildCard(item, i) {
   t.textContent = titleOf(item);
   const sub = el("span");
   const dims = item.width && item.height ? `${item.width.toLocaleString()} × ${item.height.toLocaleString()}` : "";
-  sub.textContent = [dims, ago(item.createdAt)].filter(Boolean).join(" · ");
+  // A narrow card has room for one fact; the size says more than the age.
+  const when = ago(item.createdAt);
+  sub.textContent = fit.width < 150 && dims ? dims : [dims, when].filter(Boolean).join(" · ");
+  sub.title = [dims, when].filter(Boolean).join(" · ");
   meta.append(t, sub);
 
   card.append(thumb, meta);
   return card;
+}
+
+/**
+ * How wide a card should be: the picture at the strip's thumbnail height,
+ * kept within limits. A capture close to those limits shows whole; a long
+ * page keeps its top; a banner or a tiny picture is fitted, not cropped.
+ */
+const THUMB_H = 86;
+const CARD_PAD = 10;
+const CARD_MIN = 118;
+const CARD_MAX = 192;
+function cardFit(item) {
+  const w = Number(item.width) || 0;
+  const h = Number(item.height) || 0;
+  if (!w || !h) return { width: 136, wide: false, small: false };
+  const natural = (THUMB_H * w) / h + CARD_PAD;
+  return {
+    width: Math.round(Math.max(CARD_MIN, Math.min(CARD_MAX, natural))),
+    wide: natural > CARD_MAX * 1.5,
+    small: w < CARD_MIN && h < THUMB_H,
+  };
+}
+
+/** Fade the strip's edges only where there is more to scroll to. */
+function markStripEdges() {
+  const strip = s.strip;
+  if (!strip) return;
+  const max = strip.scrollWidth - strip.clientWidth;
+  strip.classList.toggle("can-left", strip.scrollLeft > 4);
+  strip.classList.toggle("can-right", max - strip.scrollLeft > 4);
 }
 
 function flash(card, text, kind = "ok") {
@@ -650,6 +688,11 @@ function wireTray(tray, strip) {
     },
     { passive: false },
   );
+
+  strip.addEventListener("scroll", markStripEdges, { passive: true });
+  try {
+    new ResizeObserver(markStripEdges).observe(strip);
+  } catch {}
 
   strip.addEventListener("pointerover", (e) => {
     const { item } = itemFor(e.target);

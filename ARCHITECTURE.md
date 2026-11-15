@@ -93,7 +93,7 @@ sequenceDiagram
     W->>W: register listeners (synchronous)
     W->>W: applyActionMode(): read actionClick, set popup, refresh per-tab state
     W->>W: setupContextMenus(): removeAll, then create
-    Note over W: onInstalled only: migrateSettings() to schema 4
+    Note over W: onInstalled only: migrateSettings() to schema 6
 ```
 
 ### Toolbar action

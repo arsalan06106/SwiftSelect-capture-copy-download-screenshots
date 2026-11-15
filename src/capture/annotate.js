@@ -137,6 +137,7 @@ const PALETTE = [
   "#007AFF", // Vivid Electric Blue
   "#8B5CF6", // Purple
   "#FFFFFF", // Pure White
+  "#16171D", // Ink Black
 ];
 
 // High-DPI Custom Pen/Brush SVG Cursor (Tip at 2, 22)
@@ -175,6 +176,7 @@ const COLOR_NAMES = {
   "#007AFF": "Electric Blue",
   "#8B5CF6": "Purple",
   "#FFFFFF": "Pure White",
+  "#16171D": "Ink Black",
 };
 
 const STROKE_WIDTHS = {
@@ -461,6 +463,7 @@ export async function openAnnotationEditor(source, options = {}) {
   _standalone = !!options.standalone;
   _onClose = typeof options.onClose === "function" ? options.onClose : null;
   _sourceMeta = { title: options.title, url: options.url };
+  _stageShot = typeof options._stageShot === "string" ? options._stageShot : null;
 
   // The editor takes the whole screen: put the recent-captures tray away.
   window.SwiftSelect?.peek?.closePeek?.({ immediate: true });
@@ -503,7 +506,7 @@ export async function openAnnotationEditor(source, options = {}) {
   } else {
     const freezeData = window.SwiftSelect?.ui?.getFreezeFrameDataUrl?.();
     if (freezeData) {
-      return openAnnotationEditor(await cropSnapshotToMedia(freezeData), options);
+      return openAnnotationEditor(await cropSnapshotToMedia(freezeData), { ...options, _stageShot: freezeData });
     }
 
     // First time opening annotate editor without prior capture: use visible area view as default source
@@ -530,7 +533,7 @@ export async function openAnnotationEditor(source, options = {}) {
     });
 
     if (snap) {
-      return openAnnotationEditor(await cropSnapshotToMedia(snap), options);
+      return openAnnotationEditor(await cropSnapshotToMedia(snap), { ...options, _stageShot: snap });
     }
 
     console.warn("SwiftSelect Annotate: Could not capture visible view as source.");
@@ -575,10 +578,7 @@ export async function openAnnotationEditor(source, options = {}) {
   _selectedShapeIndex = -1;
   _cropRect = null;
   _currentTool = "pen";
-  _styleByKind = { ink: { ...STYLE_DEFAULTS.ink }, marker: { ...STYLE_DEFAULTS.marker } };
-  _activeKind = "ink";
-  _currentLineWidth = STYLE_DEFAULTS.ink.lineWidth;
-  _currentOpacity = STYLE_DEFAULTS.ink.opacity;
+  applyStylePrefs();
   _fillEnabled = false;
   if (_textInputOverlay) {
     try {
@@ -592,6 +592,8 @@ export async function openAnnotationEditor(source, options = {}) {
   await loadStyles();
   buildAnnotationUI();
   renderCanvas();
+  chooseOpeningZoom();
+  _syncStyleUI();
   updateHistoryUI();
 }
 
@@ -667,23 +669,263 @@ function flashDone(btn, ok) {
   }, 1400);
 }
 
+// ─── Remembered style ────────────────────────────────────────────────
+// The colour, sizes, opacity, arrow heads and typeface you last chose come
+// back the next time the editor opens, on any page.
+
+const STYLE_PREFS_KEY = "annotateStyle";
+let _stylePrefs = null;
+let _stylePrefsTimer = 0;
+try {
+  chrome.storage?.local?.get?.([STYLE_PREFS_KEY], (d) => {
+    if (!chrome.runtime.lastError && d && d[STYLE_PREFS_KEY] && typeof d[STYLE_PREFS_KEY] === "object") _stylePrefs = d[STYLE_PREFS_KEY];
+  });
+} catch {}
+
+function applyStylePrefs() {
+  const p = _stylePrefs || {};
+  const num = (v, lo, hi, fallback) => (Number.isFinite(Number(v)) && v !== null && v !== "" ? Math.max(lo, Math.min(hi, Number(v))) : fallback);
+  _currentColor = /^#[0-9a-f]{6}$/i.test(p.color || "") ? p.color : "#FF3333";
+  _styleByKind = {
+    ink: {
+      lineWidth: num(p.ink?.lineWidth, STROKE_WIDTHS.ink.min, STROKE_WIDTHS.ink.max, STYLE_DEFAULTS.ink.lineWidth),
+      opacity: num(p.ink?.opacity, 0.1, 1, STYLE_DEFAULTS.ink.opacity),
+    },
+    marker: {
+      lineWidth: num(p.marker?.lineWidth, STROKE_WIDTHS.marker.min, STROKE_WIDTHS.marker.max, STYLE_DEFAULTS.marker.lineWidth),
+      opacity: num(p.marker?.opacity, 0.1, 1, STYLE_DEFAULTS.marker.opacity),
+    },
+  };
+  _activeKind = "ink";
+  _currentLineWidth = _styleByKind.ink.lineWidth;
+  _currentOpacity = _styleByKind.ink.opacity;
+  _currentHead = ["end", "both", "none"].includes(p.head) ? p.head : "end";
+  _textFont = TEXT_FONTS[p.font] ? p.font : "sans";
+  _textBold = p.bold !== false;
+  _textItalic = p.italic === true;
+}
+
+/** Called after a deliberate style change (never when a shape is merely selected). */
+function rememberStyle() {
+  clearTimeout(_stylePrefsTimer);
+  _stylePrefsTimer = setTimeout(() => {
+    const kinds = { ..._styleByKind, [_activeKind]: { lineWidth: _currentLineWidth, opacity: _currentOpacity } };
+    _stylePrefs = {
+      color: _currentColor,
+      ink: kinds.ink,
+      marker: kinds.marker,
+      head: _currentHead,
+      font: _textFont,
+      bold: _textBold,
+      italic: _textItalic,
+    };
+    try {
+      chrome.storage.local.set({ [STYLE_PREFS_KEY]: _stylePrefs }, () => void chrome.runtime.lastError);
+    } catch {}
+  }, 400);
+}
+
+// ─── Zoom ────────────────────────────────────────────────────────────
+// The picture opens fitted to the stage. A long page fitted that way is a
+// sliver nobody can draw on, so those open at full width and scroll instead.
+// Ctrl + wheel (or a pinch) zooms about the pointer; the pill in the corner
+// steps, shows the scale and returns to fit. _zoom is CSS pixels per image
+// pixel, or null while the picture is simply fitted.
+
+const ZOOM_STEPS = [0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.25, 1.5, 2, 3, 4, 6, 8];
+let _zoom = null;
+let _viewportEl = null;
+let _zoomEl = null;
+
+function stageRoom() {
+  return { w: Math.max(120, window.innerWidth - 112), h: Math.max(120, window.innerHeight - 196) };
+}
+
+function fitScale() {
+  const c = _annotateCanvas;
+  if (!c || !c.width || !c.height) return 1;
+  const room = stageRoom();
+  return Math.min(1, room.w / c.width, room.h / c.height);
+}
+
+function widthScale() {
+  const c = _annotateCanvas;
+  if (!c || !c.width) return 1;
+  // Leave room for the scrollbar a long page brings with it.
+  return Math.min(1, (stageRoom().w - 18) / c.width);
+}
+
+function currentScale() {
+  return _zoom ?? fitScale();
+}
+
+function applyZoom() {
+  const c = _annotateCanvas;
+  if (!c) return;
+  if (_zoom == null) {
+    c.style.width = "";
+    c.style.height = "";
+    c.style.maxWidth = "calc(100vw - 112px)";
+    c.style.maxHeight = "calc(100vh - 196px)";
+  } else {
+    c.style.maxWidth = "none";
+    c.style.maxHeight = "none";
+    c.style.width = `${Math.max(1, Math.round(c.width * _zoom))}px`;
+    c.style.height = `${Math.max(1, Math.round(c.height * _zoom))}px`;
+  }
+  _annotateHost?.classList.toggle("qs-zoomed", _zoom != null);
+  updateZoomUi();
+  // The brush cursor shows the stroke at screen scale.
+  if (!_isDrawing && isFreehandTool()) c.style.cursor = getToolCursor();
+}
+
+/** Set the scale (null = fit), keeping the point under `anchor` where it is. */
+function setZoom(next, anchor = null) {
+  const c = _annotateCanvas;
+  const vp = _viewportEl;
+  if (!c || !vp) return;
+  if (_textInputOverlay) _textInputOverlay.blur();
+  const before = c.getBoundingClientRect();
+  const ax = anchor ? anchor.x : window.innerWidth / 2;
+  const ay = anchor ? anchor.y : window.innerHeight / 2;
+  const fx = before.width ? Math.max(0, Math.min(1, (ax - before.left) / before.width)) : 0.5;
+  const fy = before.height ? Math.max(0, Math.min(1, (ay - before.top) / before.height)) : 0.5;
+
+  const fit = fitScale();
+  if (next == null || Math.abs(next - fit) / fit < 0.03) {
+    _zoom = null;
+  } else {
+    _zoom = Math.max(Math.min(fit, 0.1), Math.min(ZOOM_STEPS[ZOOM_STEPS.length - 1], next));
+  }
+  applyZoom();
+  const after = c.getBoundingClientRect();
+  vp.scrollLeft += after.left + fx * after.width - ax;
+  vp.scrollTop += after.top + fy * after.height - ay;
+}
+
+function stepZoom(dir, anchor = null) {
+  const cur = currentScale();
+  const fit = fitScale();
+  const steps = [...new Set([...ZOOM_STEPS, fit])].sort((a, b) => a - b);
+  const next = dir > 0 ? steps.find((v) => v > cur * 1.02) : [...steps].reverse().find((v) => v < cur * 0.98);
+  if (next) setZoom(next, anchor);
+}
+
+function updateZoomUi() {
+  if (!_zoomEl) return;
+  const cur = currentScale();
+  const fit = fitScale();
+  const val = _zoomEl.querySelector(".qs-zoom-val");
+  if (val) val.textContent = `${Math.round(cur * 100)}%`;
+  _zoomEl.dataset.fit = _zoom == null ? "1" : "0";
+  const out = _zoomEl.querySelector('[data-z="out"]');
+  const inn = _zoomEl.querySelector('[data-z="in"]');
+  if (out) out.disabled = cur <= Math.min(fit, 0.1) * 1.02;
+  if (inn) inn.disabled = cur >= ZOOM_STEPS[ZOOM_STEPS.length - 1] * 0.98;
+}
+
+/** Pick the opening scale: fitted, or full width for a long page. */
+function chooseOpeningZoom() {
+  _zoom = null;
+  const fit = fitScale();
+  const wide = widthScale();
+  if (fit < wide * 0.5) _zoom = wide;
+  applyZoom();
+  if (_viewportEl) {
+    _viewportEl.scrollTop = 0;
+    _viewportEl.scrollLeft = 0;
+  }
+}
+
+function buildZoomControl() {
+  const el = document.createElement("div");
+  el.className = "qs-zoom";
+  el.setAttribute("role", "group");
+  el.setAttribute("aria-label", "Zoom");
+  el.innerHTML = `
+    <button type="button" data-z="out" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
+    <button type="button" data-z="reset" class="qs-zoom-val" aria-label="Zoom level"></button>
+    <button type="button" data-z="in" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 12h12M12 6v12"/></svg></button>
+    <i></i>
+    <button type="button" data-z="fit" aria-label="Fit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></svg></button>`;
+  ["pointerdown", "mousedown", "click", "dblclick"].forEach((type) => el.addEventListener(type, (e) => e.stopPropagation()));
+  el.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    hideCustomTooltip();
+    const z = b.dataset.z;
+    if (z === "in") stepZoom(1);
+    else if (z === "out") stepZoom(-1);
+    else if (z === "reset") setZoom(Math.abs(currentScale() - 1) < 0.01 ? null : 1);
+    else if (z === "fit") {
+      // Fit the whole picture; press again on a long page to fit its width.
+      const wide = widthScale();
+      const fit = fitScale();
+      if (_zoom == null && wide > fit * 1.05) {
+        setZoom(wide);
+        if (_viewportEl) _viewportEl.scrollTop = 0;
+      } else setZoom(null);
+    }
+  });
+  const q = (z) => el.querySelector(`[data-z="${z}"]`);
+  attachTooltip(q("out"), "Zoom Out", "", "Ctrl −", 350, _annotateHost);
+  attachTooltip(q("in"), "Zoom In", "", "Ctrl +", 350, _annotateHost);
+  attachTooltip(q("reset"), "Actual Size", "Switches between 100% and fitted. Ctrl + wheel zooms about the pointer.", "Ctrl 1", 350, _annotateHost);
+  attachTooltip(q("fit"), "Fit", "The whole picture; again for the full width of a long page.", "Ctrl 0", 350, _annotateHost);
+  return el;
+}
+
 // ─── Stage: the gallery-preview look ─────────────────────────────────
 
+let _onStageResize = null;
+let _stageShot = null; // snapshot of the page behind the editor, when there is one
 let _closeArmed = false;
 let _closeArmTimer = 0;
 let _savedLen = 0;
 let _savedTop = null;
 let _infoEl = null;
 
-/** Frost and tint the page behind the editor, light or dark like the toolbar. */
+/**
+ * Frost and tint the page behind the editor, light or dark like the toolbar.
+ *
+ * A live backdrop blur over the whole screen is recomputed on every frame
+ * that anything above it repaints, which means on every stroke and every
+ * hover. When the editor was opened on a snapshot of this very page, that
+ * snapshot is blurred once instead and sits behind the stage as a still
+ * picture: the same look, and drawing stays fluid. Without a snapshot (a
+ * capture opened from the tray) the live blur remains.
+ */
 function applyStageTone(dark) {
   if (!_annotateHost) return;
   _annotateHost.dataset.tone = dark ? "dark" : "light";
   const tint = dark ? "rgba(11, 12, 17, 0.82)" : "rgba(244, 245, 249, 0.8)";
+  _annotateHost.style.setProperty("color-scheme", dark ? "dark" : "light");
+  _annotateHost.querySelector(":scope > .qs-stage-bg")?.remove();
+  if (_standalone || _stageShot) {
+    _annotateHost.style.setProperty("background", _standalone ? tint : dark ? "#0b0c11" : "#f4f5f9", "important");
+    _annotateHost.style.setProperty("backdrop-filter", "none", "important");
+    _annotateHost.style.setProperty("-webkit-backdrop-filter", "none", "important");
+    if (_stageShot && !_standalone) {
+      const bg = document.createElement("div");
+      bg.className = "qs-stage-bg";
+      bg.style.cssText = `
+        all: initial;
+        position: fixed;
+        inset: -64px;
+        z-index: -1;
+        pointer-events: none;
+        background:
+          linear-gradient(${tint}, ${tint}),
+          url("${_stageShot}") center / calc(100% - 128px) calc(100% - 128px) no-repeat;
+        filter: blur(28px) saturate(140%);
+      `;
+      _annotateHost.prepend(bg);
+    }
+    return;
+  }
   _annotateHost.style.setProperty("background", tint, "important");
   _annotateHost.style.setProperty("backdrop-filter", "blur(28px) saturate(140%)", "important");
   _annotateHost.style.setProperty("-webkit-backdrop-filter", "blur(28px) saturate(140%)", "important");
-  _annotateHost.style.setProperty("color-scheme", dark ? "dark" : "light");
 }
 
 /** The current marks count as saved (just opened, copied, downloaded or stored). */
@@ -776,7 +1018,7 @@ function buildAnnotationUI() {
     align-items: center;
     justify-content: center;
     user-select: none;
-    font-family: 'SS Manrope', 'Manrope', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SS Inter', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
     opacity: 0;
     transition: opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   `;
@@ -850,7 +1092,7 @@ function buildAnnotationUI() {
       padding: 7px 16px;
       border-radius: 99em;
       box-sizing: border-box;
-      font-family: 'SS Manrope', 'Manrope', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SS Inter', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
       color: #1b1c2a;
       background:
         linear-gradient(110deg, var(--tb1), var(--tb2) 50%, var(--tb3)),
@@ -912,6 +1154,95 @@ function buildAnnotationUI() {
       opacity: 0;
       transform: translateY(8px);
       pointer-events: none;
+    }
+    #swiftselect-annotate-root #qs-annotate-viewport {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(20, 24, 50, 0.28) transparent;
+    }
+    #swiftselect-annotate-root[data-tone="dark"] #qs-annotate-viewport {
+      scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+    }
+    #swiftselect-annotate-root.qs-zoomed .qs-stage-frame {
+      max-width: none;
+    }
+    #swiftselect-annotate-root .qs-zoom {
+      all: initial;
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 4px;
+      border-radius: 99em;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SS Inter', 'Inter', 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      color: #141522;
+      background:
+        linear-gradient(110deg, var(--tb1), var(--tb2) 50%, var(--tb3)),
+        rgba(252, 252, 255, 0.82);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 0 0 1px var(--tbe), 0 10px 24px -12px rgba(20, 24, 50, 0.4);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      animation: qsStageInfoIn 260ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+      transition: opacity 160ms ease;
+      pointer-events: auto;
+      user-select: none;
+    }
+    #swiftselect-annotate-root[data-tone="dark"] .qs-zoom {
+      color: #f4f5fa;
+      background:
+        linear-gradient(110deg, var(--tb1), var(--tb2) 50%, var(--tb3)),
+        rgba(24, 25, 33, 0.84);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px var(--tbe), 0 10px 24px -12px rgba(0, 0, 0, 0.8);
+    }
+    #swiftselect-annotate-root .qs-zoom button {
+      all: unset;
+      box-sizing: border-box;
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 99em;
+      cursor: pointer;
+      color: inherit;
+      transition: background-color 140ms ease, transform 120ms ease, opacity 140ms ease;
+    }
+    #swiftselect-annotate-root .qs-zoom button:hover { background: rgba(20, 24, 50, 0.09); }
+    #swiftselect-annotate-root[data-tone="dark"] .qs-zoom button:hover { background: rgba(255, 255, 255, 0.13); }
+    #swiftselect-annotate-root .qs-zoom button:active { transform: scale(0.92); }
+    #swiftselect-annotate-root .qs-zoom button:focus-visible { outline: 2px solid var(--tba2); outline-offset: 1px; }
+    #swiftselect-annotate-root .qs-zoom button:disabled { opacity: 0.32; pointer-events: none; }
+    #swiftselect-annotate-root .qs-zoom svg { display: block; width: 16px; height: 16px; }
+    #swiftselect-annotate-root .qs-zoom .qs-zoom-val {
+      width: auto;
+      min-width: 54px;
+      padding: 0 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      line-height: 1;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
+    #swiftselect-annotate-root .qs-zoom i {
+      all: unset;
+      width: 1px;
+      height: 16px;
+      margin: 0 3px;
+      background: currentColor;
+      opacity: 0.16;
+    }
+    #swiftselect-annotate-root .qs-zoom[data-fit="1"] [data-z="fit"] { color: var(--tba2); }
+    #swiftselect-annotate-root[data-tone="dark"] .qs-zoom[data-fit="1"] [data-z="fit"] { color: var(--tba1); }
+    #swiftselect-annotate-root.qs-closing .qs-zoom { opacity: 0; pointer-events: none; }
+    @media (max-width: 640px) {
+      #swiftselect-annotate-root .qs-zoom { right: 12px; bottom: 12px; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      #swiftselect-annotate-root .qs-zoom { background: #fff; }
+      #swiftselect-annotate-root[data-tone="dark"] .qs-zoom { background: #1e2029; }
     }
     @media (max-width: 640px) {
       #swiftselect-annotate-root .qs-stage-meta span:last-child,
@@ -1347,6 +1678,7 @@ function buildAnnotationUI() {
       if (shape.type === "text") shape.fontSize = getScaledFontSize(width);
     });
     syncPopoverControls();
+    rememberStyle();
     if (_annotateCanvas && !_isDrawing) _annotateCanvas.style.cursor = getToolCursor(_currentTool);
   }
 
@@ -1356,6 +1688,7 @@ function buildAnnotationUI() {
       shape.opacity = opacity;
     });
     syncPopoverControls();
+    rememberStyle();
   }
 
   function applyColor(color) {
@@ -1364,6 +1697,7 @@ function buildAnnotationUI() {
       shape.color = color;
     });
     syncPopoverControls();
+    rememberStyle();
     if (_annotateCanvas && !_isDrawing) _annotateCanvas.style.cursor = getToolCursor(_currentTool);
   }
 
@@ -1409,6 +1743,7 @@ function buildAnnotationUI() {
           if (shape.type === "text") shape.font = v;
         });
       }
+      rememberStyle();
       return syncPopoverControls();
     }
     const tog = e.target.closest(".qs-pop-toggles button");
@@ -1421,6 +1756,7 @@ function buildAnnotationUI() {
         if (shape.type === "text") shape[prop] = val;
       });
       syncPopoverControls();
+      rememberStyle();
     }
   });
   customInput.addEventListener("input", (e) => applyColor(e.target.value));
@@ -1623,12 +1959,14 @@ function buildAnnotationUI() {
     width: 100vw;
     height: 100vh;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
     overflow: auto;
+    overscroll-behavior: contain;
     padding: 84px 56px 28px;
     box-sizing: border-box;
   `;
+  _viewportEl = viewport;
 
   // Framed like the gallery preview: rounded, a hairline edge and one soft
   // shadow, sized to leave room for the toolbar above and the caption below.
@@ -1657,6 +1995,24 @@ function buildAnnotationUI() {
   frame.appendChild(_infoEl);
   viewport.appendChild(frame);
   _annotateHost.appendChild(viewport);
+
+  _zoomEl = buildZoomControl();
+  _annotateHost.appendChild(_zoomEl);
+  viewport.addEventListener(
+    "wheel",
+    (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      setZoom(currentScale() * Math.exp(-e.deltaY * 0.0022), { x: e.clientX, y: e.clientY });
+    },
+    { passive: false },
+  );
+  // Text being typed is pinned to the screen; scrolling commits it in place.
+  viewport.addEventListener("scroll", () => _textInputOverlay?.blur(), { passive: true });
+  _onStageResize = () => {
+    if (_zoom == null) updateZoomUi();
+  };
+  window.addEventListener("resize", _onStageResize);
 
   // Close annotation editor when clicking outside the canvas on the backdrop
   const handleBackdropClick = (e) => {
@@ -2089,6 +2445,8 @@ function renderCanvas() {
     _annotateCanvas.width = w;
     _annotateCanvas.height = h;
     _annotateCtx = _annotateCanvas.getContext("2d", { willReadFrequently: true });
+    // A new picture size (first paint, crop, undo of a crop): fit it again.
+    chooseOpeningZoom();
   }
 
   if (!_annotateCtx) {
@@ -2584,6 +2942,16 @@ function spawnInlineTextInput(canvasX, canvasY, existingShape = null) {
   const fontSpec = existingShape || { font: _textFont, bold: _textBold, italic: _textItalic };
   const screenFontSize = Math.max(14, Math.round(baseFontSize * scale));
 
+  // The field is glass like the rest of the editor. Its tone is chosen for
+  // the ink, not the theme: light text needs dark glass behind it to be
+  // read while typing, dark text needs light glass.
+  const inkIsLight = luminance(existingShape ? existingShape.color : _currentColor) > 0.55;
+  const glassFill = inkIsLight ? "rgba(22, 23, 31, 0.78)" : "rgba(252, 252, 255, 0.82)";
+  const inkOnGlass = inkIsLight ? "#fff" : "#141522";
+  const glassEdge = inkIsLight
+    ? "inset 0 1px 0 rgba(255,255,255,0.22), inset 0 0 0 1px rgba(255,255,255,0.14), 0 0 0 1px rgba(0,0,0,0.35), 0 14px 30px -12px rgba(0,0,0,0.6)"
+    : "inset 0 1px 0 rgba(255,255,255,0.9), inset 0 0 0 1px rgba(20,24,50,0.1), 0 0 0 1px rgba(20,24,50,0.06), 0 14px 30px -12px rgba(20,24,50,0.4)";
+
   const input = document.createElement("input");
   input.type = "text";
   input.placeholder = "Type text...";
@@ -2601,14 +2969,15 @@ function spawnInlineTextInput(canvasX, canvasY, existingShape = null) {
     font-style: ${fontSpec.italic ? "italic" : "normal"};
     line-height: 1.25;
     color: ${existingShape ? existingShape.color : _currentColor};
-    background: rgba(18, 18, 24, 0.88);
-    backdrop-filter: blur(14px) saturate(160%);
-    -webkit-backdrop-filter: blur(14px) saturate(160%);
-    border: 1.5px solid rgba(255, 255, 255, 0.45);
-    border-radius: 8px;
-    padding: 3px 8px;
+    caret-color: ${inkOnGlass};
+    background: ${glassFill};
+    backdrop-filter: blur(18px) saturate(170%);
+    -webkit-backdrop-filter: blur(18px) saturate(170%);
+    border: none;
+    border-radius: 12px;
+    padding: 4px 11px;
     outline: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.25);
+    box-shadow: ${glassEdge};
     min-width: 140px;
     max-width: 90vw;
   `;
@@ -3631,6 +4000,16 @@ function onAnnotateKeyDown(e) {
     return;
   }
 
+  // Zoom: the browser's own page zoom would do nothing useful here.
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && ["=", "+", "-", "_", "0", "1"].includes(e.key)) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === "0") setZoom(null);
+    else if (e.key === "1") setZoom(1);
+    else stepZoom(e.key === "=" || e.key === "+" ? 1 : -1);
+    return;
+  }
+
   // Everything below is opt-in (Settings > Shortcuts > Editor shortcuts).
   // Escape, Enter and Delete above always work: they finish or undo the
   // action in hand rather than start a new one.
@@ -3723,6 +4102,8 @@ export function closeAnnotationEditor() {
   window.removeEventListener("pointermove", onCanvasPointerMove);
   window.removeEventListener("pointerup", onCanvasPointerUp);
   window.removeEventListener("keydown", onAnnotateKeyDown, true);
+  if (_onStageResize) window.removeEventListener("resize", _onStageResize);
+  _onStageResize = null;
   if (_closePopoverHandler) {
     window.removeEventListener("pointerdown", _closePopoverHandler, true);
     window.removeEventListener("click", _closePopoverHandler, true);
@@ -3755,6 +4136,10 @@ export function closeAnnotationEditor() {
     _annotateHost = null;
     setTooltipGuard(null);
     _infoEl = null;
+    _zoomEl = null;
+    _stageShot = null;
+    _viewportEl = null;
+    _zoom = null;
     _closeArmed = false;
     clearTimeout(_closeArmTimer);
     _toolbarEl = null;

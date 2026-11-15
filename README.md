@@ -197,6 +197,8 @@ Editor shortcuts are **off by default** too (Settings › Shortcuts). <kbd>Esc</
 | <kbd>Delete</kbd> | Remove the selected shape |
 | <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> | Nudge the selected shape 1 px (10 px with <kbd>Shift</kbd>). Always on |
 | <kbd>Ctrl</kbd>+<kbd>D</kbd> | Duplicate the selected shape |
+| <kbd>Ctrl</kbd>+wheel, <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> | Zoom about the pointer / in steps. Always on |
+| <kbd>Ctrl</kbd>+<kbd>0</kbd> / <kbd>Ctrl</kbd>+<kbd>1</kbd> | Fit / actual size. Always on |
 | <kbd>Esc</kbd> | Put the selected shape down, then close. With unsaved marks, press it twice |
 
 ### In the gallery
@@ -247,11 +249,13 @@ Open it from the capture status pill, with <kbd>A</kbd> in the capture toolbar, 
 
 On a web page the editor is staged like the gallery preview: the page behind is frosted over and tinted to the theme, the capture sits in a rounded frame, and a caption under it names its source and size. Closing with unsaved marks (Esc, the close button or a click outside) asks for a second press, so nothing is lost by accident. Toolbar tooltips stay out of the way while the Style panel is open.
 
+**Zoom.** The picture opens fitted to the stage; a long full-page capture opens at full width and scrolls instead of shrinking to a sliver. The pill in the corner steps the zoom, shows the scale, switches between 100% and fitted, and fits again. The colour, sizes, opacity, arrow heads and typeface you last chose come back the next time the editor opens.
+
 ### The toolbar's panel
 
 The capture toolbar holds **Visible Area**, **Full page** and **Annotate**, then **Convert**, **Gallery**, **Settings** and a chevron. Convert opens the Batch Converter in the Gallery, where images are dropped and handled in bulk. Gallery, Settings or the chevron grow the toolbar itself: the pill reshapes into a panel that unfolds under the buttons (above them when the toolbar sits low on the page), and the two tiles fuse into the panel's tabs. Each tab has a button that opens its full page.
 
-- **Gallery**: the newest captures as small cards, scrolling sideways. Drag one into the page, where it arrives as an image file, or out of the browser to save it. Click to copy; hover for Download, Convert and Annotate. After a copy or a drag, capture mode ends so the page is usable again, while the toolbar stays until <kbd>Esc</kbd> or a click elsewhere. An empty gallery, or gallery saving turned off, is said plainly with the fix one click away.
+- **Gallery**: the newest captures in one row, each card as wide as its picture (within limits), scrolling sideways. Drag one into the page, where it arrives as an image file, or out of the browser to save it. Click to copy; hover for Download, Convert and Annotate. After a copy or a drag, capture mode ends so the page is usable again, while the toolbar stays until <kbd>Esc</kbd> or a click elsewhere. An empty gallery, or gallery saving turned off, is said plainly with the fix one click away.
 - **Settings**: theme, colour, format, quality, delay, and what happens after a capture, all on one screen. Shortcuts and retention stay on the full Settings page.
 
 Horizontal capture left the toolbar to make room; it is still on <kbd>Alt</kbd>+<kbd>H</kbd>, the <kbd>H</kbd> key, the quick menu and the right-click menu.

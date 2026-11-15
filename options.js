@@ -83,7 +83,7 @@ function renderQuality() {
   const input = $("quality");
   input.disabled = lossless;
   input.value = String(settings.outputQuality);
-  $("quality-value").textContent = lossless ? "1.00" : settings.outputQuality.toFixed(2);
+  $("quality-value").textContent = lossless ? "Lossless" : `${Math.round(settings.outputQuality * 100)}%`;
   input.style.setProperty("--fill-pct", `${((settings.outputQuality - 0.5) / 0.5) * 100}%`);
   $("quality-wrap").classList.toggle("is-off", lossless);
   $("quality-note").textContent = lossless

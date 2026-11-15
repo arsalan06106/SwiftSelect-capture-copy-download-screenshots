@@ -85,9 +85,10 @@ export let safetyListenersAdded = false;
 export let cachedCssText = stylesCss;
 
 /**
- * Manrope ships with the extension. @font-face inside a shadow root
+ * Inter ships with the extension (Macs use their own San Francisco, which
+ * comes first in the stack and cannot be redistributed). @font-face inside a shadow root
  * is ignored, so the faces are registered on the document under a private
- * family name ("SS Manrope") that no page stylesheet will ever ask for.
+ * family name ("SS Inter") that no page stylesheet will ever ask for.
  * They are read as bytes, so a strict page CSP (font-src) cannot block them.
  * Until they arrive (or if they cannot), the stack falls back to Segoe UI /
  * the system font, so nothing waits on this.
@@ -97,15 +98,15 @@ export function loadFonts() {
   if (fontsRequested) return;
   fontsRequested = true;
   const faces = [
-    ["manrope-latin.woff2", "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"],
-    ["manrope-latin-ext.woff2", "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+20A0-20AB, U+20AD-20C0, U+2C60-2C7F, U+A720-A7FF"],
+    ["inter-latin.woff2", "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"],
+    ["inter-latin-ext.woff2", "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+20A0-20AB, U+20AD-20C0, U+2C60-2C7F, U+A720-A7FF"],
   ];
   for (const [file, unicodeRange] of faces) {
     (async () => {
       try {
         const res = await fetch(chrome.runtime.getURL(`fonts/${file}`));
         if (!res.ok) return;
-        const face = new FontFace("SS Manrope", await res.arrayBuffer(), { weight: "200 800", display: "swap", unicodeRange });
+        const face = new FontFace("SS Inter", await res.arrayBuffer(), { weight: "100 900", display: "swap", unicodeRange });
         await face.load();
         document.fonts.add(face);
       } catch {}
@@ -707,20 +708,10 @@ export async function ensureUi() {
  * the pointer is, the way a real glass surface catches it. Writes two CSS
  * variables per move, nothing else.
  */
-export function trackSheen(root, selector = ".qs-guide-btn, .qs-save-btn, .qs-stroke-tune-btn") {
-  if (!root || root._qsSheen) return;
-  root._qsSheen = true;
-  root.addEventListener(
-    "pointermove",
-    (e) => {
-      const btn = e.target?.closest?.(selector);
-      if (!btn) return;
-      const r = btn.getBoundingClientRect();
-      btn.style.setProperty("--qs-mx", `${Math.round(e.clientX - r.left)}px`);
-      btn.style.setProperty("--qs-my", `${Math.round(e.clientY - r.top)}px`);
-    },
-    { passive: true },
-  );
+export function trackSheen() {
+  // The pointer-tracked highlight was retired: nothing in the stylesheet read
+  // its variables any more, yet every mouse move still measured the button
+  // and rewrote two properties on it, which is what made hover stutter.
 }
 
 export let menuTooltipEl = null;
