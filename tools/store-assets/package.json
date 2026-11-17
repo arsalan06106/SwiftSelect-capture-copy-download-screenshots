@@ -1,0 +1,13 @@
+{
+  "name": "swiftselect-store-assets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capture": "node raw.mjs",
+    "render": "node render.mjs",
+    "build": "node raw.mjs && node render.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}

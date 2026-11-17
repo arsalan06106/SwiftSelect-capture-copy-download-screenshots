@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:Inter;src:url(../../../fonts/inter-latin.woff2) format("woff2");font-weight:100 900}
+*{box-sizing:border-box;margin:0}
+html,body{width:var(--w);height:var(--h);overflow:hidden}
+body{font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased;color:#f4f5f8;position:relative;
+ background:radial-gradient(900px 520px at -6% -18%,rgba(232,72,104,.26),transparent 60%),radial-gradient(800px 520px at 108% 112%,rgba(38,198,190,.20),transparent 60%),radial-gradient(700px 400px at 70% -30%,rgba(110,92,255,.16),transparent 60%),#0c0d12}
+body::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 1px);background-size:22px 22px;mask-image:linear-gradient(180deg,#000,transparent 60%);pointer-events:none}
+.eyebrow{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:650;letter-spacing:.14em;text-transform:uppercase;color:#9aa0b2}
+.eyebrow img{width:22px;height:22px}
+.eyebrow .dot{width:4px;height:4px;border-radius:50%;background:#5b6070}
+h1{font-size:44px;line-height:1.08;letter-spacing:-.035em;font-weight:720;margin-top:12px}
+.acc{background:var(--acc);-webkit-background-clip:text;color:transparent}
+.sub{font-size:17px;line-height:1.5;color:#a8aebd;text-align:right}
+.sub b{color:#e9ebf1;font-weight:600}
+kbd{font-family:Inter;font-size:13px;font-weight:650;color:#f1f2f6;background:linear-gradient(#2b2e38,#1f2129);border:1px solid #3a3e4a;border-bottom-width:2px;border-radius:7px;padding:3px 8px;margin:0 2px;position:relative;top:-1px}
+.head{position:absolute;left:80px;right:80px;top:40px;display:flex;justify-content:space-between;align-items:flex-end;z-index:2}
+.win{position:absolute;left:80px;right:80px;top:150px;border-radius:16px 16px 0 0;overflow:hidden;background:#17181e;box-shadow:0 0 0 1px rgba(255,255,255,.09),0 40px 90px -20px rgba(0,0,0,.8),0 0 120px -30px var(--glow,rgba(120,100,255,.35))}
+.bar{height:38px;display:flex;align-items:center;gap:8px;padding:0 16px;background:linear-gradient(#1e2027,#191a20);border-bottom:1px solid rgba(255,255,255,.06)}
+.bar i{width:11px;height:11px;border-radius:50%;background:#3a3c45}
+.url{position:absolute;left:50%;transform:translateX(-50%);width:420px;height:24px;border-radius:8px;background:#121318;display:flex;align-items:center;justify-content:center;gap:7px;font-size:12.5px;color:#9096a6}
+.url svg{width:11px;height:11px}
+.ext{margin-left:auto;width:24px;height:24px;border-radius:7px;background:#2a2c35;display:grid;place-items:center}
+.ext img{width:15px}
+.win>img.shot{display:block;width:1120px}
+.float{position:absolute;z-index:3;border-radius:18px;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.12),0 40px 80px -20px rgba(0,0,0,.75)}
+.chip{position:absolute;z-index:4;display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;background:rgba(18,19,25,.82);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);font-size:13.5px;font-weight:600;color:#eef0f5;box-shadow:0 14px 30px -10px rgba(0,0,0,.6)}
+.chip em{font-style:normal;width:8px;height:8px;border-radius:50%;background:var(--c,#34d399)}
+</style></head><body><div id="root"></div>
+<script>
+const LOGO='<img src="../../../icons/app128.png">';
+const url=(t,lock=true)=>`<div class="url"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6" cy="6" r="4.5"/></svg>${t}</div>`;
+const win=(img,u,extra='')=>`<div class="win"><div class="bar"><i></i><i></i><i></i>${url(u)}<span class="ext">${LOGO}</span></div><img class="shot" src="${img}">${extra}</div>`;
+const head=(eb,h,sub)=>`<div class="head"><div><div class="eyebrow">${LOGO}SwiftSelect<span class="dot"></span>${eb}</div><h1>${h}</h1></div><p class="sub">${sub}</p></div>`;
+const G={warm:'linear-gradient(90deg,#ff6b8b,#ffa36b)',cool:'linear-gradient(90deg,#34d8b0,#4fb3ff)',violet:'linear-gradient(90deg,#a78bfa,#f472b6)',blue:'linear-gradient(90deg,#60a5fa,#a78bfa)',lime:'linear-gradient(90deg,#86efac,#38bdf8)'};
+const L={
+ region:()=>({acc:G.warm,glow:'rgba(255,120,120,.28)',html:head('Region capture','One toolbar, <span class="acc">every capture</span>','Press <kbd>Alt</kbd><kbd>X</kbd>, drag, release.<br>Copied and saved in the same motion.')+win('../out/raw-region.png','northbound.example')}),
+ panel:()=>({acc:G.cool,glow:'rgba(60,200,190,.28)',html:head('Toolbar gallery','Recent captures, <span class="acc">right where you work</span>','Open the panel and drag a capture<br>straight into the page. Or copy it.')+win('../out/raw-panel-gallery.png','app.tally.example/overview')}),
+ annotate:()=>({acc:G.violet,glow:'rgba(240,110,180,.26)',html:head('Annotate','Mark it up <span class="acc">before you share</span>','Arrows, shapes, text, steps, highlighter<br>and blur. Zoom in, every step undoable.')+win('../out/raw-annotate.png','northbound.example')}),
+ gallery:()=>({acc:G.lime,glow:'rgba(80,200,255,.25)',html:head('Gallery','Every capture, <span class="acc">kept on your device</span>','Search, filter, favourite, re-copy, convert.<br><b>Nothing is uploaded anywhere.</b>')+win('../out/raw-gallery.png','SwiftSelect Gallery')}),
+ settings:()=>({acc:G.blue,glow:'rgba(110,130,255,.3)',html:head('Quick settings','Make it yours <span class="acc">without leaving the page</span>','Theme, colour, format, quality and delay.<br>Every change applies straight away.')+win('../out/raw-panel-settings.png','app.tally.example/overview')}),
+ smart:()=>({acc:G.cool,glow:'rgba(60,200,190,.28)',html:head('Smart element','Hold Ctrl and it <span class="acc">snaps to the element</span>','Cards, images and buttons select themselves.<br>Click once to capture exactly that.')+win('../out/raw-smart.png','northbound.example')}),
+};
+const k=location.hash.slice(1); const c=L[k]();
+document.body.style.setProperty('--acc',c.acc); document.body.style.setProperty('--glow',c.glow);
+document.getElementById('root').innerHTML=c.html;
+</script></body></html>
