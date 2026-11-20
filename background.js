@@ -10,8 +10,46 @@ import { addCapture, applyRetention } from "./src/storage.js";
 import { DEFAULTS, getSettings, normalizeTheme } from "./src/settings.js";
 import { handlePeekMessage } from "./src/peekData.js";
 import { recordIssue } from "./src/issues.js";
+import { sanitizeDownloadFilename } from "./src/downloadFile.js";
 
 const QUICK_MENU = "popup.html";
+
+// Authoritative download filename registry: prevents Chrome's blob-URL download
+// pipeline (or competing download extensions) from resetting filenames to "download".
+const pendingDownloadByUrl = new Map();
+const pendingDownloadById = new Map();
+
+function rememberDownloadFilename({ url = "", downloadId = null, filename = "" } = {}) {
+  const safe = sanitizeDownloadFilename(filename, "png");
+  const expiresAt = Date.now() + 2 * 60 * 1000;
+  if (url) pendingDownloadByUrl.set(url, { filename: safe, expiresAt });
+  if (typeof downloadId === "number") pendingDownloadById.set(downloadId, { filename: safe, expiresAt });
+  // Prune stale entries lazily.
+  const now = Date.now();
+  for (const [k, v] of pendingDownloadByUrl) if (v.expiresAt < now) pendingDownloadByUrl.delete(k);
+  for (const [k, v] of pendingDownloadById) if (v.expiresAt < now) pendingDownloadById.delete(k);
+  return safe;
+}
+
+if (chrome.downloads?.onDeterminingFilename) {
+  chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
+    // Only enforce names for downloads initiated by SwiftSelect itself.
+    if (downloadItem.byExtensionId && downloadItem.byExtensionId !== chrome.runtime.id) {
+      return;
+    }
+    const byId = pendingDownloadById.get(downloadItem.id);
+    const byUrl =
+      pendingDownloadByUrl.get(downloadItem.url) ||
+      (downloadItem.finalUrl ? pendingDownloadByUrl.get(downloadItem.finalUrl) : null);
+    const match = byId || byUrl;
+    if (match?.filename) {
+      pendingDownloadById.delete(downloadItem.id);
+      if (downloadItem.url) pendingDownloadByUrl.delete(downloadItem.url);
+      if (downloadItem.finalUrl) pendingDownloadByUrl.delete(downloadItem.finalUrl);
+      suggest({ filename: match.filename, conflictAction: "uniquify" });
+    }
+  });
+}
 
 // Toolbar click with no popup attached: go straight to region selection.
 chrome.action.onClicked.addListener((tab) => {
@@ -650,14 +688,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // --- Register authoritative download filename before chrome.downloads.download ---
+  if (message?.type === "register-download-name") {
+    const safe = rememberDownloadFilename({ url: message.url, filename: message.filename });
+    sendResponse({ success: true, filename: safe });
+    return false;
+  }
+
   // --- Native download via chrome.downloads (bypasses file:// and CSP restrictions) ---
   if (message?.type === "download-file") {
     const { url, filename } = message;
+    const safeFilename = rememberDownloadFilename({ url, filename });
     if (chrome.downloads?.download) {
       chrome.downloads.download(
         {
           url,
-          filename,
+          filename: safeFilename,
+          conflictAction: "uniquify",
           saveAs: false,
         },
         (downloadId) => {
@@ -671,7 +718,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               error: chrome.runtime.lastError.message,
             });
           } else {
-            sendResponse({ success: true, downloadId });
+            rememberDownloadFilename({ downloadId, filename: safeFilename });
+            sendResponse({ success: true, downloadId, filename: safeFilename });
           }
         },
       );

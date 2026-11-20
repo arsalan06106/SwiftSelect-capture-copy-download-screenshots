@@ -87,6 +87,9 @@
             <span class="sr-only">Search captures</span>
             <i data-icon="search"></i>
             <input class="input" id="search" type="search" placeholder="Search captures..." autocomplete="off" spellcheck="false" />
+            <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" data-tip="Clear search" data-tip-pos="bottom" hidden>
+              <i data-icon="close"></i>
+            </button>
             <span class="search-hint" aria-hidden="true"><kbd class="kbd">/</kbd></span>
           </label>
 
@@ -97,6 +100,35 @@
           <div class="topbar-spacer"></div>
 
           <span class="sync" id="sync" role="status" aria-live="polite"><i></i><span id="sync-text">All changes saved</span></span>
+
+          <div class="cv-info-wrap" id="cv-info-wrap">
+            <button type="button" class="btn btn-icon" id="cv-info-btn" aria-label="Converter engine and credits" aria-expanded="false" aria-controls="cv-info-pop" data-tip="Engine &amp; credits" data-tip-pos="left">
+              <i data-icon="info"></i>
+            </button>
+            <div class="cv-info-pop glass glass-dense" id="cv-info-pop" role="dialog" aria-label="Batch Converter engine credits" hidden>
+              <div class="cv-info-head">
+                <b>Engine powered by MAZANOKE</b>
+                <span>GPL-3.0</span>
+              </div>
+              <p class="cv-info-copy">
+                Local conversion pipelines, target-size compression, and HEIC / TIFF / ICO codecs synthesized from
+                <a href="https://github.com/civilblur/mazanoke" target="_blank" rel="noopener noreferrer" class="cv-credit-link">civilblur/mazanoke<i data-icon="external"></i></a>.
+              </p>
+              <div class="cv-info-tags">
+                <code>browser-image-compression</code>
+                <code>UPNG.js</code>
+                <code>libheif-js</code>
+                <code>UTIF.js</code>
+                <code>icojs</code>
+              </div>
+              <div class="cv-info-foot">
+                <span>Runs 100% on-device · EXIF stripped</span>
+                <a href="https://github.com/civilblur/mazanoke" target="_blank" rel="noopener noreferrer" class="btn cv-info-repo">
+                  <span>GitHub</span><i data-icon="external"></i>
+                </a>
+              </div>
+            </div>
+          </div>
 
           <div class="capture-group" role="group" aria-label="Quick capture">
             <button type="button" class="btn" data-capture="visible" data-tip="Capture the visible area" data-tip-pos="bottom">
@@ -390,14 +422,14 @@
             <div class="shortcut-block" data-block="toolbarShortcuts">
               <table class="shortcuts">
                 <tbody>
-                  <tr><td>Capture visible area</td><td><kbd class="kbd">V</kbd><kbd class="kbd">S</kbd></td></tr>
+                  <tr><td>Capture visible area</td><td><kbd class="kbd">V</kbd><span class="kbd-sep">/</span><kbd class="kbd">S</kbd></td></tr>
                   <tr><td>Capture full page</td><td><kbd class="kbd">F</kbd></td></tr>
                   <tr><td>Capture horizontal view</td><td><kbd class="kbd">H</kbd></td></tr>
                   <tr><td>Delayed capture</td><td><kbd class="kbd">T</kbd></td></tr>
                   <tr><td>Annotate the current view</td><td><kbd class="kbd">A</kbd></td></tr>
                   <tr><td>Copy the colour under the cursor</td><td><kbd class="kbd">C</kbd></td></tr>
                   <tr><td>Open Gallery</td><td><kbd class="kbd">G</kbd></td></tr>
-                  <tr><td>Open Settings</td><td><kbd class="kbd">,</kbd><kbd class="kbd">O</kbd></td></tr>
+                  <tr><td>Open Settings</td><td><kbd class="kbd">,</kbd><span class="kbd-sep">/</span><kbd class="kbd">O</kbd></td></tr>
                 </tbody>
               </table>
             </div>
@@ -413,14 +445,14 @@
               <table class="shortcuts">
                 <tbody>
                   <tr><td>Select &amp; move</td><td><kbd class="kbd">V</kbd></td></tr>
-                  <tr><td>Pen / Highlighter</td><td><kbd class="kbd">P</kbd><kbd class="kbd">H</kbd></td></tr>
-                  <tr><td>Arrow / Rectangle / Ellipse</td><td><kbd class="kbd">A</kbd><kbd class="kbd">R</kbd><kbd class="kbd">O</kbd></td></tr>
-                  <tr><td>Step counter / Blur / Text</td><td><kbd class="kbd">S</kbd><kbd class="kbd">B</kbd><kbd class="kbd">T</kbd></td></tr>
-                  <tr><td>Crop / Toggle fill</td><td><kbd class="kbd">C</kbd><kbd class="kbd">F</kbd></td></tr>
-                  <tr><td>Thinner / Thicker stroke</td><td><kbd class="kbd">[</kbd><kbd class="kbd">]</kbd></td></tr>
+                  <tr><td>Pen / Highlighter</td><td><kbd class="kbd">P</kbd><span class="kbd-sep">/</span><kbd class="kbd">H</kbd></td></tr>
+                  <tr><td>Arrow / Rectangle / Ellipse</td><td><kbd class="kbd">A</kbd><span class="kbd-sep">/</span><kbd class="kbd">R</kbd><span class="kbd-sep">/</span><kbd class="kbd">O</kbd></td></tr>
+                  <tr><td>Step counter / Blur / Text</td><td><kbd class="kbd">S</kbd><span class="kbd-sep">/</span><kbd class="kbd">B</kbd><span class="kbd-sep">/</span><kbd class="kbd">T</kbd></td></tr>
+                  <tr><td>Crop / Toggle fill</td><td><kbd class="kbd">C</kbd><span class="kbd-sep">/</span><kbd class="kbd">F</kbd></td></tr>
+                  <tr><td>Thinner / Thicker stroke</td><td><kbd class="kbd">[</kbd><span class="kbd-sep">/</span><kbd class="kbd">]</kbd></td></tr>
                   <tr><td>Duplicate selected shape</td><td><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">D</kbd></td></tr>
-                  <tr><td>Undo / Redo</td><td><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">Z</kbd> <kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">Y</kbd></td></tr>
-                  <tr><td>Copy / Download / Save to Gallery</td><td><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">C</kbd> <kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">S</kbd> <kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">G</kbd></td></tr>
+                  <tr><td>Undo / Redo</td><td><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">Z</kbd><span class="kbd-sep">/</span><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">Y</kbd></td></tr>
+                  <tr><td>Copy / Download / Save to Gallery</td><td><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">C</kbd><span class="kbd-sep">/</span><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">S</kbd><span class="kbd-sep">/</span><kbd class="kbd" data-mod>Ctrl</kbd><kbd class="kbd">G</kbd></td></tr>
                 </tbody>
               </table>
             </div>
@@ -438,55 +470,102 @@
           <div class="cv-layout">
             <div class="cv-main">
               <label class="cv-drop glass" id="cv-drop" tabindex="0">
-                <input type="file" id="cv-file" accept="image/*" multiple hidden />
+                <input type="file" id="cv-file" accept="image/*,.heic,.heif,.tif,.tiff,.dng,.ico,.avif,.webp,.svg,.gif,.bmp" multiple hidden />
                 <span class="cv-drop-glyph" aria-hidden="true"><i data-icon="convert"></i></span>
                 <span class="cv-drop-text">
-                  <b>Drop images to convert</b>
-                  <small>or click to browse · paste with <kbd class="kbd">Ctrl</kbd><kbd class="kbd">V</kbd> · PNG, JPG, WebP, GIF, BMP, AVIF, SVG</small>
+                  <b class="cv-drop-title-full">Drop images to convert &amp; optimize</b>
+                  <b class="cv-drop-title-short">Add more images</b>
+                  <small class="cv-drop-sub-full">or click to browse · paste with <kbd class="kbd">Ctrl</kbd><kbd class="kbd">V</kbd> · PNG, JPG, WebP, HEIC, AVIF, TIFF, GIF, SVG, ICO</small>
+                  <small class="cv-drop-sub-short">Drop files, click to browse, or paste <kbd class="kbd">Ctrl</kbd><kbd class="kbd">V</kbd></small>
                 </span>
                 <span class="cv-drop-actions">
                   <span class="btn btn-primary" aria-hidden="true"><i data-icon="plus"></i>Add images</span>
                 </span>
               </label>
 
-              <section class="cv-summary glass" id="cv-summary" hidden aria-live="polite">
-                <div class="cv-summary-text">
-                  <b id="cv-sum-title">0 images</b>
-                  <span id="cv-sum-detail"></span>
-                </div>
-                <div class="cv-saving" id="cv-sum-saving" hidden></div>
-                <div class="topbar-spacer"></div>
-                <button type="button" class="btn btn-quiet" id="cv-clear" data-tip="Remove every image"><i data-icon="trash"></i><span>Clear</span></button>
-                <button type="button" class="btn" id="cv-save-gallery" data-tip="Keep the results in the Gallery, tagged Converted"><i data-icon="gallery"></i><span>Save to Gallery</span></button>
-                <button type="button" class="btn btn-icon" id="cv-zip" aria-label="Download as one ZIP" data-tip="Download as one ZIP"><i data-icon="zip"></i></button>
-                <button type="button" class="btn btn-primary" id="cv-download-all"><i data-icon="download"></i><span id="cv-download-label">Download all</span></button>
-                <i class="cv-progress" id="cv-progress" aria-hidden="true"><i></i></i>
-              </section>
+              <div class="cv-summary-sentinel" id="cv-summary-sentinel" aria-hidden="true"></div>
+              <div class="cv-summary-dock" id="cv-summary-dock" hidden>
+                <section class="cv-summary glass" id="cv-summary" aria-live="polite">
+                  <div class="cv-summary-lead">
+                    <div class="cv-summary-text">
+                      <b id="cv-sum-title">0 images</b>
+                      <span id="cv-sum-detail"></span>
+                    </div>
+                    <div class="cv-saving" id="cv-sum-saving" hidden></div>
+                  </div>
+                  <div class="cv-summary-actions">
+                    <button type="button" class="btn btn-danger" id="cv-abort" hidden data-tip="Stop converting"><i data-icon="close"></i><span>Stop</span></button>
+                    <button type="button" class="btn btn-quiet" id="cv-clear" data-tip="Remove every image"><i data-icon="trash"></i><span>Clear</span></button>
+                    <button type="button" class="btn" id="cv-save-gallery" data-tip="Save results to Gallery, tagged Converted"><i data-icon="gallery"></i><span>To Gallery</span></button>
+                    <button type="button" class="btn btn-icon" id="cv-zip" aria-label="Download as one ZIP" data-tip="Download as one ZIP"><i data-icon="zip"></i></button>
+                    <button type="button" class="btn btn-primary" id="cv-download-all" data-tip="Download converted files"><i data-icon="download"></i><span id="cv-download-label">Download all</span></button>
+                  </div>
+                  <i class="cv-progress" id="cv-progress" aria-hidden="true"><i></i></i>
+                </section>
+              </div>
 
               <ul class="cv-list" id="cv-list" aria-label="Images"></ul>
             </div>
 
             <aside class="cv-side" aria-label="Conversion settings">
               <section class="group glass" data-tone="orange">
-                <h2 class="group-title"><span class="tile"><i data-icon="convert"></i></span>Format</h2>
+                <h2 class="group-title"><span class="tile"><i data-icon="convert"></i></span>Format &amp; Compression</h2>
                 <div class="row row-stack">
-                  <div class="seg seg-full" role="radiogroup" aria-label="Output format" data-key="format">
+                  <div class="seg seg-full cv-seg-formats" role="radiogroup" aria-label="Output format" data-key="format">
+                    <button type="button" role="radio" data-value="auto" title="Keep source format (maps HEIC/TIFF/SVG/ICO to PNG)">Auto</button>
                     <button type="button" role="radio" data-value="jpg">JPG</button>
-                    <button type="button" role="radio" data-value="png">PNG <small>Lossless</small></button>
+                    <button type="button" role="radio" data-value="png">PNG</button>
                     <button type="button" role="radio" data-value="webp">WebP</button>
+                    <button type="button" role="radio" data-value="ico">ICO</button>
+                  </div>
+                  <p class="cv-note" id="cv-format-note" hidden></p>
+                  <div class="cv-png-tip" id="cv-png-tip" hidden>
+                    <span>Photos stay much smaller as WebP or JPG.</span>
+                    <button type="button" class="chip" id="cv-switch-webp">Try WebP</button>
                   </div>
                 </div>
+
+                <div class="row row-stack" id="cv-method-row">
+                  <div class="row-label">
+                    <b>Compression mode</b>
+                  </div>
+                  <div class="seg seg-full" role="radiogroup" aria-label="Compression mode" data-key="compressMethod">
+                    <button type="button" role="radio" data-value="quality">Quality</button>
+                    <button type="button" role="radio" data-value="limitWeight">Target size</button>
+                  </div>
+                </div>
+
                 <div class="row row-stack" id="cv-quality-row">
                   <div class="row-label cv-inline">
                     <b>Quality</b>
-                    <output class="cv-value" id="cv-quality-out">92</output>
+                    <output class="cv-value" id="cv-quality-out">85</output>
                   </div>
-                  <input class="range" id="cv-quality" type="range" min="30" max="100" step="1" value="92" aria-label="Quality" />
+                  <input class="range" id="cv-quality" type="range" min="10" max="100" step="1" value="85" aria-label="Quality" />
                   <div class="cv-presets" data-key="quality">
                     <button type="button" class="chip" data-value="60">Smallest</button>
                     <button type="button" class="chip" data-value="80">Balanced</button>
                     <button type="button" class="chip" data-value="92">High</button>
                     <button type="button" class="chip" data-value="100">Best</button>
+                  </div>
+                </div>
+
+                <div class="row row-stack" id="cv-weight-row" hidden>
+                  <div class="row-label">
+                    <b>Target file size</b>
+                    <span>Iteratively optimizes each image to fit under this limit.</span>
+                  </div>
+                  <div class="cv-weight-input">
+                    <input class="input" id="cv-target-weight" type="number" min="10" max="102400" step="10" value="500" inputmode="decimal" aria-label="Target file size" />
+                    <div class="seg cv-unit-seg" role="radiogroup" aria-label="File size unit" data-key="targetWeightUnit">
+                      <button type="button" role="radio" data-value="KB">KB</button>
+                      <button type="button" role="radio" data-value="MB">MB</button>
+                    </div>
+                  </div>
+                  <div class="cv-presets" data-key="weight">
+                    <button type="button" class="chip" data-value="200" data-unit="KB">200 KB</button>
+                    <button type="button" class="chip" data-value="500" data-unit="KB">500 KB</button>
+                    <button type="button" class="chip" data-value="1" data-unit="MB">1 MB</button>
+                    <button type="button" class="chip" data-value="2" data-unit="MB">2 MB</button>
                   </div>
                 </div>
               </section>
@@ -526,22 +605,66 @@
               <section class="group glass" data-tone="violet">
                 <h2 class="group-title"><span class="tile"><i data-icon="annotated"></i></span>Output</h2>
                 <div class="row row-stack">
+                  <div class="row-label cv-inline">
+                    <b>File naming</b>
+                    <button type="button" class="cv-template-link" id="cv-edit-template">Edit template</button>
+                  </div>
+                  <div class="seg seg-full" role="radiogroup" aria-label="File naming" data-key="namingMode">
+                    <button type="button" role="radio" data-value="template">Naming engine</button>
+                    <button type="button" role="radio" data-value="original">Original name</button>
+                  </div>
+                  <div class="cv-name-preview"><code id="cv-name-preview">photo - converted.jpg</code></div>
+                </div>
+                <div class="row row-stack">
                   <div class="row-label">
                     <b>File name suffix</b>
-                    <span>Added before the extension, e.g. <code>photo<em id="cv-suffix-demo"></em>.jpg</code></span>
+                    <span>Optional tag appended before <code>.<em id="cv-ext-demo" class="cv-ext-demo">jpg</em></code></span>
                   </div>
                   <input class="input" id="cv-suffix" type="text" maxlength="40" placeholder="none" spellcheck="false" autocomplete="off" />
                 </div>
                 <div class="row" id="cv-bg-row">
                   <div class="row-label">
                     <b>Fill transparency with white</b>
-                    <span>JPG has no transparency. Off uses black.</span>
+                    <span>JPG has no alpha channel. Off fills black.</span>
                   </div>
                   <button type="button" class="switch" id="cv-bg-white" role="switch" aria-checked="true" aria-label="Fill transparency with white"></button>
                 </div>
-                <p class="cv-note cv-privacy"><i data-icon="lock"></i>Everything happens on this device. Converting also removes hidden metadata such as camera details and location.</p>
+                <p class="cv-note cv-privacy"><i data-icon="lock"></i><span>Everything happens on this device. EXIF metadata such as camera details and location is always stripped.</span></p>
               </section>
             </aside>
+          </div>
+
+          <!-- Interactive Split / Original / Converted quality inspector -->
+          <div class="cv-compare-backdrop" id="cv-compare" hidden>
+            <div class="cv-compare glass glass-dense" role="dialog" aria-modal="true" aria-labelledby="cv-compare-title">
+              <div class="cv-compare-head">
+                <div class="cv-compare-meta">
+                  <b id="cv-compare-title">Preview</b>
+                  <span id="cv-compare-stats"></span>
+                </div>
+                <div class="seg cv-compare-seg" id="cv-compare-seg" role="radiogroup" aria-label="Preview mode">
+                  <button type="button" role="radio" data-mode="split" aria-checked="true">Split</button>
+                  <button type="button" role="radio" data-mode="converted" aria-checked="false">Converted</button>
+                  <button type="button" role="radio" data-mode="original" aria-checked="false">Original</button>
+                </div>
+                <button type="button" class="btn btn-primary cv-compare-dl" id="cv-compare-dl" data-tip="Download this image" data-tip-pos="bottom"><i data-icon="download"></i><span>Download</span></button>
+                <button type="button" class="btn btn-icon" id="cv-compare-close" aria-label="Close preview" data-tip="Close · Esc" data-tip-pos="bottom"><i data-icon="close"></i></button>
+              </div>
+              <div class="cv-compare-stage" id="cv-compare-stage">
+                <img id="cv-compare-img" alt="" hidden />
+                <div class="cv-split" id="cv-split" style="--split: 50%" tabindex="0" role="slider" aria-label="Before and after split position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+                  <img class="cv-split-base" id="cv-split-conv" alt="Converted result" draggable="false" />
+                  <div class="cv-split-overlay" id="cv-split-overlay">
+                    <img class="cv-split-top" id="cv-split-orig" alt="Original image" draggable="false" />
+                  </div>
+                  <div class="cv-split-divider" aria-hidden="true">
+                    <span class="cv-split-knob"><i data-icon="horizontal"></i></span>
+                  </div>
+                  <span class="cv-split-badge is-left" id="cv-split-badge-l">Original</span>
+                  <span class="cv-split-badge is-right" id="cv-split-badge-r">Converted</span>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -589,13 +712,14 @@
         <button type="button" class="btn btn-icon" id="lb-fit" aria-label="Toggle fit" data-tip="Fit / actual size" data-tip-pos="bottom"><i data-icon="fit"></i></button>
         <button type="button" class="btn" id="lb-copy"><i data-icon="copy"></i>Copy</button>
         <button type="button" class="btn" id="lb-download"><i data-icon="download"></i>Download</button>
+        <button type="button" class="btn" id="lb-convert" data-tip="Optimize or change format" data-tip-pos="bottom"><i data-icon="convert"></i>Convert</button>
         <button type="button" class="btn btn-primary" id="lb-annotate"><i data-icon="annotated"></i>Annotate</button>
         <button type="button" class="btn btn-icon" id="lb-trash" aria-label="Move to Trash" data-tip="Move to Trash" data-tip-pos="bottom"><i data-icon="trash"></i></button>
-        <button type="button" class="btn btn-icon" id="lb-close" aria-label="Close preview"><i data-icon="close"></i></button>
+        <button type="button" class="btn btn-icon" id="lb-close" aria-label="Close preview" data-tip="Close · Esc" data-tip-pos="bottom"><i data-icon="close"></i></button>
       </div>
       <div class="lightbox-stage" id="lb-stage"><img id="lb-img" alt="" /></div>
-      <button type="button" class="btn btn-icon lb-nav prev glass" id="lb-prev" aria-label="Previous"><i data-icon="prev"></i></button>
-      <button type="button" class="btn btn-icon lb-nav next glass" id="lb-next" aria-label="Next"><i data-icon="next"></i></button>
+      <button type="button" class="btn btn-icon lb-nav prev glass" id="lb-prev" aria-label="Previous" data-tip="Previous · ←" data-tip-pos="right"><i data-icon="prev"></i></button>
+      <button type="button" class="btn btn-icon lb-nav next glass" id="lb-next" aria-label="Next" data-tip="Next · →" data-tip-pos="left"><i data-icon="next"></i></button>
     </div>
 
     <script type="module" src="gallery.js"></script>

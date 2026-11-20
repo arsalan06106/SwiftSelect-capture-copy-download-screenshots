@@ -124,6 +124,171 @@ export function enableSheen() {
 /** Kept for callers written against 2.0. */
 export const enableRipples = enableSheen;
 
+// ─── Portal tooltips ─────────────────────────────────────────────────
+// Rendered directly on <body> at z-index 9999 so glass panels (backdrop-filter),
+// sticky bars, and overflow:hidden containers can never clip or bury a tooltip.
+
+let _tipEl = null;
+let _tipWired = false;
+let _tipTarget = null;
+let _tipShowTimer = 0;
+let _tipLastHiddenAt = 0;
+
+function isTipSuppressed(el) {
+  if (!el || !el.isConnected) return true;
+  const text = el.getAttribute("data-tip");
+  if (!text || !text.trim()) return true;
+  if (el.disabled || el.getAttribute("aria-disabled") === "true") return true;
+  if (el.getAttribute("aria-expanded") === "true") return true;
+  // On wide viewports the bulk action bar already renders full text labels beside
+  // icons; suppress redundant tooltips there and show them when labels collapse.
+  if (el.matches(".bulk-group:not(.bulk-pick) .bulk-btn")) {
+    const label = el.querySelector("span");
+    if (label && label.offsetWidth > 0 && getComputedStyle(label).display !== "none") return true;
+  }
+  return false;
+}
+
+function ensureTipEl() {
+  if (_tipEl && _tipEl.isConnected) return _tipEl;
+  _tipEl = document.createElement("div");
+  _tipEl.className = "ss-tip";
+  _tipEl.setAttribute("role", "tooltip");
+  _tipEl.setAttribute("aria-hidden", "true");
+  document.body.appendChild(_tipEl);
+  return _tipEl;
+}
+
+function placeTooltip(target) {
+  const tip = ensureTipEl();
+  const text = target.getAttribute("data-tip");
+  if (!text) return false;
+  tip.textContent = text;
+
+  const rect = target.getBoundingClientRect();
+  if (!rect.width && !rect.height) return false;
+
+  const vw = document.documentElement.clientWidth;
+  const vh = document.documentElement.clientHeight;
+  const gap = 9;
+  const pad = 10;
+
+  // Measure at natural size before applying final coordinates.
+  tip.style.left = "0px";
+  tip.style.top = "0px";
+  const tw = tip.offsetWidth;
+  const th = tip.offsetHeight;
+
+  let side = target.getAttribute("data-tip-pos") || "top";
+  if (side === "top" && rect.top - gap - th < pad && rect.bottom + gap + th <= vh - pad) {
+    side = "bottom";
+  } else if (side === "bottom" && rect.bottom + gap + th > vh - pad && rect.top - gap - th >= pad) {
+    side = "top";
+  } else if (side === "left" && rect.left - gap - tw < pad && rect.right + gap + tw <= vw - pad) {
+    side = "right";
+  } else if (side === "right" && rect.right + gap + tw > vw - pad && rect.left - gap - tw >= pad) {
+    side = "left";
+  }
+
+  let left = 0;
+  let top = 0;
+  if (side === "bottom") {
+    left = rect.left + rect.width / 2 - tw / 2;
+    top = rect.bottom + gap;
+  } else if (side === "left") {
+    left = rect.left - gap - tw;
+    top = rect.top + rect.height / 2 - th / 2;
+  } else if (side === "right") {
+    left = rect.right + gap;
+    top = rect.top + rect.height / 2 - th / 2;
+  } else {
+    side = "top";
+    left = rect.left + rect.width / 2 - tw / 2;
+    top = rect.top - gap - th;
+  }
+
+  left = Math.max(pad, Math.min(vw - tw - pad, left));
+  top = Math.max(pad, Math.min(vh - th - pad, top));
+
+  tip.dataset.side = side;
+  tip.style.left = `${Math.round(left)}px`;
+  tip.style.top = `${Math.round(top)}px`;
+  return true;
+}
+
+export function hideTooltip() {
+  clearTimeout(_tipShowTimer);
+  _tipShowTimer = 0;
+  if (_tipEl?.classList.contains("is-open")) {
+    _tipEl.classList.remove("is-open");
+    _tipEl.setAttribute("aria-hidden", "true");
+    _tipLastHiddenAt = performance.now();
+  }
+  _tipTarget = null;
+}
+
+export function enableTooltips() {
+  if (_tipWired || typeof document === "undefined") return;
+  _tipWired = true;
+  document.documentElement.classList.add("has-portal-tips");
+
+  const schedule = (target, immediate = false) => {
+    clearTimeout(_tipShowTimer);
+    if (isTipSuppressed(target)) {
+      hideTooltip();
+      return;
+    }
+    _tipTarget = target;
+    const warm = _tipEl?.classList.contains("is-open") || performance.now() - _tipLastHiddenAt < 340;
+    const delay = immediate ? 0 : warm ? 40 : 240;
+    _tipShowTimer = setTimeout(() => {
+      if (_tipTarget !== target || isTipSuppressed(target)) return;
+      if (placeTooltip(target)) {
+        _tipEl.classList.add("is-open");
+        _tipEl.setAttribute("aria-hidden", "false");
+      }
+    }, delay);
+  };
+
+  document.addEventListener("pointerover", (e) => {
+    if (e.pointerType === "touch") return;
+    const target = e.target?.closest?.("[data-tip]");
+    if (!target) return;
+    if (target === _tipTarget && _tipEl?.classList.contains("is-open")) return;
+    schedule(target);
+  });
+
+  document.addEventListener("pointerout", (e) => {
+    if (!_tipTarget) return;
+    const next = e.relatedTarget?.closest?.("[data-tip]");
+    if (next === _tipTarget) return;
+    if (!next) hideTooltip();
+  });
+
+  document.addEventListener("focusin", (e) => {
+    const target = e.target?.closest?.("[data-tip]");
+    if (target && target.matches(":focus-visible")) schedule(target, false);
+  });
+
+  document.addEventListener("focusout", hideTooltip);
+  document.addEventListener("pointerdown", hideTooltip, true);
+  document.addEventListener("click", hideTooltip, true);
+  document.addEventListener("scroll", hideTooltip, true);
+  window.addEventListener("resize", hideTooltip);
+  window.addEventListener("blur", hideTooltip);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") hideTooltip();
+  });
+}
+
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", enableTooltips, { once: true });
+  } else {
+    enableTooltips();
+  }
+}
+
 let _rail = null;
 
 /** toast("Copied") or toast("Deleted", { action: "Undo", onAction, error }). */

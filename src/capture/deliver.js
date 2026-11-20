@@ -114,7 +114,7 @@ export async function deliverCanvas(canvas, { type = "visible", flashRect = null
   }
 
   const exportBlob = await exportP;
-  setLastBlob(exportBlob, ext);
+  setLastBlob(exportBlob, ext, type);
 
   // A quiet second line on the status: what was captured, so a wrong-sized
   // or wrong-format capture is noticed at a glance.
@@ -135,7 +135,7 @@ export async function deliverCanvas(canvas, { type = "visible", flashRect = null
   if (destination === "clipboard" && !alwaysFile) {
     if (!clipboardOk) {
       // Nothing must be lost: fall back to a file when the clipboard refuses.
-      handleSaveAction(ext);
+      handleSaveAction(ext, type);
       ui.setStatus("Saved (Clipboard Blocked)", 5000, "saved", false, { ...statusOpts, downloaded: true });
       queueGallery();
       return exportBlob;
@@ -145,7 +145,7 @@ export async function deliverCanvas(canvas, { type = "visible", flashRect = null
     return exportBlob;
   }
 
-  if (download) handleSaveAction(ext);
+  if (download) handleSaveAction(ext, type);
 
   if (!copy && !download) {
     ui.setStatus(settings.saveToGallery ? "Saved to Gallery" : "Captured", 5000, "success", false, statusOpts);

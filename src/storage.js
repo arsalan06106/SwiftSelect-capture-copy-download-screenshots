@@ -98,6 +98,7 @@ function recordSize(record) {
 function extFromMime(mime = "") {
   if (mime.includes("png")) return "png";
   if (mime.includes("webp")) return "webp";
+  if (mime.includes("icon") || mime.includes("ico")) return "ico";
   return "jpg";
 }
 
