@@ -10,6 +10,7 @@ import express from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CHROME_STORE_FILES, verifyPackageFiles, createZipBuffer } from "./scripts/package-manifest.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -42,6 +43,29 @@ app.get("/", (_req, res) => {
   sendShimmedHtml(res, path.join(__dirname, "gallery.html"));
 });
 
+// Dev-only Chrome Web Store package audit & verified ZIP download (not part of the extension bundle).
+app.get("/__dev/package-audit", (_req, res) => {
+  const report = verifyPackageFiles({ rootDir: __dirname, files: CHROME_STORE_FILES });
+  res.status(report.ok ? 200 : 500).json(report);
+});
+
+app.get("/__dev/chrome-web-store.zip", (_req, res) => {
+  const report = verifyPackageFiles({ rootDir: __dirname, files: CHROME_STORE_FILES });
+  if (!report.ok) {
+    return res.status(500).json({ ok: false, errors: report.errors });
+  }
+  const entries = report.included.map((item) => {
+    const abs = path.join(__dirname, item.path);
+    return { name: item.path, data: fs.readFileSync(abs), mtime: fs.statSync(abs).mtime };
+  });
+  const zip = createZipBuffer(entries);
+  const filename = `swiftselect-v${report.version}-chrome-web-store.zip`;
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.setHeader("Content-Length", String(zip.length));
+  res.send(zip);
+});
+
 // Serve extension HTML pages with the chrome.* preview shim injected.
 const HTML_PAGES = new Set([
   "gallery.html",
@@ -64,7 +88,13 @@ app.get("/:page", (req, res, next) => {
 // Prevent exposing server/package internals over HTTP.
 app.use((req, res, next) => {
   const rel = req.path.replace(/^\/+/, "");
-  if (rel === "server.js" || rel.startsWith("node_modules/") || rel.startsWith(".")) {
+  if (
+    rel === "server.js" ||
+    rel.startsWith("node_modules/") ||
+    rel.startsWith("scripts/") ||
+    rel.startsWith("dist/") ||
+    rel.startsWith(".")
+  ) {
     return res.status(404).send("Not found");
   }
   next();
