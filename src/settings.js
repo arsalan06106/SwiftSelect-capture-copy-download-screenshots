@@ -162,8 +162,10 @@ export function buildFilename(template, { title = "", url = "", type = "screensh
   name = name
     .replace(ILLEGAL, " ")
     .replace(/\s+/g, " ")
-    .replace(/^[\s\-_.]+|[\s\-_.]+$/g, "")
     .replace(/(\s[-_]\s)(?:[-_]\s)+/g, "$1")
+    .replace(/_{2,}/g, "_")
+    .replace(/-{2,}/g, "-")
+    .replace(/^[\s\-_.]+|[\s\-_.]+$/g, "")
     .trim();
 
   if (!name) name = `${tags.type || "screenshot"} ${tags.date} ${tags.time}`;

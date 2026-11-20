@@ -884,6 +884,28 @@ let _closeArmTimer = 0;
 let _savedLen = 0;
 let _savedTop = null;
 let _infoEl = null;
+let _themeObserver = null;
+
+function resolveStandaloneTheme() {
+  const docTheme = document.documentElement?.dataset?.theme;
+  if (docTheme === "dark" || docTheme === "light") return docTheme;
+  return window.SwiftSelect?.theme?.currentUserTheme || "glass";
+}
+
+function syncAnnotateTheme() {
+  if (!_annotateHost || !_toolbarEl) return;
+  const uiTheme = window.SwiftSelect?.theme;
+  const preferred = _standalone ? resolveStandaloneTheme() : (uiTheme?.currentUserTheme || "glass");
+  _toolbarEl._qsThemeState = null;
+  const stageDark = uiTheme?.applyElementTheme
+    ? !!uiTheme.applyElementTheme(_toolbarEl, preferred)
+    : preferred === "dark";
+  if (_cropControlsEl) {
+    _cropControlsEl._qsThemeState = null;
+    uiTheme?.applyElementTheme?.(_cropControlsEl, preferred);
+  }
+  applyStageTone(stageDark);
+}
 
 /**
  * Frost and tint the page behind the editor, light or dark like the toolbar.
@@ -1261,12 +1283,16 @@ function buildAnnotationUI() {
   toolbar.addEventListener("pointerdown", (e) => e.stopPropagation());
   _toolbarEl = toolbar;
 
-  // Apply active theme variables (Glass / Dark Glass)
-  const uiTheme = window.SwiftSelect?.theme;
-  const stageDark = uiTheme?.applyElementTheme
-    ? !!uiTheme.applyElementTheme(toolbar, uiTheme.currentUserTheme || "glass")
-    : true;
-  applyStageTone(stageDark);
+  // Apply active theme variables (Glass / Dark Glass) and stay in sync if theme toggles live
+  syncAnnotateTheme();
+  if (_standalone && document.documentElement && typeof MutationObserver !== "undefined") {
+    _themeObserver?.disconnect();
+    _themeObserver = new MutationObserver(() => syncAnnotateTheme());
+    _themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "data-palette", "data-tint"],
+    });
+  }
 
   // Tools configuration
   const tools = [
@@ -2071,9 +2097,7 @@ function buildAnnotationUI() {
   requestAnimationFrame(() => {
     if (_annotateHost) {
       _annotateHost.style.opacity = "1";
-      if (uiTheme?.applyElementTheme && toolbar) {
-        uiTheme.applyElementTheme(toolbar, uiTheme.currentUserTheme || "glass");
-      }
+      syncAnnotateTheme();
     }
   });
 }
@@ -2147,10 +2171,6 @@ function showCropControls() {
     _cropControlsEl = document.createElement("div");
     _cropControlsEl.className = "qs-guide qs-annotate-toolbar qs-crop-controls qs-theme-glass";
     _cropControlsEl.addEventListener("pointerdown", (e) => e.stopPropagation());
-    const uiTheme = window.SwiftSelect?.theme;
-    if (uiTheme?.applyElementTheme) {
-      uiTheme.applyElementTheme(_cropControlsEl, uiTheme.currentUserTheme || "glass");
-    }
     _cropControlsEl.innerHTML = `
       <div class="qs-crop-meta">
         <span class="qs-crop-dim">
@@ -2213,14 +2233,9 @@ function showCropControls() {
       selectTool("select");
     };
     _annotateHost.appendChild(_cropControlsEl);
-    if (uiTheme?.applyElementTheme) {
-      uiTheme.applyElementTheme(_cropControlsEl, uiTheme.currentUserTheme || "glass");
-    }
+    syncAnnotateTheme();
   } else {
-    const uiTheme = window.SwiftSelect?.theme;
-    if (uiTheme?.applyElementTheme) {
-      uiTheme.applyElementTheme(_cropControlsEl, uiTheme.currentUserTheme || "glass");
-    }
+    syncAnnotateTheme();
     const dimValEl = _cropControlsEl.querySelector(".qs-crop-dim-val");
     if (dimValEl) {
       dimValEl.textContent = `${Math.round(_cropRect.width)} × ${Math.round(_cropRect.height)}`;
@@ -3928,8 +3943,8 @@ async function handleSaveAnnotated() {
   const out = await exportBlob(mime, quality);
   if (!out) return false;
 
-  setLastBlob(out.blob, ext);
-  const ok = await downloadBlob(out.blob, getSmartFilename("annotated", ext));
+  setLastBlob(out.blob, ext, "annotated");
+  const ok = await downloadBlob(out.blob, getSmartFilename("annotated", ext, _sourceMeta));
   if (ok) _markSaved();
   notify(ok ? "Saved to downloads" : "Download failed", ok ? "saved" : "error");
   return ok;
@@ -4108,6 +4123,10 @@ export function closeAnnotationEditor() {
     window.removeEventListener("pointerdown", _closePopoverHandler, true);
     window.removeEventListener("click", _closePopoverHandler, true);
     _closePopoverHandler = null;
+  }
+  if (_themeObserver) {
+    _themeObserver.disconnect();
+    _themeObserver = null;
   }
 
   hideCropControls();

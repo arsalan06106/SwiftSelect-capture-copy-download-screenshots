@@ -3,10 +3,19 @@
   "version": "2.2.0",
   "type": "module",
   "scripts": {
-    "build:css": "npx --yes esbuild styles.css --minify --outfile=src/styles.min.css",
-    "build:content": "npx --yes esbuild src/contentScript.js --bundle --minify --format=iife --loader:.css=text --target=chrome100 --outfile=contentScript.js",
-    "build:annotate": "npx --yes esbuild src/annotatePage.js --bundle --minify --format=iife --loader:.css=text --target=chrome100 --outfile=annotatePage.js",
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build:css": "esbuild styles.css --minify --outfile=src/styles.min.css",
+    "build:content": "esbuild src/contentScript.js --bundle --minify --format=iife --loader:.css=text --target=chrome100 --outfile=contentScript.js",
+    "build:annotate": "esbuild src/annotatePage.js --bundle --minify --format=iife --loader:.css=text --target=chrome100 --outfile=annotatePage.js",
     "build": "npm run build:css && npm run build:content && npm run build:annotate",
-    "check": "node --check background.js && node --check offscreen.js && node --check popup.js && node --check gallery.js && node --check options.js && node --check convert.js && node --check src/storage.js && node --check src/settings.js && node --check src/pageTheme.js && node --check src/peekData.js && node --check src/convertRedirect.js && node --check src/issues.js && node --check src/panelSettings.js && node --check src/pageKit.js"
+    "check": "node --check background.js && node --check offscreen.js && node --check popup.js && node --check gallery.js && node --check options.js && node --check convert.js && node --check src/converter/rules.js && node --check src/converter/engine.js && node --check src/downloadFile.js && node --check src/storage.js && node --check src/settings.js && node --check src/pageTheme.js && node --check src/peekData.js && node --check src/convertRedirect.js && node --check src/issues.js && node --check src/panelSettings.js && node --check src/pageKit.js",
+    "lint": "npm run check && node --check server.js && node --check chrome-shim.js",
+    "test": "node --test src/converter/rules.test.js"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "express": "^5.3.0",
+    "upng-js": "^2.1.0"
   }
 }

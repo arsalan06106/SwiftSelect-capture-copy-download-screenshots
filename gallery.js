@@ -24,6 +24,7 @@ import {
   formatBytes,
 } from "./src/storage.js";
 import { getSettings, buildFilename } from "./src/settings.js";
+import { downloadBlobFile } from "./src/downloadFile.js";
 import { listIssues, dismissIssue, clearIssues, ISSUES_KEY } from "./src/issues.js";
 import {
   icon,
@@ -287,8 +288,10 @@ function buildCard(r, index) {
     fav.type = "button";
     fav.className = "card-fav";
     fav.dataset.action = "fav";
-    fav.setAttribute("aria-label", r.favorite ? "Remove from Favorites" : "Add to Favorites");
+    const favLabel = r.favorite ? "Remove from Favorites" : "Add to Favorites";
+    fav.setAttribute("aria-label", favLabel);
     fav.setAttribute("aria-pressed", String(!!r.favorite));
+    fav.dataset.tip = favLabel;
     fav.innerHTML = icon("star");
     wrap.appendChild(fav);
   }
@@ -465,6 +468,7 @@ function renderBulkBar() {
   const wasOpen = bar.classList.contains("is-open");
   bar.classList.toggle("is-open", n > 0);
   grid.classList.toggle("is-selecting", n > 0);
+  document.body.classList.toggle("has-selection", n > 0);
   if (!n) return;
 
   const shown = visibleRecords().length;
@@ -585,15 +589,13 @@ async function copyRecord(r, card) {
 }
 
 function downloadRecords(records) {
+  if (!records?.length) return;
   records.forEach((r, i) => {
-    const url = URL.createObjectURL(r.blob);
-    // Small stagger: Chrome may ask once before allowing several downloads.
-    setTimeout(() => {
-      chrome.downloads.download({ url, filename: filenameFor(r), saveAs: false }, () => {
-        setTimeout(() => URL.revokeObjectURL(url), 30000);
-        if (chrome.runtime.lastError) console.warn("SwiftSelect: download failed", chrome.runtime.lastError.message);
-      });
-    }, i * 120);
+    const run = () => downloadBlobFile(r.blob, filenameFor(r));
+    // Trigger the first download synchronously inside the click gesture;
+    // stagger subsequent files so Chrome does not throttle multi-downloads.
+    if (i === 0) run();
+    else setTimeout(run, i * 140);
   });
   toast(records.length === 1 ? "Download started" : `Downloading ${formatNumber(records.length)} files`);
 }
@@ -684,8 +686,10 @@ async function toggleFavorite(ids, value) {
       card.classList.toggle("is-favorite", value);
       const fav = card.querySelector(".card-fav");
       if (fav) {
+        const favLabel = value ? "Remove from Favorites" : "Add to Favorites";
         fav.setAttribute("aria-pressed", String(value));
-        fav.setAttribute("aria-label", value ? "Remove from Favorites" : "Add to Favorites");
+        fav.setAttribute("aria-label", favLabel);
+        fav.dataset.tip = favLabel;
         if (value) {
           fav.classList.remove("is-popping");
           void fav.offsetWidth;
@@ -1061,10 +1065,14 @@ function syncLightbox() {
   const r = currentLightboxRecord();
   if (!r) return;
   const fav = $("lb-fav");
+  const favLabel = r.favorite ? "Remove from Favorites" : "Add to Favorites";
   fav.classList.toggle("is-on", !!r.favorite);
+  fav.setAttribute("aria-label", favLabel);
+  fav.dataset.tip = favLabel;
   fav.hidden = !!r.deletedAt;
   $("lb-trash").hidden = !!r.deletedAt;
   $("lb-annotate").hidden = !!r.deletedAt;
+  if ($("lb-convert")) $("lb-convert").hidden = !!r.deletedAt;
   const shown = visibleRecords();
   const i = shown.findIndex((x) => x.id === r.id);
   $("lb-prev").hidden = i <= 0;
@@ -1456,6 +1464,12 @@ function wireLightbox() {
     const r = currentLightboxRecord();
     if (r) downloadRecords([r]);
   });
+  $("lb-convert")?.addEventListener("click", () => {
+    const r = currentLightboxRecord();
+    if (!r) return;
+    closeLightbox();
+    openConverterWith([r.id]);
+  });
   $("lb-annotate").addEventListener("click", () => {
     const r = currentLightboxRecord();
     if (r) annotateRecord(r);
@@ -1506,6 +1520,7 @@ function wireKeyboard() {
       if (e.key === "Escape" && document.activeElement === search) {
         search.value = "";
         state.query = "";
+        if ($("search-clear")) $("search-clear").hidden = true;
         render();
         search.blur();
       }
@@ -1548,7 +1563,7 @@ async function init() {
 
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
   document.querySelector(".search-hint").innerHTML =
-    `<kbd class="kbd">/</kbd><kbd class="kbd">${isMac ? "⌘" : "Ctrl"} K</kbd>`;
+    `<kbd class="kbd">${isMac ? "⌘K" : "Ctrl K"}</kbd>`;
 
   syncNavPill = mountPill($("nav"), '.nav-item[aria-current="true"]');
   syncViewPill = mountPill($("view-toggle"), '[aria-checked="true"]');
@@ -1597,14 +1612,27 @@ async function init() {
     if (b && b.dataset.view !== state.view) setView(b.dataset.view);
   });
 
+  const searchClear = $("search-clear");
+  const syncSearchClear = () => {
+    if (searchClear) searchClear.hidden = !search.value.length;
+  };
   let searchTimer = 0;
   search.addEventListener("input", () => {
+    syncSearchClear();
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
       state.query = search.value;
       render();
     }, 90);
   });
+  searchClear?.addEventListener("click", () => {
+    search.value = "";
+    state.query = "";
+    syncSearchClear();
+    render();
+    search.focus();
+  });
+  syncSearchClear();
 
   document.querySelectorAll("[data-capture]").forEach((b) => {
     b.addEventListener("click", () => runCapture(b.dataset.capture));
@@ -1617,6 +1645,7 @@ async function init() {
     if (mode === "clear-search") {
       search.value = "";
       state.query = "";
+      syncSearchClear();
       render();
       search.focus();
     } else if (mode === "show-all") {

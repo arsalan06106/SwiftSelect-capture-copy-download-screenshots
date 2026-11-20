@@ -112,11 +112,16 @@ async function renderRecent() {
   if (!latest.length) return;
 
   const gridEl = $("recent-grid");
-  latest.forEach((r) => {
+  const headLabel = document.querySelector(".recent-head span");
+  let headTimer = 0;
+  latest.forEach((r, idx) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "recent-item";
-    b.title = r.title || "Capture";
+    b.style.setProperty("--i", idx);
+    const label = r.title || "Capture";
+    b.setAttribute("aria-label", `Copy ${label}`);
+    b.dataset.tip = `Copy · ${label}`;
     const img = document.createElement("img");
     img.alt = "";
     img.src = URL.createObjectURL(r.thumb || r.blob);
@@ -128,12 +133,19 @@ async function renderRecent() {
         await navigator.clipboard.write([new ClipboardItem({ "image/png": toPng(r.blob) })]);
         overlay.innerHTML = icon("check");
         b.classList.add("is-copied");
+        if (headLabel) {
+          clearTimeout(headTimer);
+          headLabel.textContent = "Copied to clipboard";
+          headTimer = setTimeout(() => {
+            headLabel.textContent = "Recent · click to copy";
+          }, 1400);
+        }
         setTimeout(() => {
           overlay.innerHTML = icon("copy");
           b.classList.remove("is-copied");
         }, 1300);
       } catch {
-        b.title = "Clipboard unavailable";
+        b.dataset.tip = "Clipboard unavailable";
       }
     };
     gridEl.appendChild(b);

@@ -13,10 +13,13 @@ export function loadImage(src) {
   });
 }
 
-export function getSmartFilename(type, ext = "jpg") {
+export function getSmartFilename(type, ext = "jpg", meta = {}) {
+  const rawTitle = meta.title !== undefined ? meta.title : typeof document !== "undefined" ? document.title : "";
+  const rawUrl = meta.url !== undefined ? meta.url : typeof location !== "undefined" ? location.href : "";
+  const safeUrl = /^chrome-extension:/i.test(rawUrl) ? "" : rawUrl;
   return buildFilename(_cachedSettings?.template, {
-    title: typeof document !== "undefined" ? document.title : "",
-    url: typeof location !== "undefined" ? location.href : "",
+    title: rawTitle,
+    url: safeUrl,
     type,
     ext,
   });

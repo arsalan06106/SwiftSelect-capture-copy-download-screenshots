@@ -21,16 +21,66 @@ window.SwiftSelect = {
   events: { cleanup: noop, removeListeners: noop, addListeners: noop },
 };
 
-function fail(message) {
-  const el = document.getElementById("loading");
-  if (el) el.textContent = message;
+async function launchEditor(blob, meta = {}) {
+  document.getElementById("loading")?.remove();
+  document.getElementById("annotate-empty")?.remove();
+  if (meta.title) document.title = meta.title;
+  await openAnnotationEditor(blob, {
+    standalone: true,
+    title: meta.title || "Annotated Image",
+    url: meta.url || "",
+    onClose: () => {
+      location.href = "gallery.html";
+    },
+  });
+}
+
+function showEmptyState(title, message) {
+  const loading = document.getElementById("loading");
+  if (loading) loading.remove();
+
+  const card = document.createElement("section");
+  card.id = "annotate-empty";
+  card.className = "annotate-empty glass";
+  card.setAttribute("role", "region");
+  card.setAttribute("aria-label", "Annotation Editor");
+  card.innerHTML = `
+    <div class="annotate-empty-glyph" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+      </svg>
+    </div>
+    <h1></h1>
+    <p></p>
+    <div class="annotate-empty-actions">
+      <label class="btn btn-primary">
+        <input type="file" id="annotate-pick" accept="image/*" hidden />
+        <span>Open Image…</span>
+      </label>
+      <a class="btn" href="gallery.html">Open Swift Gallery</a>
+    </div>
+  `;
+  card.querySelector("h1").textContent = title;
+  card.querySelector("p").textContent = message;
+  card.querySelector("#annotate-pick").addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    launchEditor(file, { title: file.name.replace(/\.[^.]+$/, "") });
+  });
+  document.body.appendChild(card);
 }
 
 async function start() {
   theme.init();
 
   const id = Number(new URLSearchParams(location.search).get("id"));
-  if (!id) return fail("No screenshot selected.");
+  if (!id) {
+    return showEmptyState(
+      "Ready to annotate",
+      "Choose a capture from Swift Gallery or open any image file from your device.",
+    );
+  }
 
   let record = null;
   try {
@@ -38,20 +88,14 @@ async function start() {
   } catch (err) {
     console.error("SwiftSelect: could not read capture", err);
   }
-  if (!record?.blob) return fail("This screenshot is no longer in the gallery.");
+  if (!record?.blob) {
+    return showEmptyState(
+      "Screenshot unavailable",
+      "This capture is no longer in the gallery. Open another image or return to Swift Gallery.",
+    );
+  }
 
-  // The filename template reads document.title, so mirror the original page.
-  if (record.title) document.title = record.title;
-  document.getElementById("loading")?.remove();
-
-  await openAnnotationEditor(record.blob, {
-    standalone: true,
-    title: record.title,
-    url: record.url,
-    onClose: () => {
-      location.href = "gallery.html";
-    },
-  });
+  await launchEditor(record.blob, { title: record.title, url: record.url });
 }
 
 start();
