@@ -1,0 +1,1197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SwiftSelect — Chrome Web Store Assets v2 Studio</title>
+  <meta name="description" content="Complete Chrome Web Store v2 graphic asset suite and 1080p promotional video for SwiftSelect." />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/tab-icon-32.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    @font-face {
+      font-family: "SS Inter";
+      src: url("/fonts/inter-latin.woff2") format("woff2");
+      font-weight: 100 900;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --display: "Plus Jakarta Sans", "SS Inter", system-ui, sans-serif;
+      --body: "DM Sans", "SS Inter", system-ui, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, monospace;
+      --bg: #f6f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f1f3f8;
+      --ink: #11131a;
+      --ink-2: #4b5063;
+      --ink-3: #767d93;
+      --line: rgba(17, 19, 26, 0.09);
+      --coral: #e11d48;
+      --coral-soft: rgba(225, 29, 72, 0.08);
+      --aqua: #0891b2;
+      --emerald: #047857;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--body);
+      color: var(--ink);
+      background:
+        radial-gradient(56% 42% at 4% 0%, rgba(244, 63, 94, 0.07), transparent 62%),
+        radial-gradient(52% 40% at 96% 4%, rgba(6, 182, 212, 0.085), transparent 60%),
+        var(--bg);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.55;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; cursor: pointer; background: none; border: none; }
+    img { display: block; max-width: 100%; }
+
+    :focus-visible {
+      outline: 2px solid var(--coral);
+      outline-offset: 2px;
+    }
+
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ─── TOP BAR (Strict 3-zone contract) ──────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(246, 247, 251, 0.84);
+      backdrop-filter: blur(18px) saturate(160%);
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 32px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+    }
+    .brand-link {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+      flex-shrink: 0;
+      color: var(--ink);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink-2);
+    }
+    .nav-links a {
+      white-space: nowrap;
+      flex-shrink: 0;
+      padding: 4px 0;
+      transition: color 160ms ease;
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      background: var(--ink);
+      color: #ffffff;
+      font-size: 13.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms ease;
+    }
+    .btn-primary:hover { background: #1e2230; transform: translateY(-1px); }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      font-size: 13.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: border-color 150ms ease, background-color 150ms ease;
+    }
+    .btn-secondary:hover { border-color: rgba(17, 19, 26, 0.24); background: #fff; }
+
+    /* ─── HERO ──────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 64px 0 48px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.06fr;
+      gap: 44px;
+      align-items: center;
+    }
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-2);
+    }
+    .hero-meta img { width: 22px; height: 22px; flex-shrink: 0; }
+    .hero-meta .sep { opacity: 0.4; }
+    .hero h1 {
+      margin-top: 18px;
+      font-family: var(--display);
+      font-size: clamp(2.4rem, 4.1vw, 3.55rem);
+      font-weight: 800;
+      line-height: 1.04;
+      letter-spacing: -0.04em;
+      text-wrap: balance;
+    }
+    .hero h1 .accent { color: var(--coral); }
+    .hero-lead {
+      margin-top: 20px;
+      font-size: 16.5px;
+      line-height: 1.62;
+      color: var(--ink-2);
+      max-width: 56ch;
+    }
+    .hero-actions {
+      margin-top: 28px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .hero-visual {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: 0 24px 56px -22px rgba(15, 23, 42, 0.16);
+      display: flex;
+      flex-direction: column;
+    }
+    .hero-visual img {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      height: auto;
+      object-fit: cover;
+      display: block;
+    }
+    .hero-visual-cap {
+      padding: 13px 18px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+      color: var(--ink-2);
+    }
+    .hero-visual-cap strong { color: var(--ink); font-weight: 600; }
+
+    /* Full-width 4-column KPI strip below hero split */
+    .kpi-strip {
+      margin-top: 40px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .kpi-cell {
+      padding: 22px 20px 22px 0;
+    }
+    .kpi-cell + .kpi-cell {
+      padding-left: 24px;
+      border-left: 1px solid var(--line);
+    }
+    .kpi-val {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+    }
+    .kpi-label {
+      margin-top: 4px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .kpi-sub {
+      margin-top: 2px;
+      font-size: 12.5px;
+      color: var(--ink-3);
+    }
+
+    /* ─── SECTION HEADERS ───────────────────────────────────────────────── */
+    section.block {
+      padding: 56px 0;
+    }
+    .sec-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .sec-kicker {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-3);
+    }
+    .sec-head h2 {
+      margin-top: 6px;
+      font-family: var(--display);
+      font-size: clamp(1.65rem, 2.6vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.12;
+      text-wrap: balance;
+    }
+    .sec-desc {
+      max-width: 48ch;
+      font-size: 14.5px;
+      color: var(--ink-2);
+    }
+
+    /* ─── INTERACTIVE BEFORE / AFTER COMPARE STUDIO ─────────────────────── */
+    .compare-shell {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+    .compare-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .seg-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 11px;
+      background: var(--surface-soft);
+      flex-wrap: wrap;
+    }
+    .seg-btn {
+      padding: 7px 13px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-2);
+      white-space: nowrap;
+      transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    }
+    .seg-btn[aria-pressed="true"] {
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+    }
+    .compare-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #0d1018;
+      user-select: none;
+      touch-action: none;
+      cursor: ew-resize;
+    }
+    .compare-stage.ratio-marquee { aspect-ratio: 1400 / 560; }
+    .compare-stage.ratio-small {
+      max-width: 660px;
+      margin: 0 auto;
+      aspect-ratio: 440 / 280;
+    }
+    .compare-layer {
+      position: absolute;
+      inset: 0;
+    }
+    .compare-layer img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    .compare-v1 {
+      clip-path: inset(0 50% 0 0);
+    }
+    .compare-divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 2px;
+      background: #ffffff;
+      box-shadow: 0 0 16px rgba(0, 0, 0, 0.55);
+      pointer-events: none;
+    }
+    .compare-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #ffffff;
+      color: var(--ink);
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.34);
+    }
+    .compare-label {
+      position: absolute;
+      top: 14px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      background: rgba(17, 19, 26, 0.78);
+      color: #ffffff;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+    }
+    .compare-label.left { left: 14px; }
+    .compare-label.right { right: 14px; background: rgba(225, 29, 72, 0.90); }
+    .compare-slider-input {
+      width: 100%;
+      margin-top: 14px;
+      accent-color: var(--ink);
+    }
+    .compare-foot {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--ink-2);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    /* ─── ASSET KIT GRID ────────────────────────────────────────────────── */
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+    .asset-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .asset-card:hover {
+      border-color: rgba(17, 19, 26, 0.22);
+      transform: translateY(-2px);
+    }
+    .asset-card.wide { grid-column: span 2; }
+    .asset-card.spotlight {
+      grid-column: span 2;
+      display: grid;
+      grid-template-columns: 1.38fr 1fr;
+    }
+    .asset-card.spotlight .asset-media {
+      border-bottom: none;
+      border-right: 1px solid var(--line);
+      height: 100%;
+    }
+    .asset-card.spotlight .asset-body {
+      padding: 28px 30px;
+      justify-content: center;
+    }
+    .asset-card.spotlight .asset-title {
+      font-size: 22px;
+    }
+    .asset-media {
+      position: relative;
+      background: var(--surface-soft);
+      overflow: hidden;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      cursor: zoom-in;
+    }
+    .asset-media.aspect-shot { aspect-ratio: 16 / 10; }
+    .asset-media.aspect-marquee { aspect-ratio: 1400 / 560; }
+    .asset-media.aspect-small { aspect-ratio: 16 / 10; padding: 28px; }
+    .asset-media.aspect-icon {
+      aspect-ratio: 16 / 10;
+      background-image:
+        linear-gradient(45deg, #eceef4 25%, transparent 25%),
+        linear-gradient(-45deg, #eceef4 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #eceef4 75%),
+        linear-gradient(-45deg, transparent 75%, #eceef4 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    }
+    .asset-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .asset-media.aspect-small img {
+      width: auto;
+      max-height: 100%;
+      border-radius: 10px;
+      box-shadow: 0 16px 36px -12px rgba(15, 23, 42, 0.24);
+    }
+    .asset-media.aspect-icon img {
+      width: 128px;
+      height: 128px;
+      object-fit: contain;
+    }
+    .asset-body {
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    .asset-meta {
+      font-size: 12.5px;
+      color: var(--ink-3);
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .asset-title {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+    .asset-sub {
+      font-size: 14px;
+      color: var(--ink-2);
+      line-height: 1.5;
+    }
+    .asset-actions {
+      margin-top: auto;
+      padding-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-top: 1px solid var(--line);
+    }
+    .asset-status {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--emerald);
+    }
+    .asset-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .text-action {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: background-color 150ms ease;
+    }
+    .text-action:hover { background: var(--surface-soft); }
+
+    /* ─── PROMO VIDEO THEATER ───────────────────────────────────────────── */
+    .video-shell {
+      background: #0c0e15;
+      color: #f4f6fb;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 32px 72px -24px rgba(15, 23, 42, 0.35);
+    }
+    .video-player-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #07080d;
+    }
+    .video-player-wrap video {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .video-bar {
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+      border-top: 1px solid rgba(255, 255, 255, 0.09);
+    }
+    .chapter-list {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .chapter-btn {
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #c7cde0;
+      background: rgba(255, 255, 255, 0.06);
+      transition: background-color 150ms ease, color 150ms ease;
+      white-space: nowrap;
+    }
+    .chapter-btn:hover,
+    .chapter-btn[aria-current="true"] {
+      background: #ffffff;
+      color: #11131a;
+    }
+    .chapter-btn span {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      opacity: 0.72;
+      margin-right: 6px;
+    }
+
+    /* ─── COMPLIANCE AUDIT TABLE ────────────────────────────────────────── */
+    .audit-table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+    }
+    table.audit {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    table.audit th {
+      text-align: left;
+      padding: 14px 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-3);
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    table.audit td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    table.audit tr:last-child td { border-bottom: none; }
+    table.audit .mono-cell {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .pass-text { color: var(--emerald); font-weight: 600; }
+
+    /* ─── LIGHTBOX MODAL ────────────────────────────────────────────────── */
+    dialog.lightbox {
+      margin: auto;
+      max-width: min(1160px, 94vw);
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 20px;
+      background: #10131c;
+      color: #f4f6fb;
+      padding: 0;
+      overflow: hidden;
+      box-shadow: 0 36px 90px rgba(0, 0, 0, 0.65);
+    }
+    dialog.lightbox::backdrop {
+      background: rgba(8, 10, 16, 0.80);
+      backdrop-filter: blur(8px);
+    }
+    .lb-head {
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    }
+    .lb-title { font-family: var(--display); font-size: 16px; font-weight: 700; }
+    .lb-meta { font-family: var(--mono); font-size: 12px; color: #9ea5bc; }
+    .lb-stage {
+      padding: 24px;
+      display: grid;
+      place-items: center;
+      background: #0a0c12;
+      max-height: 76vh;
+      overflow: auto;
+    }
+    .lb-stage img {
+      max-height: 68vh;
+      width: auto;
+      border-radius: 10px;
+    }
+    .lb-close {
+      padding: 7px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.10);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .lb-close:hover { background: rgba(255, 255, 255, 0.18); }
+
+    footer.site-foot {
+      margin-top: 32px;
+      padding: 28px 0 48px;
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--ink-3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    @media (max-width: 960px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+      .kpi-cell:nth-child(3) { padding-left: 0; border-left: none; border-top: 1px solid var(--line); }
+      .kpi-cell:nth-child(4) { border-top: 1px solid var(--line); }
+      .asset-grid { grid-template-columns: 1fr; }
+      .asset-card.wide,
+      .asset-card.spotlight { grid-column: auto; display: flex; flex-direction: column; }
+      .asset-card.spotlight .asset-media { border-right: none; border-bottom: 1px solid var(--line); }
+    }
+    @media (max-width: 680px) {
+      .wrap, .topbar-inner { padding: 0 18px; }
+      .nav-links { display: none; }
+      .hero-meta { font-size: 12px; gap: 6px 8px; }
+      .hero-meta .sep { display: none; }
+      .kpi-strip { grid-template-columns: 1fr; }
+      .kpi-cell + .kpi-cell { padding-left: 0; border-left: none; border-top: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#overview" class="brand-link">SwiftSelect Studio</a>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#compare">Compare v1 / v2</a>
+        <a href="#kit">Asset Kit</a>
+        <a href="#video">Promo Video</a>
+        <a href="#checklist">CWS Spec</a>
+        <a href="/gallery.html">Live Extension</a>
+      </nav>
+      <a href="/__dev/store-assets-v2.zip" class="btn-primary" download>Download v2 Pack</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- HERO -->
+    <section class="hero" id="overview">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="hero-meta">
+            <img src="/icons/app128.png" alt="SwiftSelect icon" />
+            <span>SwiftSelect v2.2</span>
+            <span class="sep">·</span>
+            <span>Chrome Web Store Asset Suite v2</span>
+          </div>
+          <h1>Optical Studio redesign for the <span class="accent">Chrome Web Store.</span></h1>
+          <p class="hero-lead">
+            A complete, spec-verified 2nd-generation store campaign built around SwiftSelect's real Liquid Glass UI — featuring 5 curated 1280×800 screenshots (exact CWS max), redesigned Small &amp; Marquee promo tiles, Store Icon, and a 1080p launch video.
+          </p>
+          <div class="hero-actions">
+            <a href="/__dev/store-assets-v2.zip" class="btn-primary" download>Download All 9 Assets (.zip)</a>
+            <a href="#video" class="btn-secondary">Watch 1080p Launch Film</a>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <img src="/Chrome%20Web%20Store%20assets/v2/screenshot-1-capture-1280x800.png" alt="SwiftSelect v2 Screenshot 01 — Instant Region and Full-Page Capture" />
+          <div class="hero-visual-cap">
+            <strong>Screenshot 01 · Instant Capture</strong>
+            <span style="font-family:var(--mono)">1280 × 800 · 24-bit RGB PNG</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-strip" id="kpi-strip" aria-label="Chrome Web Store asset counts">
+        <div class="kpi-cell">
+          <div class="kpi-val">9 / 9</div>
+          <div class="kpi-label">Complete CWS Deliverables</div>
+          <div class="kpi-sub">Saved in Chrome Web Store assets/v2/</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-val">5 Max</div>
+          <div class="kpi-label">1280 × 800 Screenshots</div>
+          <div class="kpi-sub">Exact Chrome Web Store limit (opaque RGB)</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-val">2 + 1</div>
+          <div class="kpi-label">Promo Tiles &amp; Store Icon</div>
+          <div class="kpi-sub">440×280 · 1400×560 · 128×128 safe-padded</div>
+        </div>
+        <div class="kpi-cell">
+          <div class="kpi-val">1080p</div>
+          <div class="kpi-label">Launch Promo Video</div>
+          <div class="kpi-sub">1920×1080 · 30fps H.264 + AAC stereo</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE V1 VS V2 COMPARISON -->
+    <section class="block" id="compare">
+      <div class="sec-head">
+        <div>
+          <div class="sec-kicker">01. Visual Evolution</div>
+          <h2>Compare v1 vs v2 side by side</h2>
+        </div>
+        <p class="sec-desc">
+          Drag the curtain across any asset to compare the legacy dark template (v1) against the new Optical Studio campaign (v2) with real photography, alternating light/dark pacing, and live Batch Converter coverage.
+        </p>
+      </div>
+
+      <div class="compare-shell">
+        <div class="compare-controls">
+          <div class="seg-bar" role="group" aria-label="Choose asset to compare" id="compare-tabs"></div>
+          <span style="font-size:13px;color:var(--ink-3);font-family:var(--mono)" id="compare-dim">1400 × 560 px</span>
+        </div>
+
+        <div class="compare-stage ratio-marquee" id="compare-stage">
+          <div class="compare-layer">
+            <img id="cmp-v2" src="/Chrome%20Web%20Store%20assets/v2/promo-tile-marquee-1400x560.png" alt="Version 2 design" />
+          </div>
+          <div class="compare-layer compare-v1" id="cmp-v1-wrap">
+            <img id="cmp-v1" src="/Chrome%20Web%20Store%20assets/promo-tile-marquee-1400x560.png" alt="Version 1 design" />
+          </div>
+          <div class="compare-divider" id="cmp-divider">
+            <span class="compare-knob" aria-hidden="true">↔</span>
+          </div>
+          <span class="compare-label left">v1 · Original</span>
+          <span class="compare-label right">v2 · Optical Studio</span>
+        </div>
+
+        <input class="compare-slider-input" id="cmp-range" type="range" min="0" max="100" value="50" aria-label="Before and after comparison position" />
+
+        <div class="compare-foot">
+          <span id="cmp-caption">Marquee Promo Tile — Replaced dark pill clutter with luminous optical glass refraction, clean typography, and live extension UI.</span>
+          <span style="font-family:var(--mono);font-size:12px" id="cmp-pct">50% v1 / 50% v2</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- FULL 9-ASSET KIT -->
+    <section class="block" id="kit">
+      <div class="sec-head">
+        <div>
+          <div class="sec-kicker">02. Complete Asset Kit</div>
+          <h2>All 8 static graphics, pixel-verified</h2>
+        </div>
+        <div class="seg-bar" role="group" aria-label="Filter assets by category" id="kit-filters">
+          <button type="button" class="seg-btn" data-filter="all" aria-pressed="true">All Graphics (8)</button>
+          <button type="button" class="seg-btn" data-filter="screenshot" aria-pressed="false">Screenshots (5)</button>
+          <button type="button" class="seg-btn" data-filter="promo" aria-pressed="false">Promo Tiles (2)</button>
+          <button type="button" class="seg-btn" data-filter="icon" aria-pressed="false">Store Icon (1)</button>
+        </div>
+      </div>
+
+      <div class="asset-grid" id="asset-grid"></div>
+    </section>
+
+    <!-- 1080P PROMO VIDEO -->
+    <section class="block" id="video">
+      <div class="sec-head">
+        <div>
+          <div class="sec-kicker">03. YouTube Listing Film</div>
+          <h2>SwiftSelect v2 Launch Video (1080p)</h2>
+        </div>
+        <p class="sec-desc">
+          26-second deterministic motion graphics showcase rendered at 1920×1080 (30fps H.264 High) with synthesized ambient harmonic soundscape and timed tactile UI audio.
+        </p>
+      </div>
+
+      <div class="video-shell">
+        <div class="video-player-wrap">
+          <video id="promo-video" controls preload="metadata" poster="/Chrome%20Web%20Store%20assets/v2/promo-tile-marquee-1400x560.png">
+            <source src="/Chrome%20Web%20Store%20assets/v2/swiftselect-promo-v2-1920x1080.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div class="video-bar">
+          <div class="chapter-list" aria-label="Video chapters" id="chapters">
+            <button type="button" class="chapter-btn" data-sec="0"><span>0:00</span>Brand Reveal</button>
+            <button type="button" class="chapter-btn" data-sec="4"><span>0:04</span>Region Capture</button>
+            <button type="button" class="chapter-btn" data-sec="9.2"><span>0:09</span>Smart Snap &amp; Dock</button>
+            <button type="button" class="chapter-btn" data-sec="14"><span>0:14</span>Annotation Studio</button>
+            <button type="button" class="chapter-btn" data-sec="18.5"><span>0:18</span>Gallery &amp; Converter</button>
+            <button type="button" class="chapter-btn" data-sec="22.6"><span>0:22</span>Finale</button>
+          </div>
+          <a href="/Chrome%20Web%20Store%20assets/v2/swiftselect-promo-v2-1920x1080.mp4" class="btn-secondary" style="background:rgba(255,255,255,0.10);color:#fff;border-color:rgba(255,255,255,0.16)" download>Download MP4</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHROME WEB STORE COMPLIANCE AUDIT TABLE -->
+    <section class="block" id="checklist">
+      <div class="sec-head">
+        <div>
+          <div class="sec-kicker">04. Submission Verification</div>
+          <h2>Chrome Web Store specification audit</h2>
+        </div>
+        <p class="sec-desc">
+          Live server verification of every file in <code style="font-family:var(--mono);font-size:13px">Chrome Web Store assets/v2/</code> against exact Chrome Web Store pixel sizes, 24-bit opaque RGB channel rules, and file size budgets.
+        </p>
+      </div>
+
+      <div class="audit-table-wrap">
+        <table class="audit">
+          <thead>
+            <tr>
+              <th>Asset Slot</th>
+              <th>Filename</th>
+              <th>Dimensions</th>
+              <th>Color / Format</th>
+              <th>Size</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="audit-body">
+            <tr><td colspan="6" style="color:var(--ink-3)">Loading live asset audit…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="site-foot">
+      <span>SwiftSelect v2.2 · Chrome Web Store Asset Suite v2</span>
+      <span>9 verified deliverables · Ready for Chrome Web Store Developer Dashboard</span>
+    </footer>
+  </main>
+
+  <dialog class="lightbox" id="lightbox" aria-label="Full resolution asset preview">
+    <div class="lb-head">
+      <div>
+        <div class="lb-title" id="lb-title"></div>
+        <div class="lb-meta" id="lb-meta"></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <a id="lb-dl" class="lb-close" download>Download PNG</a>
+        <button type="button" class="lb-close" id="lb-close">Close</button>
+      </div>
+    </div>
+    <div class="lb-stage">
+      <img id="lb-img" alt="" hidden />
+    </div>
+  </dialog>
+
+  <script>
+    const V2_BASE = "/Chrome%20Web%20Store%20assets/v2/";
+    const V1_BASE = "/Chrome%20Web%20Store%20assets/";
+
+    const COMPARE_ITEMS = [
+      {
+        id: "marquee",
+        label: "Marquee Tile",
+        dim: "1400 × 560 px",
+        ratioClass: "ratio-marquee",
+        v1: V1_BASE + "promo-tile-marquee-1400x560.png",
+        v2: V2_BASE + "promo-tile-marquee-1400x560.png",
+        caption: "Marquee Promo Tile — Replaced dark pill clutter with luminous optical glass refraction, balanced typography, and layered live UI.",
+      },
+      {
+        id: "small",
+        label: "Small Tile",
+        dim: "440 × 280 px",
+        ratioClass: "ratio-small",
+        v1: V1_BASE + "promo-tile-small-440x280.png",
+        v2: V2_BASE + "promo-tile-small-440x280.png",
+        caption: "Small Promo Tile — Higher legibility at grid thumbnail sizes with bright optical contrast, clean coral emphasis, and Liquid Glass toolbar.",
+      },
+      {
+        id: "shot1",
+        label: "Shot 01 · Capture",
+        dim: "1280 × 800 px",
+        ratioClass: "",
+        v1: V1_BASE + "screenshot-1-toolbar-region-1280x800.png",
+        v2: V2_BASE + "screenshot-1-capture-1280x800.png",
+        caption: "Screenshot 01 — Asymmetric editorial left rail, real Lofoten photography, crisp crop reticle, and live Liquid Glass confirmation toast.",
+      },
+      {
+        id: "shot2",
+        label: "Shot 02 · Snap & Dock",
+        dim: "1280 × 800 px",
+        ratioClass: "",
+        v1: V1_BASE + "screenshot-2-toolbar-gallery-1280x800.png",
+        v2: V2_BASE + "screenshot-2-toolbar-dock-1280x800.png",
+        caption: "Screenshot 02 — Combines Smart Element Ctrl-Snap and the expanded Liquid Glass Toolbar Dock on a rich obsidian showcase canvas.",
+      },
+      {
+        id: "shot3",
+        label: "Shot 03 · Annotate",
+        dim: "1280 × 800 px",
+        ratioClass: "",
+        v1: V1_BASE + "screenshot-4-annotate-1280x800.png",
+        v2: V2_BASE + "screenshot-3-annotate-studio-1280x800.png",
+        caption: "Screenshot 03 — Airy frosted studio stage highlighting all 10 markup tools, numbered steps, callout arrow, and pixelated privacy blur.",
+      },
+      {
+        id: "shot4",
+        label: "Shot 04 · Gallery",
+        dim: "1280 × 800 px",
+        ratioClass: "",
+        v1: V1_BASE + "screenshot-5-gallery-1280x800.png",
+        v2: V2_BASE + "screenshot-4-swift-gallery-1280x800.png",
+        caption: "Screenshot 04 — Live Dark Liquid Glass Swift Gallery capture paired with an editorial privacy & feature breakdown rail.",
+      },
+      {
+        id: "shot5",
+        label: "Shot 05 · Converter",
+        dim: "1280 × 800 px",
+        ratioClass: "",
+        v1: V1_BASE + "screenshot-6-quick-settings-1280x800.png",
+        v2: V2_BASE + "screenshot-5-batch-converter-1280x800.png",
+        caption: "Screenshot 05 — Replaces v1's 6th overflow slide with SwiftSelect v2.2's flagship Offline Batch Converter showing real −87% WebP savings.",
+      },
+    ];
+
+    let allAssets = [];
+    let activeFilter = "all";
+    let comparePos = 50;
+
+    function fmtBytes(bytes) {
+      if (!bytes) return "0 B";
+      if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+      return Math.round(bytes / 1024) + " KB";
+    }
+
+    function setComparePct(pct) {
+      comparePos = Math.max(0, Math.min(100, pct));
+      document.getElementById("cmp-v1-wrap").style.clipPath = `inset(0 ${100 - comparePos}% 0 0)`;
+      document.getElementById("cmp-divider").style.left = comparePos + "%";
+      document.getElementById("cmp-range").value = String(Math.round(comparePos));
+      document.getElementById("cmp-pct").textContent = `${Math.round(comparePos)}% v1 / ${Math.round(100 - comparePos)}% v2`;
+    }
+
+    function initCompare() {
+      const tabs = document.getElementById("compare-tabs");
+      const stage = document.getElementById("compare-stage");
+      const range = document.getElementById("cmp-range");
+
+      function select(id) {
+        const item = COMPARE_ITEMS.find((x) => x.id === id) || COMPARE_ITEMS[0];
+        tabs.querySelectorAll("button").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b.dataset.id === item.id));
+        });
+        document.getElementById("cmp-v1").src = item.v1;
+        document.getElementById("cmp-v2").src = item.v2;
+        document.getElementById("compare-dim").textContent = item.dim;
+        document.getElementById("cmp-caption").textContent = item.caption;
+        stage.className = "compare-stage" + (item.ratioClass ? " " + item.ratioClass : "");
+      }
+
+      tabs.innerHTML = COMPARE_ITEMS.map(
+        (item, idx) => `<button type="button" class="seg-btn" data-id="${item.id}" aria-pressed="${idx === 0}">${item.label}</button>`
+      ).join("");
+      tabs.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-id]");
+        if (btn) select(btn.dataset.id);
+      });
+
+      range.addEventListener("input", () => setComparePct(Number(range.value)));
+
+      let dragging = false;
+      const moveAt = (clientX) => {
+        const rect = stage.getBoundingClientRect();
+        const pct = ((clientX - rect.left) / rect.width) * 100;
+        setComparePct(pct);
+      };
+      stage.addEventListener("pointerdown", (e) => {
+        dragging = true;
+        stage.setPointerCapture(e.pointerId);
+        moveAt(e.clientX);
+      });
+      stage.addEventListener("pointermove", (e) => {
+        if (dragging) moveAt(e.clientX);
+      });
+      stage.addEventListener("pointerup", () => { dragging = false; });
+      stage.addEventListener("pointercancel", () => { dragging = false; });
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById("asset-grid");
+      const items = allAssets.filter((a) => a.kind === "image" && (activeFilter === "all" || a.category === activeFilter));
+      grid.innerHTML = items.map((a) => {
+        const url = V2_BASE + encodeURIComponent(a.filename);
+        const isWide = a.id === "promo-marquee";
+        const isSpotlight = a.id === "shot-5-converter" && (activeFilter === "all" || activeFilter === "screenshot");
+        const aspect = a.id === "promo-marquee" ? "aspect-marquee"
+          : a.id === "promo-small" ? "aspect-small"
+          : a.id === "store-icon" ? "aspect-icon"
+          : "aspect-shot";
+        const colorSpec = a.allowAlpha ? "RGBA PNG" : "24-bit RGB · No Alpha";
+        const extraClass = isWide ? " wide" : isSpotlight ? " spotlight" : "";
+        return `
+          <article class="asset-card${extraClass}">
+            <div class="asset-media ${aspect}" data-open="${a.id}" role="button" tabindex="0" aria-label="Inspect ${a.title} full resolution">
+              <img src="${url}" alt="${a.title}" />
+            </div>
+            <div class="asset-body">
+              <div class="asset-meta">${a.width} × ${a.height} px · ${colorSpec} · ${fmtBytes(a.bytes)}</div>
+              <h3 class="asset-title">${a.title}</h3>
+              <p class="asset-sub">${a.subtitle}</p>
+              <div class="asset-actions">
+                <span class="asset-status">${a.ok ? "Verified CWS Spec" : "Needs attention"}</span>
+                <div class="asset-links">
+                  <button type="button" class="text-action" data-open="${a.id}">Inspect</button>
+                  <a class="text-action" href="${url}" download="${a.filename}">Download</a>
+                </div>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function openLightbox(id) {
+      const a = allAssets.find((x) => x.id === id);
+      if (!a) return;
+      const url = V2_BASE + encodeURIComponent(a.filename);
+      const dlg = document.getElementById("lightbox");
+      const img = document.getElementById("lb-img");
+      document.getElementById("lb-title").textContent = a.title;
+      document.getElementById("lb-meta").textContent = `${a.filename} · ${a.width} × ${a.height} px · ${fmtBytes(a.bytes)}`;
+      img.hidden = false;
+      img.src = url;
+      img.alt = a.title;
+      const dl = document.getElementById("lb-dl");
+      dl.href = url;
+      dl.download = a.filename;
+      dlg.showModal();
+    }
+
+    function renderAuditTable() {
+      const body = document.getElementById("audit-body");
+      body.innerHTML = allAssets.map((a) => {
+        const fmt = a.kind === "video"
+          ? "MP4 · H.264 + AAC"
+          : a.hasAlpha ? "PNG · RGBA (Transparent)" : "PNG · 24-bit RGB (Opaque)";
+        return `
+          <tr>
+            <td><strong>${a.title}</strong></td>
+            <td class="mono-cell">${a.filename}</td>
+            <td class="mono-cell">${a.width} × ${a.height}</td>
+            <td>${fmt}</td>
+            <td class="mono-cell">${fmtBytes(a.bytes)}</td>
+            <td class="pass-text">${a.ok ? "Pass" : "Fail"}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function initFiltersAndLightbox() {
+      document.getElementById("kit-filters").addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-filter]");
+        if (!btn) return;
+        activeFilter = btn.dataset.filter;
+        document.querySelectorAll("#kit-filters button").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b === btn));
+        });
+        renderGrid();
+      });
+
+      const grid = document.getElementById("asset-grid");
+      grid.addEventListener("click", (e) => {
+        const trigger = e.target.closest("[data-open]");
+        if (trigger) openLightbox(trigger.dataset.open);
+      });
+      grid.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          const trigger = e.target.closest("[data-open]");
+          if (trigger) { e.preventDefault(); openLightbox(trigger.dataset.open); }
+        }
+      });
+
+      const dlg = document.getElementById("lightbox");
+      document.getElementById("lb-close").addEventListener("click", () => dlg.close());
+      dlg.addEventListener("click", (e) => {
+        if (e.target === dlg) dlg.close();
+      });
+    }
+
+    function initVideoChapters() {
+      const video = document.getElementById("promo-video");
+      const list = document.getElementById("chapters");
+      list.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-sec]");
+        if (!btn) return;
+        video.currentTime = Number(btn.dataset.sec);
+        video.play().catch(() => {});
+        list.querySelectorAll("button").forEach((b) => b.removeAttribute("aria-current"));
+        btn.setAttribute("aria-current", "true");
+      });
+    }
+
+    async function boot() {
+      initCompare();
+      initFiltersAndLightbox();
+      initVideoChapters();
+      const res = await fetch("/__dev/store-assets-v2-audit");
+      const data = await res.json();
+      allAssets = data.assets || [];
+      renderGrid();
+      renderAuditTable();
+    }
+    boot();
+  </script>
+</body>
+</html>

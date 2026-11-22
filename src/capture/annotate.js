@@ -660,17 +660,41 @@ function toggleFill() {
   _syncStyleUI();
 }
 
-/** Swap a button's icon for a tick (or leave it alone on failure). */
+/** Smoothly morph a button's icon into a drawn emerald checkmark and back. */
 function flashDone(btn, ok) {
-  if (!btn || !ok || btn.dataset.busy) return;
-  const original = btn.innerHTML;
-  btn.dataset.busy = "1";
-  btn.innerHTML =
-    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-  setTimeout(() => {
-    btn.innerHTML = original;
-    delete btn.dataset.busy;
-  }, 1400);
+  if (!btn || !ok) return;
+  if (btn._doneTimers) {
+    btn._doneTimers.forEach((id) => clearTimeout(id));
+  }
+  btn._doneTimers = [];
+
+  let overlay = btn.querySelector(":scope > .qs-morph-check");
+  if (overlay) overlay.remove();
+
+  btn.classList.remove("is-done-flash", "is-done-leaving");
+  overlay = document.createElement("span");
+  overlay.className = "qs-morph-check";
+  overlay.setAttribute("aria-hidden", "true");
+  overlay.innerHTML =
+    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline class="qs-morph-path" points="20 6 9 17 4 12"/></svg>';
+  btn.appendChild(overlay);
+
+  // Commit initial hidden frame so the spring morph transitions cleanly.
+  void overlay.offsetWidth;
+  btn.classList.add("is-done-flash");
+
+  const t1 = setTimeout(() => {
+    btn.classList.remove("is-done-flash");
+    btn.classList.add("is-done-leaving");
+  }, 1300);
+
+  const t2 = setTimeout(() => {
+    btn.classList.remove("is-done-leaving");
+    overlay.remove();
+    btn._doneTimers = null;
+  }, 1680);
+
+  btn._doneTimers.push(t1, t2);
 }
 
 // ─── Remembered style ────────────────────────────────────────────────
@@ -1464,7 +1488,7 @@ function buildAnnotationUI() {
 
   const popover = document.createElement("div");
   popover.className = "qs-stroke-popover";
-  popover.style.display = "none";
+  popover.setAttribute("aria-hidden", "true");
   ["pointerdown", "pointermove", "pointerup", "mousedown", "mousemove", "mouseup", "touchstart", "touchmove", "touchend", "click"].forEach((evt) => {
     popover.addEventListener(evt, (e) => e.stopPropagation());
   });
@@ -1695,7 +1719,7 @@ function buildAnnotationUI() {
   }
 
   function updateStrokeUI() {
-    chip.classList.toggle("is-open", popover.style.display !== "none");
+    chip.classList.toggle("is-open", popover.classList.contains("is-open"));
     syncPopoverControls();
   }
   _updateStrokeUI = updateStrokeUI;
@@ -1807,19 +1831,27 @@ function buildAnnotationUI() {
     popover.classList.toggle("qs-pop-up", up);
   }
 
+  function syncPopoverTheme(el) {
+    Array.from(el.classList).forEach((c) => {
+      if (c.startsWith("qs-theme")) el.classList.remove(c);
+    });
+    toolbar.classList.forEach((c) => {
+      if (c.startsWith("qs-theme")) el.classList.add(c);
+    });
+  }
+
   function setPopoverOpen(open) {
     if (open) {
       _closeDownloadPopover();
       hideCustomTooltip();
-      popover.className = "qs-stroke-popover";
-      toolbar.classList.forEach((c) => {
-        if (c.startsWith("qs-theme")) popover.classList.add(c);
-      });
+      syncPopoverTheme(popover);
       syncPopoverControls();
-      popover.style.display = "flex";
       placePopover();
+      popover.classList.add("is-open");
+      popover.setAttribute("aria-hidden", "false");
     } else {
-      popover.style.display = "none";
+      popover.classList.remove("is-open");
+      popover.setAttribute("aria-hidden", "true");
     }
     updateStrokeUI();
   }
@@ -1829,11 +1861,11 @@ function buildAnnotationUI() {
     e?.stopPropagation?.();
     hideCustomTooltip();
     if (_currentTool === "crop") return;
-    setPopoverOpen(popover.style.display === "none");
+    setPopoverOpen(!popover.classList.contains("is-open"));
   };
   window.addEventListener("resize", () => {
-    if (popover.style.display !== "none") placePopover();
-    if (_dlPopoverEl && _dlPopoverEl.style.display !== "none") placeDownloadPopover();
+    if (popover.classList.contains("is-open")) placePopover();
+    if (_dlPopoverEl && _dlPopoverEl.classList.contains("is-open")) placeDownloadPopover();
   });
 
   if (_closePopoverHandler) {
@@ -1841,11 +1873,11 @@ function buildAnnotationUI() {
   }
   _closePopoverHandler = (e) => {
     const path = e.composedPath ? e.composedPath() : [];
-    if (popover.style.display !== "none") {
+    if (popover.classList.contains("is-open")) {
       // Switching tools keeps the panel open; it follows the new tool.
       if (!path.includes(popover) && !path.includes(toolbar)) setPopoverOpen(false);
     }
-    if (_dlPopoverEl && _dlPopoverEl.style.display !== "none") {
+    if (_dlPopoverEl && _dlPopoverEl.classList.contains("is-open")) {
       if (!path.includes(_dlPopoverEl) && !path.includes(_dlTriggerEl)) _closeDownloadPopover();
     }
   };
@@ -1856,8 +1888,8 @@ function buildAnnotationUI() {
   // drawn, they stay hidden instead of stacking on top of it.
   setTooltipGuard((btn) => {
     if (_isDrawing) return false;
-    if (popover.style.display !== "none" && (toolbar.contains(btn) || popover.contains(btn))) return false;
-    if (_dlPopoverEl && _dlPopoverEl.style.display !== "none" && (toolbar.contains(btn) || _dlPopoverEl.contains(btn))) return false;
+    if (popover.classList.contains("is-open") && (toolbar.contains(btn) || popover.contains(btn))) return false;
+    if (_dlPopoverEl && _dlPopoverEl.classList.contains("is-open") && (toolbar.contains(btn) || _dlPopoverEl.contains(btn))) return false;
     return true;
   });
 
@@ -1946,21 +1978,40 @@ function buildAnnotationUI() {
   };
   actionsGroup.appendChild(copyBtn);
 
-  // Download Format Picker Button (opens PNG / JPG / WebP / ICO format menu)
-  const saveBtn = document.createElement("button");
-  saveBtn.type = "button";
-  saveBtn.className = "qs-guide-btn qs-dl-trigger";
-  saveBtn.setAttribute("aria-haspopup", "menu");
-  saveBtn.setAttribute("aria-expanded", "false");
-  saveBtn.setAttribute("aria-label", "Download image in format");
-  saveBtn.innerHTML =
-    '<svg class="tool-icon-save is-filled" viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path class="dl-arrow" d="M19 9h-4V3H9v6H5l7 7 7-7z"/><path class="dl-bar" d="M5 18v2h14v-2H5z"/></svg>' +
-    '<svg class="qs-dl-caret" viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4.5 6 7.5 9 4.5"/></svg>';
-  attachTooltip(saveBtn, "Download As", "PNG, JPG, WebP or ICO", keyHint("Ctrl+S"), 200, _annotateHost);
-  _dlTriggerEl = saveBtn;
+  // Split Download Control:
+  // Left button = immediate 1-click download in the user's default format.
+  // Right button = standalone chevron that opens the PNG/JPG/WebP/ICO picker.
+  const dlSplit = document.createElement("div");
+  dlSplit.className = "qs-dl-split";
+
+  const saveMainBtn = document.createElement("button");
+  saveMainBtn.type = "button";
+  saveMainBtn.className = "qs-dl-main";
+  saveMainBtn.setAttribute("aria-label", "Download image");
+  saveMainBtn.innerHTML =
+    '<svg class="tool-icon-save is-filled" viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path class="dl-arrow" d="M19 9h-4V3H9v6H5l7 7 7-7z"/><path class="dl-bar" d="M5 18v2h14v-2H5z"/></svg>';
+  const initialDefExt = (getOutputSettingsSync().ext || "png").toUpperCase();
+  attachTooltip(saveMainBtn, "Download", `Save as ${initialDefExt}`, keyHint("Ctrl+S"), 200, _annotateHost);
+
+  const dlSep = document.createElement("span");
+  dlSep.className = "qs-dl-sep";
+  dlSep.setAttribute("aria-hidden", "true");
+
+  const dlCaretBtn = document.createElement("button");
+  dlCaretBtn.type = "button";
+  dlCaretBtn.className = "qs-dl-caret-btn";
+  dlCaretBtn.setAttribute("aria-haspopup", "menu");
+  dlCaretBtn.setAttribute("aria-expanded", "false");
+  dlCaretBtn.setAttribute("aria-label", "Download in other formats");
+  dlCaretBtn.innerHTML =
+    '<svg class="qs-dl-caret" viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4.5 6 7.5 9 4.5"/></svg>';
+  attachTooltip(dlCaretBtn, "Other Formats", "PNG, JPG, WebP or ICO", "", 200, _annotateHost);
+
+  dlSplit.append(saveMainBtn, dlSep, dlCaretBtn);
+  _dlTriggerEl = dlSplit;
 
   const DOWNLOAD_FORMATS = [
-    { id: "png", label: "PNG", desc: "Lossless · keeps transparency" },
+    { id: "png", label: "PNG", desc: "Lossless · transparency" },
     { id: "jpg", label: "JPG", desc: "Compact photo · white bg" },
     { id: "webp", label: "WebP", desc: "Smallest size · alpha" },
     { id: "ico", label: "ICO", desc: "Favicon / icon · ≤256 px" },
@@ -1970,23 +2021,23 @@ function buildAnnotationUI() {
   dlPopover.className = "qs-dl-popover";
   dlPopover.setAttribute("role", "menu");
   dlPopover.setAttribute("aria-label", "Download format");
-  dlPopover.style.display = "none";
+  dlPopover.setAttribute("aria-hidden", "true");
   dlPopover.innerHTML = `
     <div class="qs-dl-head">
-      <span class="qs-dl-title">Download format</span>
+      <span class="qs-dl-title">Export as</span>
       <span class="qs-dl-dims"></span>
     </div>
     <div class="qs-dl-list">
       ${DOWNLOAD_FORMATS.map(
-        (f) => `
-        <button type="button" class="qs-dl-opt" role="menuitem" data-format="${f.id}">
+        (f, idx) => `
+        <button type="button" class="qs-dl-opt" role="menuitem" data-format="${f.id}" style="--i: ${idx}">
           <span class="qs-dl-ext">${f.label}</span>
           <span class="qs-dl-meta">
             <span class="qs-dl-name">${f.label}<em class="qs-dl-default" hidden>Default</em></span>
             <span class="qs-dl-desc">${f.desc}</span>
           </span>
           <span class="qs-dl-status" aria-live="polite">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 19h14"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><polyline points="7.5 10.5 12 15 16.5 10.5"/><path d="M5 19h14"/></svg>
           </span>
           <span class="qs-dl-bar"><i></i></span>
         </button>`,
@@ -2004,17 +2055,17 @@ function buildAnnotationUI() {
     const statusEl = row.querySelector(".qs-dl-status");
     if (statusEl) {
       statusEl.innerHTML =
-        '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M5 19h14"/></svg>';
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><polyline points="7.5 10.5 12 15 16.5 10.5"/><path d="M5 19h14"/></svg>';
     }
     const bar = row.querySelector(".qs-dl-bar > i");
     if (bar) bar.style.width = "0%";
   }
 
   function placeDownloadPopover() {
-    const r = saveBtn.getBoundingClientRect();
+    const r = dlSplit.getBoundingClientRect();
     const bar = toolbar.getBoundingClientRect();
-    const pw = dlPopover.offsetWidth || 264;
-    const ph = dlPopover.offsetHeight || 256;
+    const pw = dlPopover.offsetWidth || 268;
+    const ph = dlPopover.offsetHeight || 240;
     const left = Math.max(12 + pw / 2, Math.min(window.innerWidth - 12 - pw / 2, r.left + r.width / 2));
     const below = bar.bottom + 10;
     const up = below + ph > window.innerHeight - 12;
@@ -2028,10 +2079,7 @@ function buildAnnotationUI() {
     if (open) {
       _closeStrokePopover();
       hideCustomTooltip();
-      dlPopover.className = "qs-dl-popover";
-      toolbar.classList.forEach((c) => {
-        if (c.startsWith("qs-theme")) dlPopover.classList.add(c);
-      });
+      syncPopoverTheme(dlPopover);
       const defExt = getOutputSettingsSync().ext || "png";
       const dimsEl = dlPopover.querySelector(".qs-dl-dims");
       if (dimsEl && _annotateCanvas) {
@@ -2042,14 +2090,16 @@ function buildAnnotationUI() {
         if (tag) tag.hidden = row.dataset.format !== defExt;
         if (!_dlBusy) resetDlRow(row);
       });
-      dlPopover.style.display = "flex";
-      saveBtn.classList.add("is-open");
-      saveBtn.setAttribute("aria-expanded", "true");
       placeDownloadPopover();
+      dlPopover.classList.add("is-open");
+      dlPopover.setAttribute("aria-hidden", "false");
+      dlSplit.classList.add("is-open");
+      dlCaretBtn.setAttribute("aria-expanded", "true");
     } else {
-      dlPopover.style.display = "none";
-      saveBtn.classList.remove("is-open");
-      saveBtn.setAttribute("aria-expanded", "false");
+      dlPopover.classList.remove("is-open");
+      dlPopover.setAttribute("aria-hidden", "true");
+      dlSplit.classList.remove("is-open");
+      dlCaretBtn.setAttribute("aria-expanded", "false");
     }
   }
   _closeDownloadPopover = () => setDownloadPopoverOpen(false);
@@ -2072,7 +2122,7 @@ function buildAnnotationUI() {
     const barFill = row.querySelector(".qs-dl-bar > i");
     row.classList.remove("is-done", "is-error");
     row.classList.add("is-converting");
-    saveBtn.classList.add("is-busy");
+    dlSplit.classList.add("is-busy");
 
     const setProgress = (pct) => {
       const clamped = Math.max(0, Math.min(100, Math.round(pct)));
@@ -2081,7 +2131,7 @@ function buildAnnotationUI() {
     };
 
     try {
-      setProgress(14);
+      setProgress(16);
       const res = await handleSaveAnnotatedFormat(fmt, setProgress);
       if (res && res.ok) {
         row.classList.remove("is-converting");
@@ -2089,13 +2139,13 @@ function buildAnnotationUI() {
         if (barFill) barFill.style.width = "100%";
         if (statusEl) {
           statusEl.innerHTML =
-            '<svg class="qs-dl-check" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' +
-            `<span>${formatExportBytes(res.bytes)}</span>`;
+            '<svg class="qs-dl-check" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline class="qs-dl-check-path" points="20 6 9 17 4 12"/></svg>' +
+            `<span class="qs-dl-bytes">${formatExportBytes(res.bytes)}</span>`;
         }
         _dlCloseTimer = setTimeout(() => {
           setDownloadPopoverOpen(false);
-          flashDone(saveBtn, true);
-        }, 850);
+          setTimeout(() => flashDone(saveMainBtn, true), 110);
+        }, 720);
       } else {
         row.classList.remove("is-converting");
         row.classList.add("is-error");
@@ -2103,19 +2153,37 @@ function buildAnnotationUI() {
       }
     } finally {
       _dlBusy = false;
-      saveBtn.classList.remove("is-busy");
+      dlSplit.classList.remove("is-busy");
       dlPopover.querySelectorAll(".qs-dl-opt").forEach((other) => {
         other.disabled = false;
       });
     }
   });
 
-  saveBtn.onclick = (e) => {
+  // Left half: instant 1-click download in default format.
+  saveMainBtn.onclick = async (e) => {
     e?.stopPropagation?.();
     hideCustomTooltip();
-    setDownloadPopoverOpen(dlPopover.style.display === "none");
+    if (_dlBusy) return;
+    if (dlPopover.classList.contains("is-open")) setDownloadPopoverOpen(false);
+    _dlBusy = true;
+    saveMainBtn.classList.add("is-busy");
+    try {
+      const ok = await handleSaveAnnotated();
+      flashDone(saveMainBtn, ok);
+    } finally {
+      _dlBusy = false;
+      saveMainBtn.classList.remove("is-busy");
+    }
   };
-  actionsGroup.appendChild(saveBtn);
+
+  // Right half: standalone toggle for other image formats.
+  dlCaretBtn.onclick = (e) => {
+    e?.stopPropagation?.();
+    hideCustomTooltip();
+    setDownloadPopoverOpen(!dlPopover.classList.contains("is-open"));
+  };
+  actionsGroup.appendChild(dlSplit);
 
   // Save to Gallery
   const galleryBtn = document.createElement("button");
@@ -2219,15 +2287,14 @@ function buildAnnotationUI() {
     const isTextInput = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA";
 
     if (!isCanvas && !isToolbar && !isCropControls && !isDownloadPopover && !isTextInput) {
-      if (_dlPopoverEl && _dlPopoverEl.style.display !== "none") {
+      if (_dlPopoverEl && _dlPopoverEl.classList.contains("is-open")) {
         _closeDownloadPopover();
         e.preventDefault();
         e.stopPropagation();
         return;
       }
-      if (_strokePopoverEl && _strokePopoverEl.style.display !== "none") {
-        _strokePopoverEl.style.display = "none";
-        updateStrokeUI();
+      if (_strokePopoverEl && _strokePopoverEl.classList.contains("is-open")) {
+        _closeStrokePopover();
         e.preventDefault();
         e.stopPropagation();
         return;
@@ -4210,13 +4277,12 @@ async function handleSaveToGallery() {
 function onAnnotateKeyDown(e) {
   if (e.key === "Escape") {
     if (cancelPendingHighlight()) return;
-    if (_dlPopoverEl && _dlPopoverEl.style.display !== "none") {
+    if (_dlPopoverEl && _dlPopoverEl.classList.contains("is-open")) {
       _closeDownloadPopover();
       return;
     }
-    if (_strokePopoverEl && _strokePopoverEl.style.display !== "none") {
-      _strokePopoverEl.style.display = "none";
-      _updateStrokeUI();
+    if (_strokePopoverEl && _strokePopoverEl.classList.contains("is-open")) {
+      _closeStrokePopover();
       return;
     }
     if (_currentTool === "crop") {

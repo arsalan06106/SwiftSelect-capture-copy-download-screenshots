@@ -1,0 +1,1806 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SwiftSelect — Chrome Web Store Assets v2 Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+@font-face {
+  font-family: "SS Inter";
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+  font-weight: 100 900;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --display: "Plus Jakarta Sans", "SS Inter", system-ui, sans-serif;
+  --body: "DM Sans", "SS Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  --ink: #11131a;
+  --ink-2: #4b5063;
+  --ink-3: #7c8296;
+  --coral: #f43f5e;
+  --coral-deep: #e11d48;
+  --aqua: #06b6d4;
+  --cobalt: #2563eb;
+  --violet: #7c3aed;
+  --emerald: #059669;
+  --paper: #f6f7fb;
+  --obsidian: #0c0e15;
+  --obsidian-2: #151824;
+  --reflex-light:
+    inset 0 0 0 1px rgba(255,255,255,0.72),
+    inset 1.5px 2.5px 0 -1px rgba(255,255,255,0.92),
+    inset -1.5px -1.5px 0 -1px rgba(255,255,255,0.68),
+    inset 0 3px 6px -2px rgba(15,23,42,0.08),
+    0 2px 6px rgba(15,23,42,0.08),
+    0 22px 48px -14px rgba(15,23,42,0.20);
+  --reflex-dark:
+    inset 0 0 0 1px rgba(255,255,255,0.14),
+    inset 1px 2px 0 -1px rgba(255,255,255,0.22),
+    inset -1px -1px 0 -1px rgba(255,255,255,0.08),
+    0 24px 56px -14px rgba(0,0,0,0.62);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+#stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ─── SHARED BRAND & STUDIO PRIMITIVES ───────────────────────────────────── */
+
+.studio-light {
+  background:
+    radial-gradient(65% 75% at 4% 2%, rgba(244, 63, 94, 0.085), transparent 64%),
+    radial-gradient(62% 72% at 96% 94%, rgba(6, 182, 212, 0.115), transparent 62%),
+    radial-gradient(48% 54% at 88% 8%, rgba(99, 102, 241, 0.07), transparent 65%),
+    #f6f7fb;
+  color: var(--ink);
+}
+
+.studio-mist {
+  background:
+    radial-gradient(58% 68% at 10% 95%, rgba(244, 63, 94, 0.075), transparent 62%),
+    radial-gradient(58% 68% at 94% 12%, rgba(56, 189, 248, 0.10), transparent 62%),
+    #f1f3f8;
+  color: var(--ink);
+}
+
+.studio-dark {
+  background:
+    radial-gradient(58% 66% at 8% 4%, rgba(244, 63, 94, 0.16), transparent 62%),
+    radial-gradient(55% 68% at 95% 96%, rgba(6, 182, 212, 0.17), transparent 60%),
+    radial-gradient(48% 54% at 74% 10%, rgba(99, 102, 241, 0.12), transparent 64%),
+    #0b0d14;
+  color: #f4f6fb;
+}
+
+.optical-ribbon {
+  position: absolute;
+  pointer-events: none;
+  object-fit: cover;
+  user-select: none;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+.studio-dark .kicker { color: #a5acc2; }
+.kicker img { width: 22px; height: 22px; display: block; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.14)); }
+.kicker .sep { opacity: 0.42; font-weight: 400; }
+
+.h-display {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.accent-coral { color: var(--coral-deep); }
+.studio-dark .accent-coral { color: #ff647d; }
+.accent-aqua { color: #0891b2; }
+.studio-dark .accent-aqua { color: #38e2f5; }
+
+.lead {
+  font-size: 16px;
+  line-height: 1.56;
+  color: var(--ink-2);
+  font-weight: 400;
+}
+.studio-dark .lead { color: #9ea5bc; }
+
+.kbd-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  vertical-align: middle;
+}
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  background: linear-gradient(180deg, #ffffff 0%, #eef0f6 100%);
+  border: 1px solid rgba(17, 19, 26, 0.14);
+  box-shadow: 0 2px 0 rgba(17, 19, 26, 0.12), inset 0 1px 0 #fff;
+}
+.studio-dark .kbd {
+  color: #f4f6fb;
+  background: linear-gradient(180deg, #252938 0%, #191c28 100%);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+/* ─── BROWSER CHROME FRAME ───────────────────────────────────────────────── */
+.chrome-frame {
+  border-radius: 18px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(17, 19, 26, 0.09),
+    0 32px 72px -18px rgba(15, 23, 42, 0.24),
+    0 8px 20px -6px rgba(15, 23, 42, 0.10);
+}
+.studio-dark .chrome-frame {
+  background: #141722;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.11),
+    0 36px 84px -18px rgba(0, 0, 0, 0.78),
+    0 0 120px -30px rgba(56, 226, 245, 0.14);
+}
+.chrome-bar {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 8px;
+  background: linear-gradient(180deg, #f9fafc 0%, #f1f3f8 100%);
+  border-bottom: 1px solid rgba(17, 19, 26, 0.07);
+  position: relative;
+}
+.studio-dark .chrome-bar,
+.chrome-frame.dark-chrome .chrome-bar {
+  background: linear-gradient(180deg, #1d202d 0%, #171924 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.chrome-dots { display: flex; gap: 7px; align-items: center; }
+.chrome-dots i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+.chrome-dots i:nth-child(1) { background: #ff5f57; }
+.chrome-dots i:nth-child(2) { background: #febc2e; }
+.chrome-dots i:nth-child(3) { background: #28c840; }
+
+.chrome-url {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 24px;
+  min-width: 280px;
+  padding: 0 16px;
+  border-radius: 7px;
+  background: rgba(17, 19, 26, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #5b6175;
+}
+.studio-dark .chrome-url,
+.chrome-frame.dark-chrome .chrome-url {
+  background: rgba(0, 0, 0, 0.34);
+  color: #9ba3bc;
+}
+.chrome-ext {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: rgba(17, 19, 26, 0.05);
+  display: grid;
+  place-items: center;
+}
+.studio-dark .chrome-ext,
+.chrome-frame.dark-chrome .chrome-ext { background: rgba(255,255,255,0.08); }
+.chrome-ext img { width: 15px; height: 15px; display: block; }
+
+/* ─── AUTHENTIC LIQUID GLASS CAPTURE TOOLBAR ─────────────────────────────── */
+.lg-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(248, 250, 255, 0.72);
+  backdrop-filter: blur(22px) saturate(185%);
+  -webkit-backdrop-filter: blur(22px) saturate(185%);
+  box-shadow: var(--reflex-light);
+}
+.lg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px 0 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 0 0 1px rgba(17, 19, 26, 0.06),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  color: #161822;
+  white-space: nowrap;
+}
+.lg-btn.icon-only {
+  width: 38px;
+  padding: 0;
+  justify-content: center;
+}
+.lg-tile {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 3px 8px -2px var(--sh, rgba(0,0,0,0.3));
+}
+.t-cyan { background: linear-gradient(160deg, #38bdf8, #0284c7); --sh: rgba(2,132,199,0.5); }
+.t-violet { background: linear-gradient(160deg, #a78bfa, #6d28d9); --sh: rgba(109,40,217,0.5); }
+.t-pink { background: linear-gradient(160deg, #fb7185, #e11d48); --sh: rgba(225,29,72,0.5); }
+.t-teal { background: linear-gradient(160deg, #2dd4bf, #0d9488); --sh: rgba(13,148,136,0.5); }
+.t-blue { background: linear-gradient(160deg, #60a5fa, #2563eb); --sh: rgba(37,99,235,0.5); }
+.t-slate { background: linear-gradient(160deg, #94a3b8, #475569); --sh: rgba(71,85,105,0.45); }
+.t-green { background: linear-gradient(160deg, #34d399, #059669); --sh: rgba(5,150,105,0.45); }
+
+.lg-tile svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.lg-btn > svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Dark variant of Liquid Glass toolbar */
+.lg-toolbar.dark {
+  background: rgba(24, 27, 40, 0.78);
+  box-shadow: var(--reflex-dark);
+}
+.lg-toolbar.dark .lg-btn {
+  background: rgba(255, 255, 255, 0.11);
+  color: #f4f6fb;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* ─── 0. STORE ICON (128x128) ────────────────────────────────────────────── */
+.tpl-icon {
+  width: 128px;
+  height: 128px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+}
+.tpl-icon img {
+  width: 96px;
+  height: 96px;
+  display: block;
+  filter: drop-shadow(0 6px 10px rgba(17, 19, 26, 0.22));
+}
+
+/* ─── 1. SMALL PROMO TILE (440x280) ──────────────────────────────────────── */
+.tpl-small {
+  width: 440px;
+  height: 280px;
+  position: relative;
+  overflow: hidden;
+}
+.tpl-small .optical-ribbon {
+  inset: -14px -18px -20px -10px;
+  width: 470px;
+  height: 320px;
+  opacity: 0.42;
+}
+.tpl-small .content {
+  position: relative;
+  z-index: 2;
+  padding: 26px 26px 0;
+}
+.tpl-small .brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.tpl-small .brand img {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 6px 12px rgba(244, 63, 94, 0.20));
+}
+.tpl-small .brand-name {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+.tpl-small .headline {
+  margin-top: 14px;
+  font-family: var(--display);
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1.09;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  max-width: 310px;
+}
+.tpl-small .reticle {
+  position: absolute;
+  right: 22px;
+  top: 24px;
+  width: 82px;
+  height: 62px;
+  border: 1.5px solid rgba(17, 19, 26, 0.22);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  z-index: 2;
+}
+.tpl-small .reticle span {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.tpl-small .reticle small {
+  font-size: 9px;
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.tpl-small .pill-dock {
+  position: absolute;
+  left: 16px;
+  bottom: 18px;
+  z-index: 3;
+  transform: scale(0.84);
+  transform-origin: left bottom;
+}
+
+/* ─── 2. MARQUEE PROMO TILE (1400x560) ───────────────────────────────────── */
+.tpl-marquee {
+  width: 1400px;
+  height: 560px;
+  position: relative;
+  overflow: hidden;
+}
+.tpl-marquee .optical-ribbon {
+  left: -80px;
+  top: -30px;
+  width: 960px;
+  height: 640px;
+  opacity: 0.48;
+  mask-image: linear-gradient(95deg, #000 35%, transparent 92%);
+  -webkit-mask-image: linear-gradient(95deg, #000 35%, transparent 92%);
+}
+.tpl-marquee .left {
+  position: absolute;
+  left: 68px;
+  top: 0;
+  bottom: 0;
+  width: 520px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 4;
+}
+.tpl-marquee .brand-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.tpl-marquee .brand-row img {
+  width: 52px;
+  height: 52px;
+  filter: drop-shadow(0 8px 18px rgba(17, 19, 26, 0.16));
+}
+.tpl-marquee .brand-title {
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+.tpl-marquee .brand-meta {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-top: 2px;
+}
+.tpl-marquee h1 {
+  margin-top: 26px;
+  font-size: 54px;
+  line-height: 1.03;
+  letter-spacing: -0.042em;
+  color: var(--ink);
+}
+.tpl-marquee .cap-line {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.tpl-marquee .cap-line .dot { color: rgba(17, 19, 26, 0.28); font-weight: 400; }
+.tpl-marquee .meta-foot {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(17, 19, 26, 0.09);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.tpl-marquee .meta-foot strong { color: var(--ink); font-weight: 700; }
+
+.tpl-marquee .stage-right {
+  position: absolute;
+  right: -26px;
+  top: 40px;
+  width: 780px;
+  height: 500px;
+  z-index: 3;
+}
+.tpl-marquee .main-win {
+  position: absolute;
+  left: 172px;
+  top: 0;
+  width: 632px;
+  height: 492px;
+}
+.tpl-marquee .win-body {
+  position: relative;
+  height: calc(100% - 38px);
+  background: #fbfaf7;
+  padding: 24px 28px 28px 84px;
+  overflow: hidden;
+}
+.tpl-marquee .site-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  margin-bottom: 54px;
+}
+.tpl-marquee .site-logo { font-family: var(--display); font-weight: 800; color: #161822; font-size: 14px; letter-spacing: -0.02em; }
+.tpl-marquee .site-grid {
+  display: block;
+}
+.tpl-marquee .photo-sel {
+  position: relative;
+  border-radius: 14px;
+  overflow: visible;
+  width: 472px;
+}
+.tpl-marquee .photo-sel img {
+  width: 100%;
+  height: 274px;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+.tpl-marquee .sel-outline {
+  position: absolute;
+  inset: -7px;
+  border: 2px solid #11131a;
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.85), 0 16px 36px -12px rgba(17,19,26,0.28);
+}
+.tpl-marquee .sel-dim {
+  position: absolute;
+  top: -34px;
+  left: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #11131a;
+  background: rgba(255,255,255,0.92);
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12), inset 0 0 0 1px rgba(17,19,26,0.08);
+}
+.tpl-marquee .marquee-toolbar {
+  position: absolute;
+  right: 22px;
+  top: 48px;
+  z-index: 6;
+  transform: scale(0.84);
+  transform-origin: top right;
+}
+.tpl-marquee .popup-float {
+  position: absolute;
+  left: 0;
+  top: 72px;
+  width: 234px;
+  border-radius: 22px;
+  overflow: hidden;
+  z-index: 7;
+  box-shadow:
+    0 0 0 1px rgba(17, 19, 26, 0.10),
+    0 34px 68px -16px rgba(15, 23, 42, 0.34);
+}
+.tpl-marquee .popup-float img { width: 100%; display: block; }
+
+.tpl-marquee .saving-toast {
+  position: absolute;
+  right: 54px;
+  bottom: 22px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: var(--reflex-light);
+}
+.tpl-marquee .saving-toast .txt b { display: block; font-size: 13px; color: #11131a; font-weight: 700; }
+.tpl-marquee .saving-toast .txt span { font-family: var(--mono); font-size: 11.5px; color: #059669; font-weight: 600; }
+
+/* ─── 3. SCREENSHOT 1: INSTANT REGION & FULL-PAGE CAPTURE (1280x800) ─────── */
+.tpl-shot1 {
+  width: 1280px;
+  height: 800px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 416px 1fr;
+}
+.tpl-shot1 .optical-ribbon {
+  left: -120px;
+  bottom: -80px;
+  width: 680px;
+  height: 460px;
+  opacity: 0.40;
+}
+.tpl-shot1 .rail {
+  position: relative;
+  z-index: 3;
+  padding: 64px 36px 56px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.tpl-shot1 h1 {
+  margin-top: 22px;
+  font-size: 48px;
+  line-height: 1.04;
+}
+.tpl-shot1 .lead { margin-top: 20px; max-width: 310px; }
+.tpl-shot1 .spec-list {
+  margin-top: 32px;
+  border-top: 1px solid rgba(17, 19, 26, 0.09);
+  padding-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.tpl-shot1 .spec-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 13.5px;
+}
+.tpl-shot1 .spec-row span { color: var(--ink-2); font-weight: 500; white-space: nowrap; }
+.tpl-shot1 .spec-row b { color: var(--ink); font-weight: 700; font-size: 13px; white-space: nowrap; }
+.tpl-shot1 .privacy-note {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.tpl-shot1 .canvas-stage {
+  position: relative;
+  padding: 42px 0 0 18px;
+  z-index: 2;
+}
+.tpl-shot1 .browser-bleed {
+  width: 896px;
+  height: 758px;
+  border-radius: 20px 0 0 0;
+}
+.tpl-shot1 .editorial-page {
+  position: relative;
+  height: calc(100% - 38px);
+  background: #faf8f4;
+  padding: 36px 46px;
+  overflow: hidden;
+}
+.tpl-shot1 .ed-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(17,19,26,0.08);
+}
+.tpl-shot1 .ed-brand { font-family: var(--display); font-weight: 800; font-size: 17px; letter-spacing: -0.03em; color: #161822; }
+.tpl-shot1 .ed-links { display: flex; gap: 24px; font-size: 13px; color: #5c6272; font-weight: 500; }
+.tpl-shot1 .ed-hero {
+  margin-top: 66px;
+  display: grid;
+  grid-template-columns: 300px 422px;
+  gap: 36px;
+  align-items: start;
+}
+.tpl-shot1 .ed-issue { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #0f766e; font-weight: 600; }
+.tpl-shot1 .ed-h2 { margin-top: 14px; font-family: var(--display); font-size: 38px; line-height: 1.08; letter-spacing: -0.04em; font-weight: 800; color: #151722; }
+.tpl-shot1 .ed-p { margin-top: 16px; font-size: 14.5px; line-height: 1.62; color: #545968; }
+.tpl-shot1 .ed-btns { margin-top: 24px; display: flex; gap: 10px; }
+.tpl-shot1 .ed-btn { padding: 10px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.tpl-shot1 .ed-btn.solid { background: #145349; color: #fff; }
+.tpl-shot1 .ed-btn.ghost { border: 1px solid rgba(17,19,26,0.16); color: #151722; background: #fff; }
+
+.tpl-shot1 .dim-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 18, 28, 0.11);
+  pointer-events: none;
+  z-index: 2;
+  clip-path: polygon(
+    0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
+    376px 144px, 376px 532px, 810px 532px, 810px 144px, 376px 144px
+  );
+}
+.tpl-shot1 .ed-photo-wrap {
+  position: relative;
+  width: 422px;
+  z-index: 3;
+}
+.tpl-shot1 .ed-photo {
+  width: 422px;
+  height: 376px;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+.tpl-shot1 .crop-box {
+  position: absolute;
+  inset: -6px;
+  border: 2px solid #11131a;
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.9), 0 24px 48px -12px rgba(0,0,0,0.28);
+}
+.tpl-shot1 .crop-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #11131a;
+}
+.tpl-shot1 .ch-tl { left: -6px; top: -6px; }
+.tpl-shot1 .ch-tr { right: -6px; top: -6px; }
+.tpl-shot1 .ch-bl { left: -6px; bottom: -6px; }
+.tpl-shot1 .ch-br { right: -6px; bottom: -6px; }
+.tpl-shot1 .crop-hud {
+  position: absolute;
+  left: 0;
+  top: -38px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.96);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #11131a;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.14), inset 0 0 0 1px rgba(17,19,26,0.08);
+}
+.tpl-shot1 .float-toolbar {
+  position: absolute;
+  right: 36px;
+  top: 26px;
+  z-index: 6;
+  transform: scale(0.92);
+  transform-origin: top right;
+}
+.tpl-shot1 .status-toast {
+  position: absolute;
+  left: 46px;
+  bottom: 44px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 22px;
+  background: rgba(246, 255, 250, 0.88);
+  backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: var(--reflex-light);
+}
+.tpl-shot1 .status-toast .t-copy b { display: block; font-size: 14.5px; color: #11131a; font-weight: 700; }
+.tpl-shot1 .status-toast .t-copy span { font-family: var(--mono); font-size: 12px; color: #475569; }
+.tpl-shot1 .status-toast .t-action {
+  margin-left: 8px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #11131a;
+  box-shadow: inset 0 0 0 1px rgba(17,19,26,0.08), 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* ─── 4. SCREENSHOT 2: SMART SNAP & TOOLBAR DOCK (1280x800 · OBSIDIAN) ───── */
+.tpl-shot2 {
+  width: 1280px;
+  height: 800px;
+  position: relative;
+}
+.tpl-shot2 .head {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 44px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 4;
+}
+.tpl-shot2 h1 {
+  margin-top: 12px;
+  font-size: 44px;
+  line-height: 1.06;
+}
+.tpl-shot2 .head-right {
+  max-width: 390px;
+  text-align: right;
+  font-size: 15.5px;
+  line-height: 1.52;
+  color: #a6aec5;
+}
+.tpl-shot2 .head-right strong { color: #f4f6fb; font-weight: 600; }
+
+.tpl-shot2 .browser-main {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 168px;
+  height: 632px;
+  border-radius: 20px 20px 0 0;
+}
+.tpl-shot2 .atelier-page {
+  position: relative;
+  height: calc(100% - 38px);
+  background: #f8f7f4;
+  color: #151722;
+  padding: 32px 42px;
+  overflow: hidden;
+}
+.tpl-shot2 .at-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(17,19,26,0.08);
+}
+.tpl-shot2 .at-brand { font-family: var(--display); font-weight: 800; font-size: 16px; letter-spacing: -0.02em; }
+.tpl-shot2 .at-sub { font-size: 12.5px; color: #646a7a; }
+.tpl-shot2 .at-heading {
+  margin-top: 18px;
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.tpl-shot2 .at-grid {
+  margin-top: 50px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+.tpl-shot2 .at-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px;
+  border: 1px solid rgba(17,19,26,0.08);
+  position: relative;
+}
+.tpl-shot2 .at-card img {
+  width: 100%;
+  height: 204px;
+  object-fit: cover;
+  border-radius: 11px;
+  display: block;
+}
+.tpl-shot2 .at-card h4 { margin-top: 12px; font-size: 15px; font-weight: 700; color: #161822; }
+.tpl-shot2 .at-card p { margin-top: 3px; font-size: 12.5px; color: #6b7280; }
+
+/* Smart Element Snap Lock on Card 1 */
+.tpl-shot2 .at-card.snapped {
+  border-color: transparent;
+  box-shadow: 0 0 0 2.5px #0284c7, 0 0 0 6px rgba(56, 189, 248, 0.22), 0 18px 36px -12px rgba(2, 132, 199, 0.26);
+}
+.tpl-shot2 .snap-hud {
+  position: absolute;
+  left: 0;
+  top: -36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #f8fafc;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.30);
+}
+.tpl-shot2 .snap-hud em { font-style: normal; color: #38e2f5; }
+
+/* Expanded Liquid Glass Toolbar Dock (Gallery + Settings preview) */
+.tpl-shot2 .expanded-dock {
+  position: absolute;
+  right: 34px;
+  top: 22px;
+  width: 556px;
+  border-radius: 28px;
+  padding: 14px;
+  background: rgba(248, 250, 255, 0.84);
+  backdrop-filter: blur(26px) saturate(190%);
+  -webkit-backdrop-filter: blur(26px) saturate(190%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.82),
+    inset 2px 3px 0 -1px rgba(255,255,255,0.95),
+    0 28px 64px -14px rgba(15, 23, 42, 0.34);
+  z-index: 6;
+}
+.tpl-shot2 .dock-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tpl-shot2 .dock-tabs-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid rgba(17,19,26,0.07);
+}
+.tpl-shot2 .seg-tabs {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(17,19,26,0.06);
+  gap: 2px;
+}
+.tpl-shot2 .seg-tab {
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6175;
+}
+.tpl-shot2 .seg-tab.active {
+  background: #fff;
+  color: #11131a;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.10);
+}
+.tpl-shot2 .dock-hint { font-size: 12px; color: #5b6175; font-weight: 500; }
+.tpl-shot2 .dock-strip {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.tpl-shot2 .dock-item {
+  background: rgba(255,255,255,0.88);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: inset 0 0 0 1px rgba(17,19,26,0.06), 0 4px 12px rgba(15,23,42,0.06);
+}
+.tpl-shot2 .dock-item img {
+  width: 100%;
+  height: 82px;
+  object-fit: cover;
+  border-radius: 9px;
+  display: block;
+}
+.tpl-shot2 .dock-item b { display: block; margin-top: 6px; font-size: 11.5px; color: #161822; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tpl-shot2 .dock-item span { display: block; font-family: var(--mono); font-size: 10px; color: #64748b; margin-top: 1px; }
+
+.tpl-shot2 .dock-quickbar {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(17,19,26,0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #475569;
+  font-weight: 600;
+}
+.tpl-shot2 .qb-vals {
+  display: flex;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #11131a;
+}
+
+/* ─── 5. SCREENSHOT 3: ANNOTATION STUDIO (1280x800 · STUDIO MIST) ────────── */
+.tpl-shot3 {
+  width: 1280px;
+  height: 800px;
+  position: relative;
+}
+.tpl-shot3 .head {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 42px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 4;
+}
+.tpl-shot3 h1 { margin-top: 12px; font-size: 40px; line-height: 1.06; white-space: nowrap; }
+.tpl-shot3 .head-right {
+  text-align: right;
+  font-size: 14.5px;
+  line-height: 1.52;
+  color: var(--ink-2);
+  max-width: 410px;
+}
+.tpl-shot3 .head-right strong { color: var(--ink); font-weight: 700; }
+
+.tpl-shot3 .annotate-win {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 162px;
+  height: 638px;
+  border-radius: 20px 20px 0 0;
+}
+.tpl-shot3 .stage-frosted {
+  position: relative;
+  height: calc(100% - 38px);
+  background:
+    radial-gradient(60% 60% at 10% 10%, rgba(120, 160, 255, 0.22), transparent 65%),
+    radial-gradient(50% 55% at 92% 16%, rgba(255, 140, 180, 0.20), transparent 62%),
+    radial-gradient(55% 60% at 88% 92%, rgba(72, 215, 200, 0.22), transparent 65%),
+    #f1f4fa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 18px;
+}
+.tpl-shot3 .ann-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: var(--reflex-light);
+}
+.tpl-shot3 .ann-tool {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #1f2433;
+}
+.tpl-shot3 .ann-tool.active {
+  background: linear-gradient(160deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  box-shadow: 0 4px 12px -2px rgba(29, 78, 216, 0.55);
+}
+.tpl-shot3 .ann-tool svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.tpl-shot3 .ann-div { width: 1px; height: 20px; background: rgba(17,19,26,0.11); margin: 0 4px; }
+.tpl-shot3 .ann-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid #ef4444;
+  background: #fff;
+}
+
+.tpl-shot3 .ann-canvas-card {
+  margin-top: 20px;
+  width: 820px;
+  height: 438px;
+  border-radius: 16px;
+  background: #faf8f4;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(17, 19, 26, 0.08),
+    0 24px 56px -14px rgba(15, 23, 42, 0.22);
+  padding: 26px 34px;
+}
+.tpl-shot3 .ac-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(17,19,26,0.08);
+}
+.tpl-shot3 .ac-brand { font-family: var(--display); font-weight: 800; font-size: 15px; color: #161822; }
+.tpl-shot3 .ac-links { display: flex; gap: 18px; font-size: 12px; color: #646a7a; }
+.tpl-shot3 .ac-blur {
+  width: 128px;
+  height: 22px;
+  border-radius: 6px;
+  background-image:
+    linear-gradient(90deg, #1f2430 14%, #3c4252 14% 28%, #252b38 28% 42%, #4e5668 42% 58%, #202532 58% 74%, #646d82 74% 88%, #1e232f 88%),
+    linear-gradient(180deg, rgba(255,255,255,0.14) 50%, rgba(0,0,0,0.22) 50%);
+  background-size: 100% 100%, 10px 10px;
+  box-shadow: 0 0 0 1px rgba(17,19,26,0.14);
+}
+.tpl-shot3 .ac-grid {
+  margin-top: 26px;
+  display: grid;
+  grid-template-columns: 1fr 346px;
+  gap: 32px;
+  align-items: center;
+}
+.tpl-shot3 .ac-issue {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #0f766e;
+  position: relative;
+}
+.tpl-shot3 .ac-issue::before {
+  content: "";
+  position: absolute;
+  inset: -2px -4px;
+  background: rgba(244, 63, 94, 0.24);
+  border-radius: 3px;
+}
+.tpl-shot3 .ac-h2 {
+  margin-top: 12px;
+  font-family: var(--display);
+  font-size: 31px;
+  line-height: 1.09;
+  letter-spacing: -0.04em;
+  font-weight: 800;
+  color: #161822;
+}
+.tpl-shot3 .ac-p { margin-top: 12px; font-size: 13px; line-height: 1.56; color: #5b6175; }
+.tpl-shot3 .ac-btns { margin-top: 20px; display: flex; gap: 10px; position: relative; }
+.tpl-shot3 .ac-btn-p {
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: #145349;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  position: relative;
+}
+.tpl-shot3 .ac-btn-s {
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(17,19,26,0.16);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #161822;
+}
+.tpl-shot3 .ac-img {
+  width: 346px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+.tpl-shot3 .ann-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.tpl-shot3 .ann-caption {
+  margin-top: 16px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.78);
+  box-shadow: inset 0 0 0 1px rgba(17,19,26,0.07), 0 6px 18px rgba(15,23,42,0.08);
+  font-size: 12px;
+  color: #475569;
+  font-weight: 500;
+}
+.tpl-shot3 .ann-caption b { color: #11131a; font-weight: 700; margin-right: 8px; }
+.tpl-shot3 .ann-zoom {
+  position: absolute;
+  right: 26px;
+  bottom: 20px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.88);
+  box-shadow: var(--reflex-light);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #11131a;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ─── 6. SCREENSHOT 4: PRIVATE LOCAL SWIFT GALLERY (1280x800 · OBSIDIAN) ─── */
+.tpl-shot4 {
+  width: 1280px;
+  height: 800px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 390px;
+}
+.tpl-shot4 .gallery-stage {
+  position: relative;
+  padding: 44px 16px 0 0;
+  z-index: 2;
+}
+.tpl-shot4 .gallery-win {
+  width: 874px;
+  height: 756px;
+  border-radius: 0 20px 0 0;
+  margin-left: -2px;
+}
+.tpl-shot4 .gallery-win img.live-shot {
+  width: 100%;
+  height: calc(100% - 38px);
+  object-fit: cover;
+  object-position: left top;
+  display: block;
+}
+.tpl-shot4 .rail-right {
+  position: relative;
+  z-index: 3;
+  padding: 64px 56px 56px 34px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.tpl-shot4 h1 {
+  margin-top: 22px;
+  font-size: 46px;
+  line-height: 1.04;
+}
+.tpl-shot4 .lead { margin-top: 18px; }
+.tpl-shot4 .facts {
+  margin-top: 30px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.tpl-shot4 .fact b {
+  display: block;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  color: #f4f6fb;
+}
+.tpl-shot4 .fact span {
+  display: block;
+  margin-top: 3px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #939bb4;
+}
+.tpl-shot4 .trust-line {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: #38e2f5;
+  font-weight: 600;
+}
+
+/* ─── 7. SCREENSHOT 5: BATCH IMAGE CONVERTER (1280x800 · ALABASTER) ──────── */
+.tpl-shot5 {
+  width: 1280px;
+  height: 800px;
+  position: relative;
+}
+.tpl-shot5 .head {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 4;
+}
+.tpl-shot5 h1 { margin-top: 12px; font-size: 44px; line-height: 1.05; }
+.tpl-shot5 .head-right {
+  max-width: 390px;
+  text-align: right;
+  font-size: 15px;
+  line-height: 1.54;
+  color: var(--ink-2);
+}
+.tpl-shot5 .head-right strong { color: var(--ink); font-weight: 700; }
+
+.tpl-shot5 .conv-win {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 162px;
+  height: 638px;
+  border-radius: 20px 20px 0 0;
+}
+.tpl-shot5 .conv-win img.live-shot {
+  width: 100%;
+  height: calc(100% - 38px);
+  object-fit: cover;
+  object-position: left top;
+  display: block;
+}
+.tpl-shot5 .metric-callout {
+  position: absolute;
+  left: 334px;
+  bottom: 28px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 13px 20px;
+  border-radius: 18px;
+  background: rgba(17, 19, 26, 0.92);
+  backdrop-filter: blur(18px);
+  color: #f8fafc;
+  box-shadow: 0 22px 44px -12px rgba(15, 23, 42, 0.45), inset 0 0 0 1px rgba(255,255,255,0.12);
+}
+.tpl-shot5 .mc-stat b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: #34d399;
+}
+.tpl-shot5 .mc-stat span { font-size: 12px; color: #a1a8be; }
+.tpl-shot5 .mc-div { width: 1px; height: 32px; background: rgba(255,255,255,0.14); }
+.tpl-shot5 .mc-formats { font-size: 13px; color: #e2e8f0; font-weight: 500; line-height: 1.4; }
+.tpl-shot5 .mc-formats small { display: block; font-size: 11.5px; color: #94a3b8; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const ICON = "/icons/app128.png";
+const IMG_FJORD = "/src/assets/images/editorial_nordic_fjord_1795345825548.jpg";
+const IMG_CERAMIC = "/src/assets/images/editorial_ceramic_studio_1795345827182.jpg";
+const IMG_PAVILION = "/src/assets/images/editorial_arch_pavilion_1795345826546.jpg";
+const IMG_OPTICAL = "/src/assets/images/studio_optical_backdrop_1795345825087.jpg";
+const RAW_GALLERY = "/tools/store-assets-v2/raw/raw-gallery-dark.png";
+const RAW_CONVERTER = "/tools/store-assets-v2/raw/raw-converter-light.png";
+const RAW_POPUP = "/tools/store-assets-v2/raw/raw-popup-light.png";
+
+const SVG = {
+  eye: `<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  full: `<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>`,
+  pen: `<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
+  convert: `<svg viewBox="0 0 24 24"><path d="M7 10h12l-3-3M17 14H5l3 3"/></svg>`,
+  gallery: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.5"/><path d="m21 16-5-5-6 6-3-3-4 4"/></svg>`,
+  sliders: `<svg viewBox="0 0 24 24"><path d="M4 8h16M4 16h16"/><circle cx="9" cy="8" r="2.2" fill="currentColor"/><circle cx="15" cy="16" r="2.2" fill="currentColor"/></svg>`,
+  chev: `<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>`,
+  check: `<svg viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>`,
+  cursor: `<svg viewBox="0 0 24 24"><path d="m5 3 14 9-6.5 1.8L9 20.5 5 3Z"/></svg>`,
+  hl: `<svg viewBox="0 0 24 24"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>`,
+  arrow: `<svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg>`,
+  rect: `<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/></svg>`,
+  circle: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>`,
+  step: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M11 9h1.5v6M10.5 15h3"/></svg>`,
+  blur: `<svg viewBox="0 0 24 24"><rect x="4" y="4" width="5" height="5" fill="currentColor" stroke="none"/><rect x="15" y="4" width="5" height="5" fill="currentColor" stroke="none"/><rect x="9.5" y="9.5" width="5" height="5" fill="currentColor" stroke="none"/><rect x="4" y="15" width="5" height="5" fill="currentColor" stroke="none"/><rect x="15" y="15" width="5" height="5" fill="currentColor" stroke="none"/></svg>`,
+  text: `<svg viewBox="0 0 24 24"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></svg>`,
+  crop: `<svg viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>`,
+  undo: `<svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>`,
+  copy: `<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  dl: `<svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16"/></svg>`,
+};
+
+const renderToolbar = (compact = false) => `
+  <div class="lg-toolbar">
+    <span class="lg-btn"><span class="lg-tile t-cyan">${SVG.eye}</span>Visible Area</span>
+    <span class="lg-btn icon-only"><span class="lg-tile t-violet">${SVG.full}</span></span>
+    <span class="lg-btn"><span class="lg-tile t-pink">${SVG.pen}</span>Annotate</span>
+    <span class="lg-btn icon-only"><span class="lg-tile t-teal">${SVG.convert}</span></span>
+    ${compact ? "" : `<span class="lg-btn icon-only"><span class="lg-tile t-blue">${SVG.gallery}</span></span>`}
+    ${compact ? "" : `<span class="lg-btn icon-only"><span class="lg-tile t-slate">${SVG.sliders}</span></span>`}
+    <span class="lg-btn icon-only" style="color:#475569">${SVG.chev}</span>
+  </div>
+`;
+
+const chromeBar = (urlText) => `
+  <div class="chrome-bar">
+    <div class="chrome-dots"><i></i><i></i><i></i></div>
+    <div class="chrome-url">${urlText}</div>
+    <span class="chrome-ext"><img src="${ICON}" alt="" /></span>
+  </div>
+`;
+
+const VIEWS = {
+  "icon": () => `
+    <div class="tpl-icon">
+      <img src="${ICON}" alt="SwiftSelect" />
+    </div>
+  `,
+
+  "promo-small": () => `
+    <div class="tpl-small studio-light">
+      <img class="optical-ribbon" src="${IMG_OPTICAL}" alt="" />
+      <div class="reticle">
+        <span>960 × 720</span>
+        <small>2× Retina</small>
+      </div>
+      <div class="content">
+        <div class="brand">
+          <img src="${ICON}" alt="" />
+          <span class="brand-name">SwiftSelect</span>
+        </div>
+        <div class="headline">Snap, mark &amp; keep<br><span class="accent-coral">in one motion.</span></div>
+      </div>
+      <div class="pill-dock">${renderToolbar(false)}</div>
+    </div>
+  `,
+
+  "promo-marquee": () => `
+    <div class="tpl-marquee studio-light">
+      <img class="optical-ribbon" src="${IMG_OPTICAL}" alt="" />
+      <div class="left">
+        <div class="brand-row">
+          <img src="${ICON}" alt="" />
+          <div>
+            <div class="brand-title">SwiftSelect</div>
+            <div class="brand-meta">Liquid Glass Screenshot &amp; Image Studio</div>
+          </div>
+        </div>
+        <h1 class="h-display">Every screenshot,<br><span class="accent-coral">one fluid motion.</span></h1>
+        <div class="cap-line">
+          <span>Region</span><span class="dot">·</span>
+          <span>Smart Snap</span><span class="dot">·</span>
+          <span>Annotate</span><span class="dot">·</span>
+          <span>Local Gallery</span><span class="dot">·</span>
+          <span>Batch Converter</span>
+        </div>
+        <div class="meta-foot">
+          <span><strong>100% On-Device</strong> · Zero cloud uploads</span>
+          <span><strong>PNG · JPG · WebP · ICO</strong></span>
+        </div>
+      </div>
+
+      <div class="stage-right">
+        <div class="chrome-frame main-win">
+          ${chromeBar("northbound.journal / issue-14")}
+          <div class="win-body">
+            <div class="site-top">
+              <span class="site-logo">Northbound</span>
+              <span>Journal &nbsp;·&nbsp; Field Notes &nbsp;·&nbsp; Routes</span>
+            </div>
+            <div class="site-grid">
+              <div class="photo-sel">
+                <div class="sel-dim">960 × 720 · 2× Retina</div>
+                <img src="${IMG_FJORD}" alt="" />
+                <div class="sel-outline"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="marquee-toolbar">${renderToolbar(false)}</div>
+
+        <div class="popup-float">
+          <img src="${RAW_POPUP}" alt="SwiftSelect Popup" />
+        </div>
+
+        <div class="saving-toast">
+          <span class="lg-tile t-green" style="width:32px;height:32px">${SVG.check}</span>
+          <div class="txt">
+            <b>Copied &amp; optimized offline</b>
+            <span>2.6 MB → 340 KB · −87% WebP</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+
+  "shot-1": () => `
+    <div class="tpl-shot1 studio-light">
+      <img class="optical-ribbon" src="${IMG_OPTICAL}" alt="" />
+      <div class="rail">
+        <div>
+          <div class="kicker">
+            <img src="${ICON}" alt="" />
+            <span>SwiftSelect</span>
+            <span class="sep">/</span>
+            <span>01 · Capture</span>
+          </div>
+          <h1 class="h-display">Drag once.<br><span class="accent-coral">Copied and saved.</span></h1>
+          <p class="lead">
+            Press <span class="kbd-pair"><kbd class="kbd">Alt</kbd><kbd class="kbd">X</kbd></span> to sweep any region or stitch a full page at crisp 2× retina resolution.
+          </p>
+          <div class="spec-list">
+            <div class="spec-row"><span>Region selection</span><b>Alt + X · 2× Retina</b></div>
+            <div class="spec-row"><span>Full-page stitch</span><b>Alt + F · Scroll unroll</b></div>
+            <div class="spec-row"><span>Instant delivery</span><b>Clipboard · File · Gallery</b></div>
+          </div>
+        </div>
+        <div class="privacy-note">Liquid Glass toolbar adapts automatically to light &amp; dark sites.</div>
+      </div>
+
+      <div class="canvas-stage">
+        <div class="chrome-frame browser-bleed">
+          ${chromeBar("northbound.journal / issue-14 / lofoten")}
+          <div class="editorial-page">
+            <div class="ed-nav">
+              <span class="ed-brand">Northbound</span>
+              <div class="ed-links">
+                <span>Journal</span><span>Routes</span><span>Field Notes</span><span>Archive</span>
+              </div>
+            </div>
+
+            <div class="dim-scrim"></div>
+
+            <div class="ed-hero">
+              <div>
+                <div class="ed-issue">Issue 14 · Autumn Routes</div>
+                <h2 class="ed-h2">Seven valleys, one slow train north.</h2>
+                <p class="ed-p">A week on the coastal line, with notes on where to stop, what to eat, and which window seat catches first light.</p>
+                <div class="ed-btns">
+                  <span class="ed-btn solid">Read the route</span>
+                  <span class="ed-btn ghost">Download map</span>
+                </div>
+              </div>
+              <div class="ed-photo-wrap">
+                <div class="crop-hud">960 × 720 px</div>
+                <img class="ed-photo" src="${IMG_FJORD}" alt="" />
+                <div class="crop-box">
+                  <span class="crop-handle ch-tl"></span>
+                  <span class="crop-handle ch-tr"></span>
+                  <span class="crop-handle ch-bl"></span>
+                  <span class="crop-handle ch-br"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="float-toolbar">${renderToolbar(false)}</div>
+
+            <div class="status-toast">
+              <span class="lg-tile t-green" style="width:34px;height:34px">${SVG.check}</span>
+              <div class="t-copy">
+                <b>Screenshot copied &amp; saved</b>
+                <span>1,920 × 1,440 · PNG · 412 KB</span>
+              </div>
+              <span class="t-action">Annotate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+
+  "shot-2": () => `
+    <div class="tpl-shot2 studio-dark">
+      <div class="head">
+        <div>
+          <div class="kicker">
+            <img src="${ICON}" alt="" />
+            <span>SwiftSelect</span>
+            <span class="sep">/</span>
+            <span>02 · Smart Snap &amp; In-Page Dock</span>
+          </div>
+          <h1 class="h-display">Snap to any card. <span class="accent-aqua">Recents right there.</span></h1>
+        </div>
+        <div class="head-right">
+          Hold <kbd class="kbd">Ctrl</kbd> to lock cleanly onto images or cards. Expand the <strong>Liquid Glass panel</strong> to drag recent captures straight into your tab.
+        </div>
+      </div>
+
+      <div class="chrome-frame dark-chrome browser-main">
+        ${chromeBar("atelier.studio / stoneware-collection")}
+        <div class="atelier-page">
+          <div class="at-top">
+            <span class="at-brand">Atelier Form</span>
+            <span class="at-sub">Objects &nbsp;·&nbsp; Exhibitions &nbsp;·&nbsp; Journal</span>
+          </div>
+          <div class="at-heading">Autumn Stoneware Edition</div>
+
+          <div class="at-grid">
+            <div class="at-card snapped">
+              <div class="snap-hud"><span>Ctrl-Snap</span> <em>640 × 480 px</em></div>
+              <img src="${IMG_CERAMIC}" alt="" />
+              <h4>Travertine Plinth Trio</h4>
+              <p>Hand-thrown raw clay · Limited series</p>
+            </div>
+            <div class="at-card">
+              <img src="${IMG_PAVILION}" alt="" />
+              <h4>Kyoto Courtyard Pavilion</h4>
+              <p>Architectural study · Concrete &amp; glass</p>
+            </div>
+            <div class="at-card">
+              <img src="${IMG_FJORD}" alt="" />
+              <h4>Lofoten Dawn Monograph</h4>
+              <p>35mm archival print · Edition of 50</p>
+            </div>
+          </div>
+
+          <div class="expanded-dock">
+            <div class="dock-top">
+              <span class="lg-btn"><span class="lg-tile t-cyan">${SVG.eye}</span>Visible Area</span>
+              <span class="lg-btn icon-only"><span class="lg-tile t-violet">${SVG.full}</span></span>
+              <span class="lg-btn"><span class="lg-tile t-pink">${SVG.pen}</span>Annotate</span>
+              <span class="lg-btn icon-only"><span class="lg-tile t-teal">${SVG.convert}</span></span>
+              <span class="lg-btn icon-only" style="margin-left:auto;color:#475569;transform:rotate(180deg)">${SVG.chev}</span>
+            </div>
+            <div class="dock-tabs-row">
+              <div class="seg-tabs">
+                <span class="seg-tab active">Gallery</span>
+                <span class="seg-tab">Settings</span>
+              </div>
+              <span class="dock-hint">Drag into page, or click to copy</span>
+            </div>
+            <div class="dock-strip">
+              <div class="dock-item">
+                <img src="${IMG_FJORD}" alt="" />
+                <b>Lofoten Dawn</b>
+                <span>1,920 × 1,440 · 2m ago</span>
+              </div>
+              <div class="dock-item">
+                <img src="${IMG_PAVILION}" alt="" />
+                <b>Kyoto Pavilion</b>
+                <span>1,376 × 768 · 8m ago</span>
+              </div>
+              <div class="dock-item">
+                <img src="${IMG_CERAMIC}" alt="" />
+                <b>Stoneware Study</b>
+                <span>1,200 × 896 · 14m ago</span>
+              </div>
+            </div>
+            <div class="dock-quickbar">
+              <span>Quick Settings · Applies live</span>
+              <div class="qb-vals">
+                <span>Theme: Auto</span>
+                <span>WebP · 92%</span>
+                <span>Delay: Off</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+
+  "shot-3": () => `
+    <div class="tpl-shot3 studio-mist">
+      <div class="head">
+        <div>
+          <div class="kicker">
+            <img src="${ICON}" alt="" />
+            <span>SwiftSelect</span>
+            <span class="sep">/</span>
+            <span>03 · Annotation Studio</span>
+          </div>
+          <h1 class="h-display">Mark up, redact &amp; <span class="accent-coral">share in seconds.</span></h1>
+        </div>
+        <div class="head-right">
+          <strong>10 precision tools</strong> — arrows, numbered steps, highlighter, privacy blur, crop, zoom, and full undo history.
+        </div>
+      </div>
+
+      <div class="chrome-frame annotate-win">
+        ${chromeBar("SwiftSelect · Annotation Studio")}
+        <div class="stage-frosted">
+          <div class="ann-bar">
+            <span class="ann-tool active">${SVG.cursor}</span>
+            <span class="ann-tool">${SVG.pen}</span>
+            <span class="ann-tool">${SVG.hl}</span>
+            <span class="ann-tool">${SVG.arrow}</span>
+            <span class="ann-tool">${SVG.rect}</span>
+            <span class="ann-tool">${SVG.circle}</span>
+            <span class="ann-tool">${SVG.step}</span>
+            <span class="ann-tool">${SVG.blur}</span>
+            <span class="ann-tool">${SVG.text}</span>
+            <span class="ann-tool">${SVG.crop}</span>
+            <span class="ann-div"></span>
+            <span class="ann-tool"><span class="ann-swatch"></span></span>
+            <span class="ann-div"></span>
+            <span class="ann-tool">${SVG.undo}</span>
+            <span class="ann-tool">${SVG.copy}</span>
+            <span class="ann-tool">${SVG.dl}</span>
+          </div>
+
+          <div class="ann-canvas-card">
+            <div class="ac-nav">
+              <span class="ac-brand">Northbound</span>
+              <div class="ac-links"><span>Journal</span><span>Routes</span><span>Field Notes</span></div>
+              <div class="ac-blur" title="Redacted email"></div>
+            </div>
+            <div class="ac-grid">
+              <div>
+                <span class="ac-issue">ISSUE 14 · AUTUMN ROUTES</span>
+                <h2 class="ac-h2">Seven valleys, one slow train north.</h2>
+                <p class="ac-p">A week along the coastal line, with notes on where to stop and which window seat catches morning light.</p>
+                <div class="ac-btns">
+                  <span class="ac-btn-p">Read the route</span>
+                  <span class="ac-btn-s">Download map</span>
+                </div>
+              </div>
+              <img class="ac-img" src="${IMG_FJORD}" alt="" />
+            </div>
+
+            <!-- Crisp SVG Markup Layer -->
+            <svg class="ann-svg" viewBox="0 0 820 438">
+              <!-- Red highlight box around primary CTA -->
+              <rect x="28" y="302" width="134" height="44" rx="12" fill="none" stroke="#ef4444" stroke-width="3.2" />
+              <!-- Red circle calling out the red cabin on the fjord -->
+              <circle cx="662" cy="242" r="46" fill="none" stroke="#ef4444" stroke-width="3.2" />
+              <!-- Curved arrow pointing to CTA -->
+              <path d="M 248 378 Q 204 374 172 346" fill="none" stroke="#ef4444" stroke-width="3.2" stroke-linecap="round" />
+              <path d="M 183 344 L 169 343 L 175 356" fill="none" stroke="#ef4444" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+              <!-- Crisp callout label -->
+              <text x="252" y="384" font-family="Plus Jakarta Sans, sans-serif" font-size="18" font-weight="800" fill="#dc2626">Increase CTA size</text>
+
+              <!-- Privacy blur indicator label -->
+              <text x="582" y="42" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="700" fill="#475569">Blur</text>
+
+              <!-- Numbered Step Counters 1, 2, 3 -->
+              <g transform="translate(230, 148)">
+                <circle r="13" fill="#ef4444" stroke="#fff" stroke-width="2.5" />
+                <text y="4.5" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="12" font-weight="800" fill="#fff">1</text>
+              </g>
+              <g transform="translate(162, 300)">
+                <circle r="13" fill="#ef4444" stroke="#fff" stroke-width="2.5" />
+                <text y="4.5" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="12" font-weight="800" fill="#fff">2</text>
+              </g>
+              <g transform="translate(700, 206)">
+                <circle r="13" fill="#ef4444" stroke="#fff" stroke-width="2.5" />
+                <text y="4.5" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="12" font-weight="800" fill="#fff">3</text>
+              </g>
+            </svg>
+          </div>
+
+          <div class="ann-caption"><b>Northbound — Issue 14</b> 1,920 × 1,080 · northbound.journal</div>
+          <div class="ann-zoom"><span>−</span><span>82%</span><span>+</span></div>
+        </div>
+      </div>
+    </div>
+  `,
+
+  "shot-4": () => `
+    <div class="tpl-shot4 studio-dark">
+      <div class="gallery-stage">
+        <div class="chrome-frame dark-chrome gallery-win">
+          ${chromeBar("SwiftSelect · Swift Gallery")}
+          <img class="live-shot" src="${RAW_GALLERY}" alt="SwiftSelect Local Gallery" />
+        </div>
+      </div>
+
+      <div class="rail-right">
+        <div>
+          <div class="kicker">
+            <img src="${ICON}" alt="" />
+            <span>SwiftSelect</span>
+            <span class="sep">/</span>
+            <span>04 · Swift Gallery</span>
+          </div>
+          <h1 class="h-display">Every capture stays <span class="accent-aqua">on your device.</span></h1>
+          <p class="lead">
+            A fast, searchable local dashboard built on IndexedDB. Filter by capture type, star favorites, or drag files straight into other apps.
+          </p>
+          <div class="facts">
+            <div class="fact">
+              <b>Instant search &amp; type filters</b>
+              <span>Find screenshots by title, URL, format, or dimensions with / or Ctrl+K.</span>
+            </div>
+            <div class="fact">
+              <b>Reversible Trash &amp; Favorites</b>
+              <span>Starred captures are never auto-deleted. Drag cards to organize.</span>
+            </div>
+            <div class="fact">
+              <b>Adaptive Light &amp; Dark Glass</b>
+              <span>Follows your OS theme or lets you pick Dynamic, Calm, or Plain tinting.</span>
+            </div>
+          </div>
+        </div>
+        <div class="trust-line">100% LOCAL INDEXEDDB · ZERO CLOUD UPLOADS</div>
+      </div>
+    </div>
+  `,
+
+  "shot-5": () => `
+    <div class="tpl-shot5 studio-light">
+      <div class="head">
+        <div>
+          <div class="kicker">
+            <img src="${ICON}" alt="" />
+            <span>SwiftSelect</span>
+            <span class="sep">/</span>
+            <span>05 · Batch Converter</span>
+          </div>
+          <h1 class="h-display">Convert, resize &amp; shrink — <span class="accent-coral">offline.</span></h1>
+        </div>
+        <div class="head-right">
+          Drop images or send captures straight from Gallery. Export <strong>JPG, PNG, WebP or ICO</strong>, strip EXIF metadata, and download as a single ZIP.
+        </div>
+      </div>
+
+      <div class="chrome-frame conv-win">
+        ${chromeBar("SwiftSelect · Batch Image Converter")}
+        <img class="live-shot" src="${RAW_CONVERTER}" alt="SwiftSelect Batch Converter" />
+      </div>
+
+      <div class="metric-callout">
+        <div class="mc-stat">
+          <b>−87%</b>
+          <span>2.6 MB → 340 KB</span>
+        </div>
+        <div class="mc-div"></div>
+        <div class="mc-formats">
+          WebP · JPG · PNG · ICO · ZIP Export
+          <small>Processed locally on your device · EXIF stripped automatically</small>
+        </div>
+      </div>
+    </div>
+  `,
+};
+
+function renderView() {
+  const params = new URLSearchParams(location.search);
+  const key = params.get("view") || location.hash.slice(1) || "promo-marquee";
+  const stage = document.getElementById("stage");
+  stage.innerHTML = (VIEWS[key] || VIEWS["promo-marquee"])();
+}
+window.addEventListener("hashchange", renderView);
+renderView();
+</script>
+</body>
+</html>

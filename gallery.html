@@ -102,30 +102,35 @@
           <span class="sync" id="sync" role="status" aria-live="polite"><i></i><span id="sync-text">All changes saved</span></span>
 
           <div class="cv-info-wrap" id="cv-info-wrap">
-            <button type="button" class="btn btn-icon" id="cv-info-btn" aria-label="Converter engine and credits" aria-expanded="false" aria-controls="cv-info-pop" data-tip="Engine &amp; credits" data-tip-pos="left">
+            <button type="button" class="btn btn-icon" id="cv-info-btn" aria-label="About developer" aria-expanded="false" aria-controls="cv-info-pop" data-tip="About developer" data-tip-pos="left">
               <i data-icon="info"></i>
             </button>
-            <div class="cv-info-pop glass glass-dense" id="cv-info-pop" role="dialog" aria-label="Batch Converter engine credits" hidden>
-              <div class="cv-info-head">
-                <b>Local Conversion Engine</b>
-                <span>100% On-Device</span>
+            <div class="cv-info-pop glass" id="cv-info-pop" role="dialog" aria-label="About developer" aria-hidden="true">
+              <div class="dev-card-head">
+                <span class="dev-monogram" aria-hidden="true">MA</span>
+                <div class="dev-ident">
+                  <b>Muhammad Arsalan</b>
+                  <span>@arsalan06106</span>
+                </div>
               </div>
-              <p class="cv-info-copy">
-                Uses native Chrome Canvas encoding for JPG &amp; WebP, a zero-dependency ICO packager, and
-                <a href="https://github.com/photopea/UPNG.js" target="_blank" rel="noopener noreferrer" class="cv-credit-link">UPNG.js<i data-icon="external"></i></a>
-                for palette PNG compression.
-              </p>
-              <div class="cv-info-tags">
-                <code>Native Canvas</code>
-                <code>UPNG.js</code>
-                <code>Pure ICO</code>
-              </div>
-              <div class="cv-info-foot">
-                <span>Runs 100% on-device · EXIF stripped</span>
-                <a href="https://github.com/photopea/UPNG.js" target="_blank" rel="noopener noreferrer" class="btn cv-info-repo">
-                  <span>UPNG.js</span><i data-icon="external"></i>
+              <div class="dev-card-sep" role="presentation"></div>
+              <nav class="dev-links" aria-label="Developer profiles">
+                <a href="https://github.com/arsalan06106" target="_blank" rel="noopener noreferrer" class="dev-link" style="--i: 0">
+                  <span class="dev-link-icon"><i data-icon="github"></i></span>
+                  <span class="dev-link-label">GitHub</span>
+                  <span class="dev-link-ext"><i data-icon="external"></i></span>
                 </a>
-              </div>
+                <a href="https://www.behance.net/arsalan06106" target="_blank" rel="noopener noreferrer" class="dev-link" style="--i: 1">
+                  <span class="dev-link-icon"><i data-icon="behance"></i></span>
+                  <span class="dev-link-label">Behance</span>
+                  <span class="dev-link-ext"><i data-icon="external"></i></span>
+                </a>
+                <a href="https://x.com/arsalan06106" target="_blank" rel="noopener noreferrer" class="dev-link" style="--i: 2">
+                  <span class="dev-link-icon"><i data-icon="x"></i></span>
+                  <span class="dev-link-label">X</span>
+                  <span class="dev-link-ext"><i data-icon="external"></i></span>
+                </a>
+              </nav>
             </div>
           </div>
 
@@ -166,7 +171,7 @@
             <button type="button" class="btn btn-icon issues-btn" id="issues-btn" aria-label="Notices" aria-expanded="false" aria-controls="issues-pop" data-tip="Notices" data-tip-pos="bottom">
               <i data-icon="bell"></i><b class="issues-count" id="issues-count"></b>
             </button>
-            <div class="issues-pop glass glass-dense" id="issues-pop" role="dialog" aria-label="Notices" hidden>
+            <div class="issues-pop glass glass-dense" id="issues-pop" role="dialog" aria-label="Notices" aria-hidden="true">
               <div class="issues-head">
                 <b>Notices</b>
                 <button type="button" class="issues-clear" id="issues-clear">Dismiss all</button>

@@ -873,30 +873,9 @@ async function setup() {
   hydrateIcons(view());
   enableSheen(view());
 
-  // Hydrate & wire the compact topbar engine credits info popover (outside main view).
-  const infoWrap = $("info-wrap");
-  const infoBtn = $("info-btn");
-  const infoPop = $("info-pop");
-  if (infoWrap && infoBtn && infoPop) {
-    hydrateIcons(infoWrap);
-    const setInfoOpen = (open) => {
-      infoPop.hidden = !open;
-      infoBtn.setAttribute("aria-expanded", String(open));
-    };
-    infoBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      setInfoOpen(infoPop.hidden);
-    });
-    document.addEventListener("click", (e) => {
-      if (!infoPop.hidden && !infoWrap.contains(e.target)) setInfoOpen(false);
-    });
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        if (!infoPop.hidden) setInfoOpen(false);
-        if (!$("compare").hidden) closeCompare();
-      }
-    });
-  }
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("compare").hidden) closeCompare();
+  });
 
   try {
     const [data, settings] = await Promise.all([chrome.storage.local.get(["converterPrefs"]), getSettings()]);

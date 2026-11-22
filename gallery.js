@@ -1663,6 +1663,7 @@ async function init() {
   wireMarquee();
   wireImport();
   wireIssues();
+  wireDevInfo();
 
   // Stay live: captures from other tabs, retention runs, other gallery tabs.
   let reloadTimer = 0;
@@ -1732,7 +1733,9 @@ async function renderIssues({ fresh = false } = {}) {
 }
 
 function closeIssues() {
-  $("issues-pop").hidden = true;
+  const pop = $("issues-pop");
+  pop.classList.remove("is-open");
+  pop.setAttribute("aria-hidden", "true");
   $("issues-btn").setAttribute("aria-expanded", "false");
 }
 
@@ -1740,8 +1743,10 @@ function wireIssues() {
   $("issues-btn").addEventListener("click", (e) => {
     e.stopPropagation();
     const pop = $("issues-pop");
-    pop.hidden = !pop.hidden;
-    $("issues-btn").setAttribute("aria-expanded", String(!pop.hidden));
+    const next = !pop.classList.contains("is-open");
+    pop.classList.toggle("is-open", next);
+    pop.setAttribute("aria-hidden", String(!next));
+    $("issues-btn").setAttribute("aria-expanded", String(next));
     $("issues").classList.remove("is-new");
   });
   $("issues-list").addEventListener("click", async (e) => {
@@ -1754,10 +1759,10 @@ function wireIssues() {
   });
   $("issues-clear").addEventListener("click", () => clearIssues());
   document.addEventListener("click", (e) => {
-    if (!$("issues-pop").hidden && !e.target.closest("#issues")) closeIssues();
+    if ($("issues-pop").classList.contains("is-open") && !e.target.closest("#issues")) closeIssues();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !$("issues-pop").hidden) {
+    if (e.key === "Escape" && $("issues-pop").classList.contains("is-open")) {
       e.stopPropagation();
       closeIssues();
     }
@@ -1770,6 +1775,32 @@ function wireIssues() {
     }
   });
   renderIssues();
+}
+
+function wireDevInfo() {
+  const wrap = $("cv-info-wrap");
+  const btn = $("cv-info-btn");
+  const pop = $("cv-info-pop");
+  if (!wrap || !btn || !pop) return;
+  const setOpen = (open) => {
+    pop.classList.toggle("is-open", open);
+    pop.setAttribute("aria-hidden", String(!open));
+    btn.setAttribute("aria-expanded", String(open));
+  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setOpen(!pop.classList.contains("is-open"));
+  });
+  document.addEventListener("click", (e) => {
+    if (pop.classList.contains("is-open") && !wrap.contains(e.target)) setOpen(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && pop.classList.contains("is-open")) {
+      e.stopPropagation();
+      setOpen(false);
+      btn.focus();
+    }
+  }, true);
 }
 
 // ─── Import: drop image files or paste an image ──────────────────────

@@ -11,10 +11,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CHROME_STORE_FILES, verifyPackageFiles, createZipBuffer } from "./scripts/package-manifest.js";
+import { CWS_V2_ASSETS, auditGeneratedAssets } from "./tools/store-assets-v2/spec.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+const STORE_V2_DIR = path.join(__dirname, "Chrome Web Store assets", "v2");
 
 function readManifest() {
   try {
@@ -38,9 +40,41 @@ function sendShimmedHtml(res, filePath) {
   res.type("html").send(patched);
 }
 
-// Default route opens the Swift Gallery dashboard (which also hosts Settings and Batch Converter).
-app.get("/", (_req, res) => {
-  sendShimmedHtml(res, path.join(__dirname, "gallery.html"));
+// Default route opens the Chrome Web Store v2 Asset Studio showcase (live extension remains at /gallery.html).
+app.get(["/", "/store-assets-v2.html"], (_req, res) => {
+  res.sendFile(path.join(__dirname, "store-assets-v2.html"));
+});
+
+// Live Chrome Web Store v2 asset specification audit.
+app.get("/__dev/store-assets-v2-audit", (_req, res) => {
+  const audit = auditGeneratedAssets(STORE_V2_DIR, CWS_V2_ASSETS);
+  const byId = new Map(audit.results.map((r) => [r.id, r]));
+  const assets = CWS_V2_ASSETS.map((spec) => {
+    const r = byId.get(spec.id) || {};
+    return { ...spec, ...r };
+  });
+  res.json({ ok: audit.ok, errors: audit.errors, assets });
+});
+
+// One-click ZIP download of all 9 Chrome Web Store v2 assets.
+app.get("/__dev/store-assets-v2.zip", (_req, res) => {
+  const entries = [];
+  for (const spec of CWS_V2_ASSETS) {
+    const abs = path.join(STORE_V2_DIR, spec.filename);
+    if (!fs.existsSync(abs)) {
+      return res.status(404).json({ ok: false, error: `Missing asset: ${spec.filename}` });
+    }
+    entries.push({
+      name: `swiftselect-chrome-web-store-v2/${spec.filename}`,
+      data: fs.readFileSync(abs),
+      mtime: fs.statSync(abs).mtime,
+    });
+  }
+  const zip = createZipBuffer(entries);
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", 'attachment; filename="swiftselect-chrome-web-store-assets-v2.zip"');
+  res.setHeader("Content-Length", String(zip.length));
+  res.send(zip);
 });
 
 // Dev-only Chrome Web Store package audit & verified ZIP download (not part of the extension bundle).

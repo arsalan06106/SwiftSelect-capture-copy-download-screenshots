@@ -4673,52 +4673,62 @@
 .qs-annotate-toolbar.qs-theme-glass-dark,
 .qs-crop-controls.qs-theme-glass-dark,
 .qs-stroke-popover.qs-theme-glass-dark,
+.qs-dl-popover.qs-theme-glass-dark,
 .qs-custom-tooltip.qs-theme-glass-dark {
-  --glass-reflex-light: 0.32 !important;
-  --glass-reflex-dark: 1.6 !important;
-  --qs-ink: 17 19 27;
+  --glass-reflex-light: 0.42 !important;
+  --glass-reflex-dark: 1.5 !important;
+  --qs-ink: 14 16 24;
   --qs-dark-edge:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.09),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(0, 0, 0, 0.38),
-    0 2px 6px rgba(0, 0, 0, 0.22),
-    0 16px 36px -12px rgba(0, 0, 0, 0.55);
-  --qs-dark-wash: linear-gradient(
-    115deg,
-    rgba(91, 155, 255, 0.2),
-    rgba(177, 138, 255, 0.12) 46%,
-    rgba(255, 134, 186, 0.16)
-  );
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.09),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.11),
+    inset 0 -1px 0 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.44),
+    0 4px 12px -2px rgba(0, 0, 0, 0.34),
+    0 22px 48px -12px rgba(0, 0, 0, 0.62);
+  --qs-dark-wash:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.13) 0%,
+      rgba(255, 255, 255, 0.03) 26%,
+      rgba(255, 255, 255, 0) 56%,
+      rgba(255, 255, 255, 0.035) 100%
+    ),
+    linear-gradient(
+      118deg,
+      rgba(91, 155, 255, 0.16),
+      rgba(177, 138, 255, 0.08) 48%,
+      rgba(255, 134, 186, 0.13)
+    );
 }
 
 /* Capture toolbar shell */
 .qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark > .qs-glass-surface {
-  background-color: rgb(var(--qs-ink) / 0.84);
+  background-color: rgb(var(--qs-ink) / 0.68);
   background-image: var(--qs-dark-wash);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(205%) brightness(1.06);
+  backdrop-filter: blur(30px) saturate(205%) brightness(1.06);
   box-shadow: var(--qs-dark-edge);
 }
 
 /* Its pills: lighter than the shell, never darker, so they read as raised */
 .qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle) {
   color: #f5f6fb !important;
-  background-color: rgba(255, 255, 255, 0.085) !important;
+  background-color: rgba(255, 255, 255, 0.09) !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.28) !important;
 }
 
 .qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle):hover {
-  background-color: rgba(255, 255, 255, 0.16) !important;
+  background-color: rgba(255, 255, 255, 0.17) !important;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.26),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    0 6px 14px -6px rgba(0, 0, 0, 0.6) !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 6px 14px -6px rgba(0, 0, 0, 0.56) !important;
 }
 
 .qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle):active {
@@ -4740,9 +4750,9 @@
 .qs-theme-glass.qs-theme-glass-dark:is(.qs-hud, .qs-key-guide),
 .qs-custom-tooltip.qs-theme-glass-dark {
   color: #f5f6fb !important;
-  background-color: rgb(var(--qs-ink) / 0.86) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
+  background-color: rgb(var(--qs-ink) / 0.68) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(205%) brightness(1.06) !important;
+  backdrop-filter: blur(30px) saturate(205%) brightness(1.06) !important;
   box-shadow: var(--qs-dark-edge) !important;
 }
 
@@ -5470,7 +5480,7 @@
   border-color: var(--tbe) !important;
 }
 
-/* Dark: the same look over ink */
+/* Dark: smoked obsidian liquid glass with palette refraction */
 .qs-guide.qs-theme-glass-dark,
 .qs-status.qs-theme-glass-dark,
 .qs-hud.qs-theme-glass-dark,
@@ -5478,14 +5488,23 @@
 .qs-annotate-toolbar.qs-theme-glass-dark,
 .qs-crop-controls.qs-theme-glass-dark,
 .qs-stroke-popover.qs-theme-glass-dark,
+.qs-dl-popover.qs-theme-glass-dark,
 .qs-custom-tooltip.qs-theme-glass-dark {
-  --qs-ink: 20 21 29;
-  --qs-dark-wash: linear-gradient(
-    115deg,
-    color-mix(in srgb, var(--tb1) 80%, transparent),
-    color-mix(in srgb, var(--tb2) 70%, transparent) 48%,
-    color-mix(in srgb, var(--tb3) 80%, transparent)
-  );
+  --qs-ink: 14 16 24;
+  --qs-dark-wash:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.13) 0%,
+      rgba(255, 255, 255, 0.03) 26%,
+      rgba(255, 255, 255, 0) 56%,
+      rgba(255, 255, 255, 0.035) 100%
+    ),
+    linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--tb1) 72%, transparent),
+      color-mix(in srgb, var(--tb2) 52%, transparent) 48%,
+      color-mix(in srgb, var(--tb3) 72%, transparent)
+    );
 }
 .qs-stroke-popover.qs-theme-glass-dark,
 .qs-custom-tooltip.qs-theme-glass-dark,
@@ -6589,77 +6608,281 @@
   background: rgba(14, 16, 26, 0.76);
 }
 
-/* ── Editor: multi-format Download picker ──────────────────────────────── */
-.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger {
-  width: auto !important;
-  min-width: 44px !important;
+/* ── Editor: Silky liquid open/close for Style popover ─────────────────── */
+.qs-stroke-popover {
+  animation: none !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-8px) scale(0.94);
+  filter: blur(5px);
+  border-radius: 18px;
+  transition:
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    filter 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0ms linear 220ms;
+}
+
+.qs-stroke-popover.qs-pop-up {
+  transform: translateX(-50%) translateY(8px) scale(0.94);
+}
+
+.qs-stroke-popover.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+  filter: blur(0px);
+  transition:
+    transform 340ms cubic-bezier(0.22, 1.16, 0.36, 1),
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0ms linear 0ms;
+}
+
+/* ── Editor: Silky liquid checkmark morph (Copy, Download, Gallery) ────── */
+.qs-annotate-toolbar .qs-guide-btn.circle,
+.qs-annotate-toolbar .qs-dl-main {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle > svg,
+.qs-annotate-toolbar .qs-dl-main > svg {
+  transition:
+    opacity 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 300ms cubic-bezier(0.22, 1.15, 0.36, 1),
+    filter 240ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle.is-done-flash > svg,
+.qs-annotate-toolbar .qs-dl-main.is-done-flash > svg {
+  opacity: 0 !important;
+  transform: scale(0.48) rotate(-14deg) !important;
+  filter: blur(2px) !important;
+}
+
+.qs-morph-check {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #10b981;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.45);
+  filter: blur(3px);
+  transition:
+    opacity 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 340ms cubic-bezier(0.34, 1.48, 0.64, 1),
+    filter 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.qs-theme-glass-dark .qs-morph-check {
+  color: #34d399;
+}
+
+.is-done-flash > .qs-morph-check {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0px);
+}
+
+.is-done-leaving > .qs-morph-check {
+  opacity: 0;
+  transform: scale(0.58);
+  filter: blur(2.5px);
+  transition:
+    opacity 230ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 240ms cubic-bezier(0.4, 0, 0.2, 1),
+    filter 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.qs-morph-path {
+  stroke-dasharray: 26;
+  stroke-dashoffset: 26;
+  transition: stroke-dashoffset 320ms cubic-bezier(0.22, 1, 0.36, 1) 70ms;
+}
+
+.is-done-flash .qs-morph-path {
+  stroke-dashoffset: 0;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.circle.is-done-flash,
+.qs-annotate-toolbar .qs-dl-main.is-done-flash {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+}
+
+/* ── Editor: Split Download control (1-click default + separate picker) ── */
+.qs-annotate-toolbar .qs-dl-split {
+  display: inline-flex !important;
+  align-items: center !important;
   height: 36px !important;
-  padding: 0 9px 0 10px !important;
+  padding: 0 !important;
+  margin: 0 !important;
   border-radius: 99em !important;
-  gap: 3px !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+  background-color: color-mix(in srgb, var(--c-glass) 22%, transparent) !important;
+  color: var(--c-content) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 14%), transparent),
+    inset 0 1px 0 0 color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 72%), transparent),
+    0 1px 3px rgba(0, 0, 0, 0.12) !important;
+  transition:
+    background-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
-.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger .qs-dl-caret {
+.qs-annotate-toolbar.qs-theme-glass-dark .qs-dl-split {
+  background-color: rgba(255, 255, 255, 0.085) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.19),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.28) !important;
+}
+
+.qs-annotate-toolbar .qs-dl-main,
+.qs-annotate-toolbar .qs-dl-caret-btn {
+  all: unset !important;
+  box-sizing: border-box !important;
+  height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transition:
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease !important;
+}
+
+.qs-annotate-toolbar .qs-dl-main {
+  width: 35px !important;
+  padding: 0 2px 0 4px !important;
+  border-radius: 99em 0 0 99em !important;
+}
+
+.qs-annotate-toolbar .qs-dl-caret-btn {
+  width: 24px !important;
+  padding: 0 4px 0 1px !important;
+  border-radius: 0 99em 99em 0 !important;
+}
+
+.qs-annotate-toolbar .qs-dl-sep {
+  width: 1px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+  background: color-mix(in srgb, currentColor 18%, transparent) !important;
+  transition: opacity 180ms ease !important;
+}
+
+.qs-annotate-toolbar .qs-dl-main:hover,
+.qs-annotate-toolbar .qs-dl-caret-btn:hover {
+  background-color: color-mix(in srgb, currentColor 11%, transparent) !important;
+}
+
+.qs-annotate-toolbar.qs-theme-glass-dark .qs-dl-main:hover,
+.qs-annotate-toolbar.qs-theme-glass-dark .qs-dl-caret-btn:hover {
+  background-color: rgba(255, 255, 255, 0.13) !important;
+}
+
+.qs-annotate-toolbar .qs-dl-main:active,
+.qs-annotate-toolbar .qs-dl-caret-btn:active {
+  transform: scale(0.93) !important;
+}
+
+.qs-annotate-toolbar .qs-dl-split.is-open .qs-dl-caret-btn {
+  background-color: color-mix(in srgb, currentColor 14%, transparent) !important;
+}
+
+.qs-annotate-toolbar.qs-theme-glass-dark .qs-dl-split.is-open .qs-dl-caret-btn {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.qs-annotate-toolbar .qs-dl-caret {
   opacity: 0.72;
-  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease;
+  transition:
+    transform 300ms cubic-bezier(0.22, 1.24, 0.36, 1),
+    opacity 180ms ease !important;
 }
 
-.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger.is-open .qs-dl-caret {
+.qs-annotate-toolbar .qs-dl-split.is-open .qs-dl-caret {
   transform: rotate(180deg);
   opacity: 1;
 }
 
-.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger.is-open {
-  background: color-mix(in srgb, var(--c-content) 12%, transparent) !important;
+.qs-annotate-toolbar .qs-dl-split.is-busy,
+.qs-annotate-toolbar .qs-dl-main.is-busy {
+  pointer-events: none !important;
 }
 
-.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger.is-busy {
-  pointer-events: none;
-}
-
+/* ── Editor: Liquid Glass Format Popover ───────────────────────────────── */
 .qs-dl-popover {
   all: initial;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 2147483650;
-  width: 292px;
-  padding: 12px;
+  width: 268px;
+  padding: 8px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, sans-serif;
-  color: var(--c-content, #1b1c2a);
+  color: var(--c-content, #181a24);
   --c-bg: #ffffff;
-  --c-content: #1b1c2a;
+  --c-content: #181a24;
   --c-light: #ffffff;
   --c-dark: #000000;
   --glass-reflex-dark: 1;
   --glass-reflex-light: 1;
-  --saturation: 165%;
-  --tb1: rgba(91, 155, 255, 0.18);
-  --tb2: rgba(177, 138, 255, 0.11);
-  --tb3: rgba(255, 134, 186, 0.14);
+  --saturation: 195%;
+  --tb1: rgba(91, 155, 255, 0.16);
+  --tb2: rgba(177, 138, 255, 0.09);
+  --tb3: rgba(255, 134, 186, 0.12);
   --tba1: #5b9bff;
   --tba2: #2f5ef0;
-  border-radius: 20px;
-  background-color: color-mix(in srgb, #ffffff 82%, transparent);
+  border-radius: 18px;
+  background-color: rgba(255, 255, 255, 0.72);
   background-image:
-    radial-gradient(130% 150px at 0% 0%, var(--tb1), transparent 70%),
-    radial-gradient(120% 150px at 100% 100%, var(--tb3), transparent 72%);
-  backdrop-filter: blur(28px) saturate(var(--saturation));
-  -webkit-backdrop-filter: blur(28px) saturate(var(--saturation));
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.62) 0%,
+      rgba(255, 255, 255, 0.12) 32%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(255, 255, 255, 0.22) 100%
+    ),
+    radial-gradient(125% 140px at 0% 0%, var(--tb1), transparent 70%),
+    radial-gradient(115% 140px at 100% 100%, var(--tb3), transparent 72%);
+  backdrop-filter: blur(30px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(30px) saturate(var(--saturation));
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 14%), transparent),
-    inset 1.5px 2px 0px -1.5px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 85%), transparent),
-    0 18px 44px -12px rgba(0, 0, 0, 0.34),
-    0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateX(-50%);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.92),
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.46),
+    inset 0 -1px 0 0 rgba(20, 24, 42, 0.06),
+    0 0 0 1px rgba(15, 23, 42, 0.07),
+    0 20px 44px -12px rgba(15, 23, 42, 0.24),
+    0 6px 14px -4px rgba(15, 23, 42, 0.1);
+  transform: translateX(-50%) translateY(-8px) scale(0.93);
   transform-origin: 50% 0;
-  animation: qsPopIn 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  pointer-events: auto;
+  opacity: 0;
+  visibility: hidden;
+  filter: blur(5px);
+  pointer-events: none;
   user-select: none;
+  transition:
+    transform 230ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 190ms cubic-bezier(0.4, 0, 0.2, 1),
+    filter 210ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0ms linear 230ms;
 }
 
 .qs-dl-popover,
@@ -6670,130 +6893,194 @@
 
 .qs-dl-popover.qs-pop-up {
   transform-origin: 50% 100%;
-  animation-name: qsPopInUp;
+  transform: translateX(-50%) translateY(8px) scale(0.93);
 }
 
+.qs-dl-popover.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+  filter: blur(0px);
+  transition:
+    transform 340ms cubic-bezier(0.22, 1.16, 0.36, 1),
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0ms linear 0ms;
+}
+
+/* Dark Liquid Glass: deep smoked obsidian refraction + razor-sharp crystal rim */
 .qs-dl-popover.qs-theme-glass-dark {
-  --c-content: #f0f2f8;
-  --c-bg: #181920;
-  --glass-reflex-dark: 2;
-  --glass-reflex-light: 0.3;
-  color: #f0f2f8;
-  background-color: rgba(20, 21, 29, 0.86);
-  background-image: linear-gradient(
-    115deg,
-    color-mix(in srgb, var(--tb1) 70%, transparent),
-    color-mix(in srgb, var(--tb2) 55%, transparent) 48%,
-    color-mix(in srgb, var(--tb3) 70%, transparent)
-  );
+  --c-content: #f3f5fc;
+  --c-bg: #10121c;
+  color: #f3f5fc;
+  background-color: rgba(13, 15, 24, 0.7);
+  background-image:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.035) 26%,
+      rgba(255, 255, 255, 0) 56%,
+      rgba(255, 255, 255, 0.04) 100%
+    ),
+    radial-gradient(125% 150px at 0% 0%, color-mix(in srgb, var(--tb1) 75%, transparent), transparent 68%),
+    radial-gradient(115% 150px at 100% 100%, color-mix(in srgb, var(--tb3) 68%, transparent), transparent 70%);
+  backdrop-filter: blur(32px) saturate(215%) brightness(1.07);
+  -webkit-backdrop-filter: blur(32px) saturate(215%) brightness(1.07);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 22px 48px -12px rgba(0, 0, 0, 0.65),
-    0 4px 14px rgba(0, 0, 0, 0.32);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.11),
+    inset 0 -1px 0 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.46),
+    0 24px 52px -12px rgba(0, 0, 0, 0.66),
+    0 6px 18px -4px rgba(0, 0, 0, 0.36);
 }
 
 .qs-dl-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 6px 4px;
+  padding: 5px 10px 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--c-content) 8%, transparent);
 }
 
 .qs-dl-title {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  color: color-mix(in srgb, var(--c-content) 82%, transparent);
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--c-content) 70%, transparent);
 }
 
 .qs-dl-dims {
   font-size: 11px;
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
-  color: color-mix(in srgb, var(--c-content) 54%, transparent);
+  color: color-mix(in srgb, var(--c-content) 48%, transparent);
 }
 
 .qs-dl-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  padding-top: 2px;
 }
 
+/* Flush rows directly on the liquid glass plane (no heavy card-inside-card) */
 .qs-dl-opt {
   position: relative;
   overflow: hidden;
   width: 100%;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 9px 10px 10px;
+  padding: 8px 10px 9px;
   border: 0;
-  border-radius: 13px;
-  background: color-mix(in srgb, var(--c-content) 4%, transparent);
+  border-radius: 10px;
+  background: transparent;
   color: var(--c-content);
   text-align: left;
   cursor: pointer;
+  opacity: 0;
+  transform: translateY(-4px);
   transition:
-    background-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 100ms ease,
-    opacity 140ms ease;
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease;
+}
+
+.qs-dl-popover.is-open .qs-dl-opt {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: calc(var(--i, 0) * 24ms);
+}
+
+.qs-dl-popover.is-open .qs-dl-opt:hover,
+.qs-dl-popover.is-open .qs-dl-opt:active,
+.qs-dl-popover.is-open .qs-dl-opt.is-converting,
+.qs-dl-popover.is-open .qs-dl-opt.is-done {
+  transition-delay: 0ms;
 }
 
 .qs-dl-opt:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--c-content) 9%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-content) 10%, transparent);
+  background: color-mix(in srgb, var(--c-content) 7%, transparent);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, #ffffff 34%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--c-content) 7%, transparent);
+}
+
+.qs-dl-popover.qs-theme-glass-dark .qs-dl-opt:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.085);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .qs-dl-opt:active:not(:disabled) {
-  transform: scale(0.985);
+  transform: scale(0.982);
 }
 
 .qs-dl-opt:disabled {
-  opacity: 0.45;
+  opacity: 0.42;
   cursor: default;
 }
 
 .qs-dl-opt.is-converting {
-  background: color-mix(in srgb, var(--tba1) 14%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tba1) 36%, transparent);
+  background: color-mix(in srgb, var(--tba1) 13%, transparent);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, var(--tba1) 36%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--tba1) 28%, transparent);
 }
 
 .qs-dl-opt.is-done {
-  background: rgba(16, 185, 129, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.34);
+  background: rgba(16, 185, 129, 0.13);
+  box-shadow:
+    inset 0 1px 0 0 rgba(52, 211, 153, 0.34),
+    inset 0 0 0 1px rgba(16, 185, 129, 0.28);
 }
 
 .qs-dl-opt.is-error {
-  background: rgba(239, 68, 68, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.34);
+  background: rgba(239, 68, 68, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.3);
 }
 
 .qs-dl-ext {
   display: grid;
   place-items: center;
-  height: 28px;
-  border-radius: 8px;
-  font-size: 10.5px;
+  height: 26px;
+  border-radius: 7px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--c-content);
-  background: color-mix(in srgb, var(--c-content) 9%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-content) 8%, transparent);
+  color: color-mix(in srgb, var(--c-content) 86%, transparent);
+  background: color-mix(in srgb, var(--c-content) 6.5%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-content) 7%, transparent);
+  transition:
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms ease,
+    box-shadow 220ms ease,
+    transform 240ms cubic-bezier(0.22, 1.15, 0.36, 1);
+}
+
+.qs-dl-popover.qs-theme-glass-dark .qs-dl-ext {
+  background: rgba(255, 255, 255, 0.075);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
 .qs-dl-opt.is-converting .qs-dl-ext {
   color: #fff;
   background: linear-gradient(155deg, var(--tba1), var(--tba2));
-  box-shadow: none;
+  box-shadow: 0 3px 10px -3px color-mix(in srgb, var(--tba2) 65%, transparent);
 }
 
 .qs-dl-opt.is-done .qs-dl-ext {
   color: #fff;
   background: #10b981;
-  box-shadow: none;
+  box-shadow: 0 3px 10px -3px rgba(16, 185, 129, 0.55);
 }
 
 .qs-dl-meta {
@@ -6805,35 +7092,42 @@
 
 .qs-dl-name {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 12.8px;
   font-weight: 600;
   line-height: 1.2;
 }
 
+/* Understated typographic default marker — no noisy rounded pill badge */
 .qs-dl-default {
   font-style: normal;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 99em;
+  font-size: 10.5px;
+  font-weight: 500;
   color: var(--tba2);
-  background: color-mix(in srgb, var(--tba1) 18%, transparent);
+}
+
+.qs-dl-default::before {
+  content: "·";
+  margin-right: 4px;
+  opacity: 0.65;
 }
 
 .qs-dl-popover.qs-theme-glass-dark .qs-dl-default {
-  color: #93c5fd;
-  background: rgba(91, 155, 255, 0.2);
+  color: #82b4ff;
 }
 
 .qs-dl-desc {
   font-size: 11px;
   line-height: 1.25;
-  color: color-mix(in srgb, var(--c-content) 58%, transparent);
+  color: color-mix(in srgb, var(--c-content) 62%, transparent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.qs-dl-popover.qs-theme-glass-dark .qs-dl-desc {
+  color: rgba(235, 239, 252, 0.68);
 }
 
 .qs-dl-status {
@@ -6846,15 +7140,18 @@
   font-size: 11.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: color-mix(in srgb, var(--c-content) 56%, transparent);
+  color: color-mix(in srgb, var(--c-content) 48%, transparent);
+  transition: color 180ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .qs-dl-opt:hover .qs-dl-status {
   color: var(--c-content);
+  transform: translateY(1px);
 }
 
 .qs-dl-opt.is-converting .qs-dl-status {
   color: var(--tba2);
+  transform: none;
 }
 
 .qs-dl-popover.qs-theme-glass-dark .qs-dl-opt.is-converting .qs-dl-status {
@@ -6863,6 +7160,7 @@
 
 .qs-dl-opt.is-done .qs-dl-status {
   color: #059669;
+  transform: none;
 }
 
 .qs-dl-popover.qs-theme-glass-dark .qs-dl-opt.is-done .qs-dl-status {
@@ -6873,12 +7171,35 @@
   color: #ef4444;
 }
 
+.qs-dl-check-path {
+  stroke-dasharray: 26;
+  stroke-dashoffset: 26;
+  animation: qsDlCheckDraw 340ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.qs-dl-bytes {
+  animation: qsDlBytesIn 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes qsDlCheckDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes qsDlBytesIn {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+}
+
 .qs-dl-bar {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 10px;
+  right: 10px;
   bottom: 0;
-  height: 2.5px;
+  height: 2px;
   pointer-events: none;
   background: transparent;
 }
@@ -6889,7 +7210,7 @@
   height: 100%;
   border-radius: 99em;
   background: linear-gradient(90deg, var(--tba1), var(--tba2));
-  transition: width 160ms cubic-bezier(0.22, 1, 0.36, 1), background-color 160ms ease;
+  transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1), background-color 220ms ease;
 }
 
 .qs-dl-opt.is-done .qs-dl-bar > i {
@@ -6898,10 +7219,17 @@
 
 @media (prefers-reduced-motion: reduce) {
   .qs-dl-popover,
+  .qs-stroke-popover,
+  .qs-dl-opt,
   .qs-dl-bar > i,
-  .qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger .qs-dl-caret {
+  .qs-morph-check,
+  .qs-morph-path,
+  .qs-dl-check-path,
+  .qs-dl-bytes,
+  .qs-annotate-toolbar .qs-dl-caret {
     animation: none !important;
     transition: none !important;
+    filter: none !important;
   }
 }
 

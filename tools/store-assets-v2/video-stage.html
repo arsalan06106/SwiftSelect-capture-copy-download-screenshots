@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>SwiftSelect v2 — 1080p Promo Video Motion Stage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+<style>
+@font-face {
+  font-family: "SS Inter";
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+  font-weight: 100 900;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: #f6f7fb;
+  font-family: "DM Sans", "SS Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+#root {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+}
+.scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  will-change: opacity, transform;
+  overflow: hidden;
+}
+.display {
+  font-family: "Plus Jakarta Sans", "SS Inter", sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.042em;
+}
+.mono { font-family: "JetBrains Mono", monospace; }
+
+/* Backgrounds */
+.bg-alabaster {
+  background:
+    radial-gradient(62% 72% at 6% 4%, rgba(244, 63, 94, 0.095), transparent 62%),
+    radial-gradient(60% 72% at 94% 94%, rgba(6, 182, 212, 0.12), transparent 62%),
+    #f6f7fb;
+  color: #11131a;
+}
+.bg-obsidian {
+  background:
+    radial-gradient(56% 68% at 10% 8%, rgba(244, 63, 94, 0.17), transparent 62%),
+    radial-gradient(56% 68% at 92% 92%, rgba(6, 182, 212, 0.18), transparent 60%),
+    #0b0d14;
+  color: #f4f6fb;
+}
+
+/* Scene 1: Brand Reveal */
+.s1-ribbon {
+  position: absolute;
+  inset: -40px;
+  width: 2000px;
+  height: 1160px;
+  object-fit: cover;
+  opacity: 0.44;
+}
+.s1-center {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.s1-logo {
+  width: 124px;
+  height: 124px;
+  filter: drop-shadow(0 18px 34px rgba(17, 19, 26, 0.18));
+}
+.s1-brand {
+  margin-top: 26px;
+  font-size: 86px;
+  line-height: 1;
+  color: #11131a;
+}
+.s1-sub {
+  margin-top: 22px;
+  font-size: 32px;
+  font-weight: 500;
+  color: #4b5063;
+  letter-spacing: -0.02em;
+}
+.s1-sub strong { color: #e11d48; font-weight: 700; }
+.s1-caps {
+  margin-top: 40px;
+  display: flex;
+  gap: 20px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #646b80;
+}
+.s1-caps .dot { opacity: 0.35; }
+
+/* Browser chrome for video */
+.v-win {
+  position: absolute;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(17,19,26,0.09), 0 44px 100px -24px rgba(15,23,42,0.28);
+}
+.v-win.dark {
+  background: #141722;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 48px 110px -24px rgba(0,0,0,0.8);
+}
+.v-bar {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 9px;
+  background: linear-gradient(180deg, #fafbfe, #f1f3f8);
+  border-bottom: 1px solid rgba(17,19,26,0.07);
+  position: relative;
+}
+.v-win.dark .v-bar {
+  background: linear-gradient(180deg, #1d202d, #161823);
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+.v-dots { display: flex; gap: 8px; }
+.v-dots i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.v-dots i:nth-child(1) { background: #ff5f57; }
+.v-dots i:nth-child(2) { background: #febc2e; }
+.v-dots i:nth-child(3) { background: #28c840; }
+.v-url {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 28px;
+  padding: 0 22px;
+  border-radius: 8px;
+  background: rgba(17,19,26,0.05);
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #5a6072;
+  font-weight: 500;
+}
+.v-win.dark .v-url { background: rgba(0,0,0,0.34); color: #9ea6bf; }
+
+/* Liquid Glass Pill for video */
+.v-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(250, 251, 255, 0.80);
+  backdrop-filter: blur(22px) saturate(185%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.8),
+    inset 2px 3px 0 -1px rgba(255,255,255,0.95),
+    0 20px 44px -12px rgba(15,23,42,0.28);
+}
+.v-pbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 44px;
+  padding: 0 16px 0 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: inset 0 0 0 1px rgba(17,19,26,0.06), 0 3px 8px rgba(15,23,42,0.08);
+  font-size: 15px;
+  font-weight: 600;
+  color: #151722;
+}
+.v-pbtn.sq { width: 44px; padding: 0; justify-content: center; }
+.v-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Scene Header Bar */
+.v-head {
+  position: absolute;
+  left: 96px;
+  right: 96px;
+  top: 56px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  z-index: 5;
+}
+.v-kick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #5b6175;
+}
+.bg-obsidian .v-kick { color: #9ea6bf; }
+.v-kick img { width: 28px; height: 28px; }
+.v-h1 { margin-top: 10px; font-size: 56px; line-height: 1.04; }
+.v-sub { font-size: 21px; color: #5b6175; max-width: 520px; text-align: right; line-height: 1.45; }
+.bg-obsidian .v-sub { color: #9ea6bf; }
+
+/* Animated Cursor */
+.v-cursor {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  z-index: 40;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.30));
+}
+
+/* Scene 2: Region Capture */
+.s2-win { left: 96px; right: 96px; top: 204px; height: 816px; }
+.s2-page {
+  position: relative;
+  height: calc(100% - 46px);
+  background: #faf8f4;
+  padding: 46px 64px;
+}
+.s2-grid {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: 520px 1fr;
+  gap: 64px;
+  align-items: center;
+}
+.s2-photo {
+  width: 100%;
+  height: 520px;
+  object-fit: cover;
+  border-radius: 18px;
+  display: block;
+}
+.s2-marquee {
+  position: absolute;
+  border: 2.5px solid #11131a;
+  border-radius: 18px;
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.92), 0 28px 60px -14px rgba(0,0,0,0.28);
+  pointer-events: none;
+  z-index: 12;
+}
+.s2-hud {
+  position: absolute;
+  left: 0;
+  top: -46px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.14), inset 0 0 0 1px rgba(17,19,26,0.09);
+  font-size: 16px;
+  font-weight: 700;
+  color: #11131a;
+  white-space: nowrap;
+}
+.s2-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 25;
+}
+.s2-toast {
+  position: absolute;
+  left: 64px;
+  bottom: 48px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  border-radius: 26px;
+  background: rgba(245, 255, 250, 0.92);
+  backdrop-filter: blur(22px);
+  box-shadow: 0 24px 54px -14px rgba(15,23,42,0.24), inset 0 0 0 1px rgba(255,255,255,0.9);
+}
+
+/* Scene 3: Smart Snap + Dock */
+.s3-win { left: 96px; right: 96px; top: 204px; height: 816px; }
+.s3-page {
+  position: relative;
+  height: calc(100% - 46px);
+  background: #f8f7f4;
+  color: #14161f;
+  padding: 40px 56px;
+}
+.s3-cards {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+}
+.s3-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid rgba(17,19,26,0.08);
+  position: relative;
+}
+.s3-card img { width: 100%; height: 340px; object-fit: cover; border-radius: 14px; display: block; }
+.s3-card h4 { margin-top: 16px; font-size: 20px; font-weight: 700; }
+.s3-card p { margin-top: 4px; font-size: 16px; color: #646b80; }
+.s3-snap-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 24px;
+  border: 3.5px solid #0284c7;
+  box-shadow: 0 0 0 10px rgba(56, 189, 248, 0.22);
+  opacity: 0;
+}
+.s3-dock {
+  position: absolute;
+  right: 48px;
+  top: 30px;
+  width: 720px;
+  border-radius: 32px;
+  padding: 20px;
+  background: rgba(250, 251, 255, 0.88);
+  backdrop-filter: blur(26px) saturate(190%);
+  box-shadow: 0 34px 72px -18px rgba(15,23,42,0.36), inset 0 0 0 1px rgba(255,255,255,0.88);
+  z-index: 15;
+}
+
+/* Scene 4: Annotation Studio */
+.s4-win { left: 96px; right: 96px; top: 204px; height: 816px; }
+.s4-stage {
+  position: relative;
+  height: calc(100% - 46px);
+  background:
+    radial-gradient(60% 60% at 10% 10%, rgba(120,160,255,0.22), transparent 65%),
+    radial-gradient(50% 55% at 92% 16%, rgba(255,140,180,0.22), transparent 62%),
+    radial-gradient(55% 60% at 88% 92%, rgba(72,215,200,0.22), transparent 65%),
+    #f1f4fa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 26px;
+}
+.s4-card {
+  margin-top: 26px;
+  width: 1120px;
+  height: 580px;
+  border-radius: 20px;
+  background: #faf8f4;
+  position: relative;
+  overflow: hidden;
+  padding: 36px 46px;
+  box-shadow: 0 0 0 1px rgba(17,19,26,0.08), 0 30px 68px -18px rgba(15,23,42,0.24);
+}
+
+/* Scene 5: Gallery + Batch Converter Split */
+.s5-split {
+  position: absolute;
+  left: 96px;
+  right: 96px;
+  top: 214px;
+  bottom: 72px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+}
+.s5-panel {
+  border-radius: 24px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 32px 72px -18px rgba(0,0,0,0.52), 0 0 0 1px rgba(255,255,255,0.12);
+}
+.s5-panel img { width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block; }
+.s5-badge {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  padding: 14px 20px;
+  border-radius: 18px;
+  background: rgba(15, 18, 28, 0.90);
+  backdrop-filter: blur(18px);
+  color: #f8fafc;
+  box-shadow: 0 18px 36px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.14);
+}
+.s5-badge b { display: block; font-size: 20px; font-weight: 700; }
+.s5-badge span { font-size: 14px; color: #9ea6bf; }
+
+/* Scene 6: Closing Finale */
+.s6-cta {
+  margin-top: 42px;
+  padding: 18px 34px;
+  border-radius: 999px;
+  background: #11131a;
+  color: #fff;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  box-shadow: 0 22px 44px -12px rgba(17,19,26,0.34);
+}
+</style>
+</head>
+<body>
+<div id="root">
+  <!-- SCENE 1: BRAND REVEAL (0.0 - 3.8s) -->
+  <section class="scene bg-alabaster" id="sc1">
+    <img class="s1-ribbon" id="s1-ribbon" src="/src/assets/images/studio_optical_backdrop_1795345825087.jpg" alt="" />
+    <div class="s1-center">
+      <img class="s1-logo" id="s1-logo" src="/icons/app128.png" alt="" />
+      <h1 class="display s1-brand" id="s1-brand">SwiftSelect</h1>
+      <p class="s1-sub" id="s1-sub">Capture, mark &amp; convert — <strong>in one fluid motion.</strong></p>
+      <div class="s1-caps" id="s1-caps">
+        <span>Region &amp; Full Page</span><span class="dot">·</span>
+        <span>Smart Snap</span><span class="dot">·</span>
+        <span>Annotation Studio</span><span class="dot">·</span>
+        <span>Local Gallery</span><span class="dot">·</span>
+        <span>Batch Converter</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENE 2: LIVE REGION CAPTURE (3.8 - 9.0s) -->
+  <section class="scene bg-alabaster" id="sc2">
+    <div class="v-head" id="s2-head">
+      <div>
+        <div class="v-kick"><img src="/icons/app128.png" alt="" /><span>01 · Region &amp; Full-Page Capture</span></div>
+        <h2 class="display v-h1">Drag once. <span style="color:#e11d48">Copied and saved.</span></h2>
+      </div>
+      <p class="v-sub">Press Alt+X, sweep any region at 2× retina resolution. Clipboard, Downloads, and Gallery in one motion.</p>
+    </div>
+
+    <div class="v-win s2-win" id="s2-win">
+      <div class="v-bar">
+        <div class="v-dots"><i></i><i></i><i></i></div>
+        <div class="v-url">northbound.journal / issue-14 / lofoten</div>
+      </div>
+      <div class="s2-page">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:24px;border-bottom:1px solid rgba(17,19,26,0.08)">
+          <span class="display" style="font-size:22px;color:#151722">Northbound</span>
+          <span style="font-size:16px;color:#646b80">Journal &nbsp;&nbsp; Routes &nbsp;&nbsp; Field Notes &nbsp;&nbsp; Archive</span>
+        </div>
+        <div class="s2-grid">
+          <div>
+            <div class="mono" style="font-size:14px;font-weight:700;color:#0f766e;letter-spacing:0.08em">ISSUE 14 · AUTUMN ROUTES</div>
+            <h3 class="display" style="margin-top:16px;font-size:54px;line-height:1.06;color:#151722">Seven valleys, one slow train north.</h3>
+            <p style="margin-top:20px;font-size:20px;line-height:1.58;color:#545968">A week along the Arctic coast, with field notes on where to stop and which window seat catches morning light.</p>
+          </div>
+          <img class="s2-photo" src="/src/assets/images/editorial_nordic_fjord_1795345825548.jpg" alt="" />
+        </div>
+
+        <!-- Floating Liquid Glass Toolbar -->
+        <div class="v-pill" id="s2-pill" style="position:absolute;right:56px;top:76px;z-index:16">
+          <span class="v-pbtn"><span class="v-ico" style="background:linear-gradient(160deg,#38bdf8,#0284c7)">◉</span>Visible Area</span>
+          <span class="v-pbtn sq"><span class="v-ico" style="background:linear-gradient(160deg,#a78bfa,#6d28d9)">⊞</span></span>
+          <span class="v-pbtn"><span class="v-ico" style="background:linear-gradient(160deg,#fb7185,#e11d48)">✎</span>Annotate</span>
+          <span class="v-pbtn sq"><span class="v-ico" style="background:linear-gradient(160deg,#2dd4bf,#0d9488)">⇄</span></span>
+          <span class="v-pbtn sq"><span class="v-ico" style="background:linear-gradient(160deg,#60a5fa,#2563eb)">▦</span></span>
+        </div>
+
+        <!-- Dynamic Region Marquee -->
+        <div class="s2-marquee" id="s2-marquee" style="left:640px;top:148px;width:0px;height:0px;opacity:0">
+          <div class="s2-hud mono" id="s2-hud">0 × 0 px</div>
+        </div>
+
+        <!-- Shutter flash -->
+        <div class="s2-flash" id="s2-flash"></div>
+
+        <!-- Status Toast -->
+        <div class="s2-toast" id="s2-toast" style="opacity:0">
+          <span class="v-ico" style="width:44px;height:44px;font-size:20px;background:linear-gradient(160deg,#34d399,#059669)">✓</span>
+          <div>
+            <b style="display:block;font-size:20px;color:#11131a">Screenshot copied &amp; saved</b>
+            <span class="mono" style="font-size:15px;color:#475569">1,920 × 1,440 · PNG · 412 KB</span>
+          </div>
+        </div>
+
+        <!-- Cursor -->
+        <svg class="v-cursor" id="s2-cursor" viewBox="0 0 28 28" style="left:640px;top:148px">
+          <path d="M5 3L22 14.5L13.5 16.5L10 24.5L5 3Z" fill="#11131a" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" />
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENE 3: SMART ELEMENT SNAP & TOOLBAR DOCK (9.0 - 13.8s) -->
+  <section class="scene bg-obsidian" id="sc3">
+    <div class="v-head">
+      <div>
+        <div class="v-kick"><img src="/icons/app128.png" alt="" /><span>02 · Smart Snap &amp; In-Page Dock</span></div>
+        <h2 class="display v-h1">Snap to any card. <span style="color:#38e2f5">Recents right there.</span></h2>
+      </div>
+      <p class="v-sub">Hold Ctrl to lock onto images or UI cards. Unfold the Liquid Glass toolbar to drag recent shots into any page.</p>
+    </div>
+
+    <div class="v-win dark s3-win" id="s3-win">
+      <div class="v-bar">
+        <div class="v-dots"><i></i><i></i><i></i></div>
+        <div class="v-url">atelier.studio / stoneware-collection</div>
+      </div>
+      <div class="s3-page">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:20px;border-bottom:1px solid rgba(17,19,26,0.08)">
+          <span class="display" style="font-size:20px">Atelier Form</span>
+          <span style="font-size:15px;color:#646b80">Objects · Exhibitions · Journal</span>
+        </div>
+        <div class="s3-cards">
+          <div class="s3-card">
+            <div class="s3-snap-ring" id="s3-snap-ring"></div>
+            <div class="mono" id="s3-snap-tag" style="position:absolute;left:0;top:-44px;padding:7px 14px;border-radius:999px;background:#0f172a;color:#fff;font-size:14px;font-weight:700;opacity:0">Ctrl-Snap <span style="color:#38e2f5;margin-left:6px">640 × 480</span></div>
+            <img src="/src/assets/images/editorial_ceramic_studio_1795345827182.jpg" alt="" />
+            <h4>Travertine Plinth Trio</h4>
+            <p>Hand-thrown stoneware · Limited series</p>
+          </div>
+          <div class="s3-card">
+            <img src="/src/assets/images/editorial_arch_pavilion_1795345826546.jpg" alt="" />
+            <h4>Kyoto Courtyard Pavilion</h4>
+            <p>Architectural study · Concrete &amp; glass</p>
+          </div>
+          <div class="s3-card">
+            <img src="/src/assets/images/editorial_nordic_fjord_1795345825548.jpg" alt="" />
+            <h4>Lofoten Dawn Monograph</h4>
+            <p>35mm archival print · Edition of 50</p>
+          </div>
+        </div>
+
+        <div class="s3-dock" id="s3-dock" style="opacity:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid rgba(17,19,26,0.08)">
+            <div style="display:flex;gap:8px">
+              <span style="padding:7px 18px;border-radius:999px;background:#fff;font-size:15px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.08)">Gallery</span>
+              <span style="padding:7px 18px;border-radius:999px;font-size:15px;font-weight:600;color:#5b6175">Settings</span>
+            </div>
+            <span style="font-size:15px;color:#5b6175;font-weight:500">Drag into page, or click to copy</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px">
+            <div style="background:#fff;border-radius:14px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06)">
+              <img src="/src/assets/images/editorial_nordic_fjord_1795345825548.jpg" style="width:100%;height:112px;object-fit:cover;border-radius:10px;display:block" alt="" />
+              <b style="display:block;margin-top:8px;font-size:14px">Lofoten Dawn</b>
+              <span class="mono" style="font-size:12px;color:#64748b">1,920 × 1,440 · 2m</span>
+            </div>
+            <div style="background:#fff;border-radius:14px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06)">
+              <img src="/src/assets/images/editorial_arch_pavilion_1795345826546.jpg" style="width:100%;height:112px;object-fit:cover;border-radius:10px;display:block" alt="" />
+              <b style="display:block;margin-top:8px;font-size:14px">Kyoto Pavilion</b>
+              <span class="mono" style="font-size:12px;color:#64748b">1,376 × 768 · 8m</span>
+            </div>
+            <div style="background:#fff;border-radius:14px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06)">
+              <img src="/src/assets/images/editorial_ceramic_studio_1795345827182.jpg" style="width:100%;height:112px;object-fit:cover;border-radius:10px;display:block" alt="" />
+              <b style="display:block;margin-top:8px;font-size:14px">Stoneware Trio</b>
+              <span class="mono" style="font-size:12px;color:#64748b">1,200 × 896 · 14m</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENE 4: ANNOTATION STUDIO (13.8 - 18.2s) -->
+  <section class="scene bg-alabaster" id="sc4">
+    <div class="v-head">
+      <div>
+        <div class="v-kick"><img src="/icons/app128.png" alt="" /><span>03 · Built-In Annotation Studio</span></div>
+        <h2 class="display v-h1">Mark up, redact &amp; <span style="color:#e11d48">share in seconds.</span></h2>
+      </div>
+      <p class="v-sub">10 markup tools — arrows, numbered steps, highlighter, privacy blur, crop, zoom, and full undo history.</p>
+    </div>
+
+    <div class="v-win s4-win" id="s4-win">
+      <div class="v-bar">
+        <div class="v-dots"><i></i><i></i><i></i></div>
+        <div class="v-url">SwiftSelect · Annotation Studio</div>
+      </div>
+      <div class="s4-stage">
+        <div class="v-pill" style="padding:8px 16px;gap:14px;font-size:15px;font-weight:600;color:#1e293b">
+          <span style="padding:6px 14px;border-radius:999px;background:#2563eb;color:#fff">Select</span>
+          <span>Pen</span><span>Highlight</span><span>Arrow</span><span>Rect</span><span>Circle</span><span>Steps</span><span>Blur</span><span>Text</span><span>Crop</span>
+        </div>
+
+        <div class="s4-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:18px;border-bottom:1px solid rgba(17,19,26,0.08)">
+            <span class="display" style="font-size:20px;color:#161822">Northbound</span>
+            <div style="position:relative">
+              <span style="font-size:14px;color:#475569;font-family:JetBrains Mono,monospace">editor@northbound.journal</span>
+              <div id="s4-blur-mask" style="position:absolute;inset:-4px -6px;border-radius:6px;background:repeating-linear-gradient(90deg,#1e2432 0 12px,#3d4558 12px 24px,#262d3d 24px 36px,#576078 36px 48px);opacity:0"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:32px;display:grid;grid-template-columns:1fr 480px;gap:42px;align-items:center">
+            <div>
+              <span class="mono" style="font-size:14px;font-weight:700;color:#0f766e">ISSUE 14 · AUTUMN ROUTES</span>
+              <h3 class="display" style="margin-top:16px;font-size:44px;line-height:1.08;color:#151722">Seven valleys, one slow train north.</h3>
+              <p style="margin-top:16px;font-size:18px;line-height:1.58;color:#545968">A week along the coastal line with notes on stops and morning light.</p>
+              <div style="margin-top:26px;display:flex;gap:14px">
+                <span style="padding:13px 24px;border-radius:999px;background:#145349;color:#fff;font-size:16px;font-weight:600">Read the route</span>
+                <span style="padding:13px 24px;border-radius:999px;border:1px solid rgba(17,19,26,0.16);background:#fff;font-size:16px;font-weight:600">Download map</span>
+              </div>
+            </div>
+            <img src="/src/assets/images/editorial_nordic_fjord_1795345825548.jpg" style="width:480px;height:400px;object-fit:cover;border-radius:16px;display:block" alt="" />
+          </div>
+
+          <svg viewBox="0 0 1120 580" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
+            <rect id="s4-rect" x="38" y="388" width="188" height="60" rx="14" fill="none" stroke="#ef4444" stroke-width="4.5" stroke-dasharray="520" stroke-dashoffset="520" />
+            <circle id="s4-circle" cx="892" cy="316" r="64" fill="none" stroke="#ef4444" stroke-width="4.5" stroke-dasharray="410" stroke-dashoffset="410" />
+            <path id="s4-arrow" d="M 332 496 Q 272 492 232 454" fill="none" stroke="#ef4444" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="160" stroke-dashoffset="160" />
+            <path id="s4-arrow-head" d="M 248 450 L 228 450 L 236 468" fill="none" stroke="#ef4444" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity="0" />
+            <text id="s4-label" x="346" y="504" font-family="Plus Jakarta Sans, sans-serif" font-size="25" font-weight="800" fill="#dc2626" opacity="0">Increase CTA contrast</text>
+
+            <g id="s4-step1" transform="translate(232, 386)" opacity="0">
+              <circle r="18" fill="#ef4444" stroke="#fff" stroke-width="3" />
+              <text y="6" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16" font-weight="800" fill="#fff">1</text>
+            </g>
+            <g id="s4-step2" transform="translate(946, 266)" opacity="0">
+              <circle r="18" fill="#ef4444" stroke="#fff" stroke-width="3" />
+              <text y="6" text-anchor="middle" font-family="Plus Jakarta Sans, sans-serif" font-size="16" font-weight="800" fill="#fff">2</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENE 5: LOCAL GALLERY + OFFLINE BATCH CONVERTER (18.2 - 22.4s) -->
+  <section class="scene bg-obsidian" id="sc5">
+    <div class="v-head">
+      <div>
+        <div class="v-kick"><img src="/icons/app128.png" alt="" /><span>04 · Local Gallery &amp; Batch Converter</span></div>
+        <h2 class="display v-h1">Private gallery. <span style="color:#38e2f5">Offline compression.</span></h2>
+      </div>
+      <p class="v-sub">Search every capture locally in IndexedDB, and batch-convert to WebP, JPG, PNG, or ICO with zero uploads.</p>
+    </div>
+
+    <div class="s5-split">
+      <div class="s5-panel" id="s5-left">
+        <img src="/tools/store-assets-v2/raw/raw-gallery-dark.png" alt="" />
+        <div class="s5-badge">
+          <b>Swift Gallery · 100% Local</b>
+          <span>IndexedDB · Favorites · Drag to export</span>
+        </div>
+      </div>
+      <div class="s5-panel" id="s5-right">
+        <img src="/tools/store-assets-v2/raw/raw-converter-light.png" alt="" />
+        <div class="s5-badge">
+          <b id="s5-stat" style="color:#34d399">−87% · 2.6 MB → 340 KB</b>
+          <span>WebP · JPG · PNG · ICO · EXIF Stripped</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENE 6: HERO CLOSING FINALE (22.4 - 26.0s) -->
+  <section class="scene bg-alabaster" id="sc6">
+    <img class="s1-ribbon" id="s6-ribbon" src="/src/assets/images/studio_optical_backdrop_1795345825087.jpg" alt="" />
+    <div class="s1-center">
+      <img class="s1-logo" id="s6-logo" src="/icons/app128.png" alt="" />
+      <h1 class="display s1-brand" id="s6-brand">SwiftSelect</h1>
+      <p class="s1-sub" id="s6-sub">One motion. <strong>Zero friction. 100% local.</strong></p>
+      <div class="s6-cta" id="s6-cta">Available on the Chrome Web Store</div>
+    </div>
+  </section>
+</div>
+
+<script>
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const easeOut = (t) => 1 - Math.pow(1 - clamp(t), 3);
+const easeInOut = (t) => { t = clamp(t); return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+const range = (t, t0, t1) => clamp((t - t0) / (t1 - t0));
+
+const el = (id) => document.getElementById(id);
+
+function fadeScene(id, t, start, end, xf = 0.42) {
+  const s = el(id);
+  const fadeIn = start === 0 ? 1 : easeOut(range(t, start, start + xf));
+  const fadeOut = end >= 26 ? 1 : 1 - easeOut(range(t, end - xf, end));
+  const op = clamp(Math.min(fadeIn, fadeOut));
+  s.style.opacity = op.toFixed(4);
+  return op > 0.001;
+}
+
+window.__renderAt = function (t) {
+  // Scene 1: 0.0 -> 3.8
+  if (fadeScene("sc1", t, 0.0, 3.9, 0.45)) {
+    const p1 = easeOut(range(t, 0.1, 1.1));
+    const p2 = easeOut(range(t, 0.45, 1.35));
+    const p3 = easeOut(range(t, 0.85, 1.75));
+    el("s1-ribbon").style.transform = `scale(${(1.06 - t * 0.014).toFixed(4)}) translateX(${(-t * 8).toFixed(1)}px)`;
+    el("s1-logo").style.opacity = p1;
+    el("s1-logo").style.transform = `translateY(${(1 - p1) * 32}px) scale(${0.86 + p1 * 0.14})`;
+    el("s1-brand").style.opacity = p2;
+    el("s1-brand").style.transform = `translateY(${(1 - p2) * 28}px)`;
+    el("s1-sub").style.opacity = p3;
+    el("s1-sub").style.transform = `translateY(${(1 - p3) * 22}px)`;
+    const p4 = easeOut(range(t, 1.35, 2.2));
+    el("s1-caps").style.opacity = p4;
+    el("s1-caps").style.transform = `translateY(${(1 - p4) * 16}px)`;
+  }
+
+  // Scene 2: 3.6 -> 9.1 (Live Region Drag + Flash + Toast)
+  if (fadeScene("sc2", t, 3.6, 9.1, 0.45)) {
+    const winP = easeOut(range(t, 3.7, 4.5));
+    el("s2-win").style.transform = `translateY(${(1 - winP) * 44}px)`;
+    const pillP = easeOut(range(t, 4.1, 4.8));
+    el("s2-pill").style.opacity = pillP;
+    el("s2-pill").style.transform = `translateY(${(1 - pillP) * -18}px)`;
+
+    // Drag from (644, 152) -> (1658, 668) between t=4.8 and t=6.8
+    const dragP = easeInOut(range(t, 4.8, 6.8));
+    const x0 = 644, y0 = 152, fullW = 994, fullH = 516;
+    const curW = Math.round(fullW * dragP);
+    const curH = Math.round(fullH * dragP);
+    const mq = el("s2-marquee");
+    mq.style.opacity = dragP > 0.01 ? "1" : "0";
+    mq.style.left = x0 + "px";
+    mq.style.top = y0 + "px";
+    mq.style.width = Math.max(2, curW) + "px";
+    mq.style.height = Math.max(2, curH) + "px";
+    el("s2-hud").textContent = `${Math.round(curW * 0.966)} × ${Math.round(curH * 1.395)} px`;
+
+    // Cursor position
+    const cur = el("s2-cursor");
+    const preMove = easeOut(range(t, 4.2, 4.8));
+    const cx = t < 4.8 ? 420 + (x0 - 420) * preMove : x0 + curW;
+    const cy = t < 4.8 ? 340 + (y0 - 340) * preMove : y0 + curH;
+    cur.style.left = cx + "px";
+    cur.style.top = cy + "px";
+
+    // Shutter flash around t=7.0 -> 7.45
+    const flashIn = range(t, 6.95, 7.08);
+    const flashOut = 1 - range(t, 7.08, 7.5);
+    el("s2-flash").style.opacity = (t >= 6.95 && t <= 7.5 ? Math.min(flashIn, flashOut) * 0.65 : 0).toFixed(3);
+
+    // Toast springs in at t=7.25
+    const toastP = easeOut(range(t, 7.2, 7.85));
+    el("s2-toast").style.opacity = toastP;
+    el("s2-toast").style.transform = `translateY(${(1 - toastP) * 36}px) scale(${0.94 + toastP * 0.06})`;
+  }
+
+  // Scene 3: 8.8 -> 14.0 (Smart Element Snap + Toolbar Dock)
+  if (fadeScene("sc3", t, 8.8, 14.0, 0.45)) {
+    const wp = easeOut(range(t, 8.9, 9.7));
+    el("s3-win").style.transform = `translateY(${(1 - wp) * 40}px)`;
+    const snapP = easeOut(range(t, 9.8, 10.4));
+    el("s3-snap-ring").style.opacity = snapP;
+    el("s3-snap-tag").style.opacity = snapP;
+    el("s3-snap-tag").style.transform = `translateY(${(1 - snapP) * 10}px)`;
+
+    const dockP = easeOut(range(t, 10.9, 11.7));
+    el("s3-dock").style.opacity = dockP;
+    el("s3-dock").style.transform = `translateY(${(1 - dockP) * -28}px) scale(${0.95 + dockP * 0.05})`;
+  }
+
+  // Scene 4: 13.7 -> 18.4 (Annotation Draw-On)
+  if (fadeScene("sc4", t, 13.7, 18.4, 0.45)) {
+    const wp = easeOut(range(t, 13.8, 14.5));
+    el("s4-win").style.transform = `translateY(${(1 - wp) * 36}px)`;
+
+    const rP = easeOut(range(t, 14.4, 15.1));
+    el("s4-rect").setAttribute("stroke-dashoffset", String(Math.round(520 * (1 - rP))));
+
+    const cP = easeOut(range(t, 14.9, 15.6));
+    el("s4-circle").setAttribute("stroke-dashoffset", String(Math.round(410 * (1 - cP))));
+
+    const aP = easeOut(range(t, 15.4, 16.0));
+    el("s4-arrow").setAttribute("stroke-dashoffset", String(Math.round(160 * (1 - aP))));
+    el("s4-arrow-head").setAttribute("opacity", easeOut(range(t, 15.85, 16.1)).toFixed(3));
+    el("s4-label").setAttribute("opacity", easeOut(range(t, 15.9, 16.4)).toFixed(3));
+
+    el("s4-step1").setAttribute("opacity", easeOut(range(t, 15.2, 15.55)).toFixed(3));
+    el("s4-step2").setAttribute("opacity", easeOut(range(t, 15.65, 16.0)).toFixed(3));
+    el("s4-blur-mask").style.opacity = easeOut(range(t, 16.3, 16.9)).toFixed(3);
+  }
+
+  // Scene 5: 18.1 -> 22.6 (Gallery + Batch Converter Split)
+  if (fadeScene("sc5", t, 18.1, 22.6, 0.45)) {
+    const lP = easeOut(range(t, 18.2, 19.1));
+    const rP = easeOut(range(t, 18.5, 19.4));
+    el("s5-left").style.opacity = lP;
+    el("s5-left").style.transform = `translateY(${(1 - lP) * 44}px)`;
+    el("s5-right").style.opacity = rP;
+    el("s5-right").style.transform = `translateY(${(1 - rP) * 44}px)`;
+
+    const cP = easeOut(range(t, 19.4, 21.0));
+    const pct = Math.round(87 * cP);
+    const kb = Math.round(2600 - (2600 - 340) * cP);
+    el("s5-stat").textContent = `−${pct}% · 2.6 MB → ${kb >= 1000 ? (kb / 1000).toFixed(1) + " MB" : kb + " KB"}`;
+  }
+
+  // Scene 6: 22.3 -> 26.0 (Hero Finale)
+  if (fadeScene("sc6", t, 22.3, 26.0, 0.48)) {
+    const p1 = easeOut(range(t, 22.4, 23.3));
+    const p2 = easeOut(range(t, 22.75, 23.6));
+    const p3 = easeOut(range(t, 23.1, 24.0));
+    const p4 = easeOut(range(t, 23.5, 24.3));
+    el("s6-ribbon").style.transform = `scale(${(1.0 + (t - 22.3) * 0.015).toFixed(4)})`;
+    el("s6-logo").style.opacity = p1;
+    el("s6-logo").style.transform = `translateY(${(1 - p1) * 28}px) scale(${0.88 + p1 * 0.12})`;
+    el("s6-brand").style.opacity = p2;
+    el("s6-brand").style.transform = `translateY(${(1 - p2) * 24}px)`;
+    el("s6-sub").style.opacity = p3;
+    el("s6-sub").style.transform = `translateY(${(1 - p3) * 18}px)`;
+    el("s6-cta").style.opacity = p4;
+    el("s6-cta").style.transform = `translateY(${(1 - p4) * 18}px) scale(${0.95 + p4 * 0.05})`;
+  }
+};
+
+window.__renderAt(0);
+</script>
+</body>
+</html>
