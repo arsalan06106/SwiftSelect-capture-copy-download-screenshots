@@ -6588,3 +6588,320 @@
 .qs-peek-badge {
   background: rgba(14, 16, 26, 0.76);
 }
+
+/* ── Editor: multi-format Download picker ──────────────────────────────── */
+.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger {
+  width: auto !important;
+  min-width: 44px !important;
+  height: 36px !important;
+  padding: 0 9px 0 10px !important;
+  border-radius: 99em !important;
+  gap: 3px !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger .qs-dl-caret {
+  opacity: 0.72;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger.is-open .qs-dl-caret {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger.is-open {
+  background: color-mix(in srgb, var(--c-content) 12%, transparent) !important;
+}
+
+.qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger.is-busy {
+  pointer-events: none;
+}
+
+.qs-dl-popover {
+  all: initial;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483650;
+  width: 292px;
+  padding: 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SS Inter", "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, sans-serif;
+  color: var(--c-content, #1b1c2a);
+  --c-bg: #ffffff;
+  --c-content: #1b1c2a;
+  --c-light: #ffffff;
+  --c-dark: #000000;
+  --glass-reflex-dark: 1;
+  --glass-reflex-light: 1;
+  --saturation: 165%;
+  --tb1: rgba(91, 155, 255, 0.18);
+  --tb2: rgba(177, 138, 255, 0.11);
+  --tb3: rgba(255, 134, 186, 0.14);
+  --tba1: #5b9bff;
+  --tba2: #2f5ef0;
+  border-radius: 20px;
+  background-color: color-mix(in srgb, #ffffff 82%, transparent);
+  background-image:
+    radial-gradient(130% 150px at 0% 0%, var(--tb1), transparent 70%),
+    radial-gradient(120% 150px at 100% 100%, var(--tb3), transparent 72%);
+  backdrop-filter: blur(28px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(28px) saturate(var(--saturation));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 14%), transparent),
+    inset 1.5px 2px 0px -1.5px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 85%), transparent),
+    0 18px 44px -12px rgba(0, 0, 0, 0.34),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateX(-50%);
+  transform-origin: 50% 0;
+  animation: qsPopIn 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.qs-dl-popover,
+.qs-dl-popover * {
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.qs-dl-popover.qs-pop-up {
+  transform-origin: 50% 100%;
+  animation-name: qsPopInUp;
+}
+
+.qs-dl-popover.qs-theme-glass-dark {
+  --c-content: #f0f2f8;
+  --c-bg: #181920;
+  --glass-reflex-dark: 2;
+  --glass-reflex-light: 0.3;
+  color: #f0f2f8;
+  background-color: rgba(20, 21, 29, 0.86);
+  background-image: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--tb1) 70%, transparent),
+    color-mix(in srgb, var(--tb2) 55%, transparent) 48%,
+    color-mix(in srgb, var(--tb3) 70%, transparent)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 22px 48px -12px rgba(0, 0, 0, 0.65),
+    0 4px 14px rgba(0, 0, 0, 0.32);
+}
+
+.qs-dl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px 4px;
+}
+
+.qs-dl-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: color-mix(in srgb, var(--c-content) 82%, transparent);
+}
+
+.qs-dl-dims {
+  font-size: 11px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--c-content) 54%, transparent);
+}
+
+.qs-dl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qs-dl-opt {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px 10px;
+  border: 0;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--c-content) 4%, transparent);
+  color: var(--c-content);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 100ms ease,
+    opacity 140ms ease;
+}
+
+.qs-dl-opt:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--c-content) 9%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-content) 10%, transparent);
+}
+
+.qs-dl-opt:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.qs-dl-opt:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.qs-dl-opt.is-converting {
+  background: color-mix(in srgb, var(--tba1) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tba1) 36%, transparent);
+}
+
+.qs-dl-opt.is-done {
+  background: rgba(16, 185, 129, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.34);
+}
+
+.qs-dl-opt.is-error {
+  background: rgba(239, 68, 68, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.34);
+}
+
+.qs-dl-ext {
+  display: grid;
+  place-items: center;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--c-content);
+  background: color-mix(in srgb, var(--c-content) 9%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-content) 8%, transparent);
+}
+
+.qs-dl-opt.is-converting .qs-dl-ext {
+  color: #fff;
+  background: linear-gradient(155deg, var(--tba1), var(--tba2));
+  box-shadow: none;
+}
+
+.qs-dl-opt.is-done .qs-dl-ext {
+  color: #fff;
+  background: #10b981;
+  box-shadow: none;
+}
+
+.qs-dl-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.qs-dl-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.qs-dl-default {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 99em;
+  color: var(--tba2);
+  background: color-mix(in srgb, var(--tba1) 18%, transparent);
+}
+
+.qs-dl-popover.qs-theme-glass-dark .qs-dl-default {
+  color: #93c5fd;
+  background: rgba(91, 155, 255, 0.2);
+}
+
+.qs-dl-desc {
+  font-size: 11px;
+  line-height: 1.25;
+  color: color-mix(in srgb, var(--c-content) 58%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qs-dl-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 24px;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--c-content) 56%, transparent);
+}
+
+.qs-dl-opt:hover .qs-dl-status {
+  color: var(--c-content);
+}
+
+.qs-dl-opt.is-converting .qs-dl-status {
+  color: var(--tba2);
+}
+
+.qs-dl-popover.qs-theme-glass-dark .qs-dl-opt.is-converting .qs-dl-status {
+  color: #93c5fd;
+}
+
+.qs-dl-opt.is-done .qs-dl-status {
+  color: #059669;
+}
+
+.qs-dl-popover.qs-theme-glass-dark .qs-dl-opt.is-done .qs-dl-status {
+  color: #34d399;
+}
+
+.qs-dl-opt.is-error .qs-dl-status {
+  color: #ef4444;
+}
+
+.qs-dl-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.5px;
+  pointer-events: none;
+  background: transparent;
+}
+
+.qs-dl-bar > i {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: 99em;
+  background: linear-gradient(90deg, var(--tba1), var(--tba2));
+  transition: width 160ms cubic-bezier(0.22, 1, 0.36, 1), background-color 160ms ease;
+}
+
+.qs-dl-opt.is-done .qs-dl-bar > i {
+  background: #10b981;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qs-dl-popover,
+  .qs-dl-bar > i,
+  .qs-annotate-toolbar .qs-guide-btn.qs-dl-trigger .qs-dl-caret {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+

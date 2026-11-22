@@ -20,18 +20,12 @@ export const SUPPORTED_INPUT_MIMES = new Set([
   "image/jpg",
   "image/png",
   "image/webp",
-  "image/heic",
-  "image/heif",
   "image/avif",
   "image/gif",
   "image/svg+xml",
   "image/bmp",
-  "image/jxl",
   "image/vnd.microsoft.icon",
   "image/x-icon",
-  "image/tiff",
-  "image/dng",
-  "image/x-adobe-dng",
 ]);
 
 const EXT_TO_MIME = Object.freeze({
@@ -40,17 +34,11 @@ const EXT_TO_MIME = Object.freeze({
   jfif: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
-  heic: "image/heic",
-  heif: "image/heif",
   avif: "image/avif",
   gif: "image/gif",
   svg: "image/svg+xml",
   bmp: "image/bmp",
-  jxl: "image/jxl",
   ico: "image/vnd.microsoft.icon",
-  tif: "image/tiff",
-  tiff: "image/tiff",
-  dng: "image/x-adobe-dng",
 });
 
 const MIME_TO_EXT = Object.freeze({
@@ -58,38 +46,25 @@ const MIME_TO_EXT = Object.freeze({
   "image/jpg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
-  "image/heic": "heic",
-  "image/heif": "heif",
   "image/avif": "avif",
   "image/gif": "gif",
   "image/svg+xml": "svg",
   "image/bmp": "bmp",
-  "image/jxl": "jxl",
   "image/vnd.microsoft.icon": "ico",
   "image/x-icon": "ico",
-  "image/tiff": "tiff",
-  "image/dng": "tiff",
-  "image/x-adobe-dng": "tiff",
 });
 
-// Formats browsers can natively encode via canvas/browser-image-compression.
+// Formats browsers can natively encode via Canvas.
 const NATIVE_OUTPUT_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-// Mazanoke defaultConversionMapping: formats that cannot be compressed back
-// into their original container map cleanly to lossless PNG when format=auto.
+// Formats that cannot be re-encoded into their original container map cleanly to PNG when format=auto.
 const AUTO_FALLBACK_MAP = Object.freeze({
-  "image/heic": "image/png",
-  "image/heif": "image/png",
   "image/avif": "image/png",
   "image/gif": "image/png",
   "image/svg+xml": "image/png",
   "image/bmp": "image/png",
-  "image/jxl": "image/png",
   "image/vnd.microsoft.icon": "image/png",
   "image/x-icon": "image/png",
-  "image/tiff": "image/png",
-  "image/dng": "image/png",
-  "image/x-adobe-dng": "image/png",
 });
 
 export const WEIGHT_LIMIT_MB = Object.freeze({ min: 0.01, max: 100 }); // 10 KB .. 100 MB
@@ -121,9 +96,9 @@ export function detectInputMime(file) {
   if (!file) return "";
   const ext = getExtension(file.name);
   const rawType = String(file.type || "").toLowerCase().trim();
-  // On Windows/Linux, HEIC, TIFF, DNG, and ICO often report empty or octet-stream MIME types.
+  // On some OSes ICO / AVIF / WebP can report empty or generic octet-stream MIME types.
   if (ext && EXT_TO_MIME[ext]) {
-    if (!rawType || rawType === "application/octet-stream" || ext === "heic" || ext === "heif" || ext === "ico" || ext === "tif" || ext === "tiff" || ext === "dng") {
+    if (!rawType || rawType === "application/octet-stream" || ext === "ico") {
       return EXT_TO_MIME[ext];
     }
   }
@@ -141,14 +116,6 @@ export function isSupportedImageFile(file) {
 export function mimeToExtension(mime = "") {
   const clean = String(mime || "").toLowerCase().trim();
   return MIME_TO_EXT[clean] || clean.replace(/^image\//, "").split("+")[0] || "png";
-}
-
-export function isHeicMime(mime) {
-  return mime === "image/heic" || mime === "image/heif";
-}
-
-export function isTiffMime(mime) {
-  return mime === "image/tiff" || mime === "image/dng" || mime === "image/x-adobe-dng";
 }
 
 export function isIcoMime(mime) {
@@ -264,8 +231,6 @@ const COMPRESSED_PHOTO_MIMES = new Set([
   "image/jpg",
   "image/webp",
   "image/avif",
-  "image/heic",
-  "image/heif",
 ]);
 
 /**
@@ -367,7 +332,7 @@ export function isGenericImageName(name) {
  */
 export function renameBrowserDefaultFileName(fileName, idSuffix = "") {
   const str = String(fileName || "");
-  const defaults = [/^image\.\w+$/i, /^heif image\.heic$/i];
+  const defaults = [/^image\.\w+$/i];
   if (!defaults.some((re) => re.test(str))) {
     return { renamedFileName: str, isBrowserDefault: false };
   }
@@ -533,3 +498,66 @@ export async function buildZipBytes(entries, now = new Date()) {
   }
   return out;
 }
+
+// ─── Pure PNG-in-ICO encoder (zero dependencies, standard Vista+ ICO) ────────
+
+/**
+ * Wrap a PNG payload (<= 256×256) in a standards-compliant single-image `.ico`
+ * container (6-byte ICONDIR + 16-byte ICONDIRENTRY + PNG bytes).
+ */
+export function encodePngToIco(pngBytes, width, height) {
+  const data = pngBytes instanceof Uint8Array ? pngBytes : new Uint8Array(pngBytes);
+  const w = Math.max(1, Math.min(ICO_MAX_EDGE, Math.round(Number(width) || 256)));
+  const h = Math.max(1, Math.min(ICO_MAX_EDGE, Math.round(Number(height) || 256)));
+  const out = new Uint8Array(22 + data.byteLength);
+  const view = new DataView(out.buffer);
+
+  // ICONDIR (6 bytes)
+  view.setUint16(0, 0, true); // reserved
+  view.setUint16(2, 1, true); // type: 1 = ICO
+  view.setUint16(4, 1, true); // image count: 1
+
+  // ICONDIRENTRY (16 bytes)
+  view.setUint8(6, w >= 256 ? 0 : w); // 0 represents 256px in ICO spec
+  view.setUint8(7, h >= 256 ? 0 : h);
+  view.setUint8(8, 0); // palette color count (0 for PNG)
+  view.setUint8(9, 0); // reserved
+  view.setUint16(10, 1, true); // color planes
+  view.setUint16(12, 32, true); // bits per pixel
+  view.setUint32(14, data.byteLength, true); // image data size
+  view.setUint32(18, 22, true); // offset from start of file (6 + 16)
+
+  out.set(data, 22);
+  return out;
+}
+
+// ─── Conversion signature for zero-friction manual reconvert ─────────────────
+
+/**
+ * Deterministic key representing only the settings that actually affect the
+ * encoded output bytes for an item (ignores namingMode, suffix, and controls
+ * that do not apply to the active format/resize mode).
+ */
+export function conversionSettingsKey(prefs = {}, inputMime = "") {
+  const p = normalizePrefs(prefs);
+  const spec = resolveOutputSpec(inputMime || "image/png", p.format);
+  const sizePart =
+    p.resize === "fit"
+      ? `fit:${p.maxW || ""}x${p.maxH || ""}`
+      : p.resize === "scale"
+        ? `scale:${p.scale}`
+        : "none";
+
+  if (spec.formatId === "ico") {
+    return `ico|${sizePart}`;
+  }
+
+  const compressPart =
+    p.compressMethod === "limitWeight"
+      ? `w:${p.targetWeight}${p.targetWeightUnit}`
+      : `q:${p.quality}`;
+
+  const bgPart = spec.needsOpaqueBg ? `|bg:${p.bgWhite ? "w" : "b"}` : "";
+  return `${spec.formatId}|${compressPart}|${sizePart}${bgPart}`;
+}
+

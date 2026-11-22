@@ -140,6 +140,11 @@ test("real SwiftSelect workspace passes Chrome Web Store package verification cl
   assert.equal(report.ok, true, `Unexpected package verification errors: ${report.errors.join("; ")}`);
   assert.ok(report.included.some((f) => f.path === "manifest.json"));
   assert.ok(report.included.some((f) => f.path === "vendor/mazanoke/upng.js"));
+  assert.equal(report.included.some((f) => f.path === "vendor/mazanoke/libheif.js"), false);
+  assert.equal(report.included.some((f) => f.path === "vendor/mazanoke/utif.js"), false);
+  assert.equal(report.included.some((f) => f.path === "vendor/mazanoke/browser-image-compression.js"), false);
+  assert.equal(report.included.some((f) => f.path === "vendor/mazanoke/ico.js"), false);
+  assert.ok(report.stats.totalUnpackedBytes < 2_200_000, `Unpacked extension grew unexpectedly: ${report.stats.totalUnpackedBytes} bytes`);
   assert.equal(report.included.some((f) => f.path === "server.js"), false);
   assert.equal(report.included.some((f) => f.path === "chrome-shim.js"), false);
   assert.equal(report.included.some((f) => f.path === "menu.html"), false);

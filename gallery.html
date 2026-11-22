@@ -107,24 +107,23 @@
             </button>
             <div class="cv-info-pop glass glass-dense" id="cv-info-pop" role="dialog" aria-label="Batch Converter engine credits" hidden>
               <div class="cv-info-head">
-                <b>Engine powered by MAZANOKE</b>
-                <span>GPL-3.0</span>
+                <b>Local Conversion Engine</b>
+                <span>100% On-Device</span>
               </div>
               <p class="cv-info-copy">
-                Local conversion pipelines, target-size compression, and HEIC / TIFF / ICO codecs synthesized from
-                <a href="https://github.com/civilblur/mazanoke" target="_blank" rel="noopener noreferrer" class="cv-credit-link">civilblur/mazanoke<i data-icon="external"></i></a>.
+                Uses native Chrome Canvas encoding for JPG &amp; WebP, a zero-dependency ICO packager, and
+                <a href="https://github.com/photopea/UPNG.js" target="_blank" rel="noopener noreferrer" class="cv-credit-link">UPNG.js<i data-icon="external"></i></a>
+                for palette PNG compression.
               </p>
               <div class="cv-info-tags">
-                <code>browser-image-compression</code>
+                <code>Native Canvas</code>
                 <code>UPNG.js</code>
-                <code>libheif-js</code>
-                <code>UTIF.js</code>
-                <code>icojs</code>
+                <code>Pure ICO</code>
               </div>
               <div class="cv-info-foot">
                 <span>Runs 100% on-device · EXIF stripped</span>
-                <a href="https://github.com/civilblur/mazanoke" target="_blank" rel="noopener noreferrer" class="btn cv-info-repo">
-                  <span>GitHub</span><i data-icon="external"></i>
+                <a href="https://github.com/photopea/UPNG.js" target="_blank" rel="noopener noreferrer" class="btn cv-info-repo">
+                  <span>UPNG.js</span><i data-icon="external"></i>
                 </a>
               </div>
             </div>
@@ -364,6 +363,14 @@
               <button type="button" class="switch" role="switch" id="save-gallery" aria-labelledby="l-keep"></button>
             </div>
 
+            <div class="row">
+              <div class="row-label">
+                <b id="l-auto-save-converted">Auto-save converted files to Gallery</b>
+                <span>Automatically add finished Batch Converter results to the Converted tab.</span>
+              </div>
+              <button type="button" class="switch" role="switch" id="auto-save-converted" data-bool="autoSaveConvertedToGallery" aria-labelledby="l-auto-save-converted"></button>
+            </div>
+
             <div class="row row-stack">
               <div class="row-label">
                 <b id="l-retention">Auto-delete screenshots</b>
@@ -470,12 +477,12 @@
           <div class="cv-layout">
             <div class="cv-main">
               <label class="cv-drop glass" id="cv-drop" tabindex="0">
-                <input type="file" id="cv-file" accept="image/*,.heic,.heif,.tif,.tiff,.dng,.ico,.avif,.webp,.svg,.gif,.bmp" multiple hidden />
+                <input type="file" id="cv-file" accept="image/png,image/jpeg,image/webp,image/avif,image/gif,image/svg+xml,image/bmp,image/x-icon,image/vnd.microsoft.icon,.ico,.avif,.webp,.svg,.gif,.bmp" multiple hidden />
                 <span class="cv-drop-glyph" aria-hidden="true"><i data-icon="convert"></i></span>
                 <span class="cv-drop-text">
                   <b class="cv-drop-title-full">Drop images to convert &amp; optimize</b>
                   <b class="cv-drop-title-short">Add more images</b>
-                  <small class="cv-drop-sub-full">or click to browse · paste with <kbd class="kbd">Ctrl</kbd><kbd class="kbd">V</kbd> · PNG, JPG, WebP, HEIC, AVIF, TIFF, GIF, SVG, ICO</small>
+                  <small class="cv-drop-sub-full">or click to browse · paste with <kbd class="kbd">Ctrl</kbd><kbd class="kbd">V</kbd> · PNG, JPG, WebP, AVIF, GIF, SVG, BMP, ICO</small>
                   <small class="cv-drop-sub-short">Drop files, click to browse, or paste <kbd class="kbd">Ctrl</kbd><kbd class="kbd">V</kbd></small>
                 </span>
                 <span class="cv-drop-actions">
@@ -495,6 +502,7 @@
                   </div>
                   <div class="cv-summary-actions">
                     <button type="button" class="btn btn-danger" id="cv-abort" hidden data-tip="Stop converting"><i data-icon="close"></i><span>Stop</span></button>
+                    <button type="button" class="btn cv-reconvert-btn" id="cv-reconvert" hidden data-tip="Apply updated settings to converted files"><i data-icon="restore"></i><span id="cv-reconvert-label">Reconvert</span></button>
                     <button type="button" class="btn btn-quiet" id="cv-clear" data-tip="Remove every image"><i data-icon="trash"></i><span>Clear</span></button>
                     <button type="button" class="btn" id="cv-save-gallery" data-tip="Save results to Gallery, tagged Converted"><i data-icon="gallery"></i><span>To Gallery</span></button>
                     <button type="button" class="btn btn-icon" id="cv-zip" aria-label="Download as one ZIP" data-tip="Download as one ZIP"><i data-icon="zip"></i></button>
@@ -512,7 +520,7 @@
                 <h2 class="group-title"><span class="tile"><i data-icon="convert"></i></span>Format &amp; Compression</h2>
                 <div class="row row-stack">
                   <div class="seg seg-full cv-seg-formats" role="radiogroup" aria-label="Output format" data-key="format">
-                    <button type="button" role="radio" data-value="auto" title="Keep source format (maps HEIC/TIFF/SVG/ICO to PNG)">Auto</button>
+                    <button type="button" role="radio" data-value="auto" title="Keep source format (maps AVIF/GIF/SVG/BMP/ICO to PNG)">Auto</button>
                     <button type="button" role="radio" data-value="jpg">JPG</button>
                     <button type="button" role="radio" data-value="png">PNG</button>
                     <button type="button" role="radio" data-value="webp">WebP</button>

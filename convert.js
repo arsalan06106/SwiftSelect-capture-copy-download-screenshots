@@ -2,12 +2,11 @@
  * Batch Converter: convert, resize and compress images as a view of the
  * Gallery (gallery.html#convert), mounted on first visit like Settings.
  *
- * Powered by a conversion pipeline synthesized from MAZANOKE
- * (https://github.com/civilblur/mazanoke, GPL-3.0):
- *   - Supports PNG, JPG, WebP, HEIC/HEIF, AVIF, TIFF/DNG, GIF, SVG, BMP, ICO
- *   - Converts to Auto (original / smart fallback), JPG, PNG, WebP, or ICO
+ * Lean local conversion pipeline (100% on-device, EXIF always stripped):
+ *   - Supports PNG, JPG, WebP, AVIF, GIF, SVG, BMP, ICO
+ *   - Converts to Auto (original / smart fallback), JPG, PNG (UPNG.js), WebP, or ICO
  *   - Quality slider OR iterative Target File Size (KB / MB) compression
- *   - EXIF metadata is always stripped; everything runs locally on-device
+ *   - Changing settings never wipes or forcibly reconverts already-finished files
  */
 import { addCapture, getCapture, formatBytes } from "./src/storage.js";
 import { getSettings, DEFAULTS as SETTINGS_DEFAULTS } from "./src/settings.js";
@@ -27,6 +26,7 @@ import {
   buildZipBytes,
   describePngQuality,
   isPhotoToPngExpansion,
+  conversionSettingsKey,
 } from "./src/converter/rules.js";
 import { ingestImageFile, convertImageItem } from "./src/converter/engine.js";
 
@@ -38,12 +38,17 @@ export const isConverterActive = () => !!view() && !view().hidden;
 
 let prefs = { ...DEFAULT_PREFS };
 let namingTemplate = SETTINGS_DEFAULTS.filenameTemplate;
-let items = []; // { id, name, sourceUrl, addedAt, inputMime, blob, rasterBlob, width, height, url, out, outUrl, outW, outH, outExt, progress, state, error, el }
+let autoSaveToGallery = SETTINGS_DEFAULTS.autoSaveConvertedToGallery;
+let items = []; // { id, name, sourceUrl, addedAt, inputMime, blob, rasterBlob, width, height, url, out, outUrl, outW, outH, outExt, settingsKey, savedToGallery, progress, state, error, el }
 let nextId = 1;
-let generation = 0; // bumps on every settings change or abort; stale results are dropped
+let generation = 0; // bumps on explicit abort or clear; stale in-flight results are dropped
 let working = false;
 let activeController = null;
 const pills = {};
+
+function isItemStale(item) {
+  return item.state === "done" && !!item.settingsKey && item.settingsKey !== conversionSettingsKey(prefs, item.inputMime);
+}
 
 // ─── Settings ────────────────────────────────────────────────────────
 
@@ -96,7 +101,7 @@ function syncControls() {
 
   const formatNote = $("format-note");
   if (isAuto) {
-    formatNote.textContent = "Keeps JPG, PNG & WebP; converts HEIC, TIFF, AVIF, SVG & ICO to PNG.";
+    formatNote.textContent = "Keeps JPG, PNG & WebP; converts AVIF, GIF, SVG, BMP & ICO to PNG.";
     formatNote.hidden = false;
   } else if (isIco) {
     formatNote.textContent = "Standard Windows / favicon .ico (capped at 256 × 256).";
@@ -170,25 +175,49 @@ function updatePngTip() {
   tip.hidden = !expandedPhoto;
 }
 
-let _rerunTimer = null;
-function changed(patch, { delay = 220, reconvert = true } = {}) {
+function changed(patch) {
   prefs = normalizePrefs({ ...prefs, ...patch });
   syncControls();
   savePrefs();
-  if (!reconvert) {
-    items.forEach(renderRow);
-    if (compareItem) renderCompare();
-    return;
-  }
-  clearTimeout(_rerunTimer);
-  _rerunTimer = setTimeout(reconvertAll, delay);
+  // Never wipe or auto-reconvert already-converted files when tweaking settings.
+  // Finished items stay intact and calmly show a Reconvert action when settings differ.
+  items.forEach(renderRow);
+  renderSummary();
+  if (compareItem) renderCompare();
 }
 
 // ─── Converting queue ────────────────────────────────────────────────
 
+async function saveSingleToGallery(item) {
+  if (!item?.out || item.savedToGallery) return false;
+  try {
+    const rawStem = cleanBaseName(item.name);
+    const outFileName = outName(item);
+    const galleryTitle =
+      prefs.namingMode === "original"
+        ? outFileName.replace(/\.[a-z0-9]+$/i, "")
+        : isGenericImageName(rawStem)
+          ? ""
+          : `${rawStem}${prefs.suffix || ""}`;
+    await addCapture({
+      blob: item.out,
+      title: galleryTitle,
+      url: item.sourceUrl || "",
+      type: "converted",
+      width: item.outW,
+      height: item.outH,
+    });
+    item.savedToGallery = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function pump() {
   if (working) return;
   working = true;
+  let autoSavedCount = 0;
   renderSummary();
   try {
     for (;;) {
@@ -196,8 +225,11 @@ async function pump() {
       const item = items.find((i) => i.state === "queued");
       if (!item) break;
 
+      const runPrefs = { ...prefs };
+      const runKey = conversionSettingsKey(runPrefs, item.inputMime);
+
       item.state = "working";
-      item.progress = 0;
+      item.progress = 8;
       item.error = "";
       renderRow(item);
       renderSummary();
@@ -206,7 +238,7 @@ async function pump() {
       const { signal } = activeController;
 
       try {
-        const out = await convertImageItem(item, prefs, {
+        const out = await convertImageItem(item, runPrefs, {
           signal,
           onProgress: (pct) => {
             if (gen !== generation) return;
@@ -226,12 +258,18 @@ async function pump() {
         item.outH = out.height;
         item.outExt = out.ext;
         item.outUrl = URL.createObjectURL(out.blob);
+        item.settingsKey = runKey;
+        item.savedToGallery = false;
         item.progress = 100;
         item.state = "done";
-        if (item.el) {
-          item.el.classList.remove("is-just-done");
-          void item.el.offsetWidth;
-          item.el.classList.add("is-just-done");
+
+        // Update UI immediately so rows transition cleanly to "done" without waiting on IndexedDB thumbnail writes.
+        renderRow(item);
+        renderSummary();
+
+        if (autoSaveToGallery) {
+          const didSave = await saveSingleToGallery(item);
+          if (didSave) autoSavedCount++;
         }
       } catch (err) {
         if (err?.name === "AbortError") {
@@ -259,6 +297,13 @@ async function pump() {
     working = false;
     activeController = null;
     renderSummary();
+    if (autoSavedCount > 0) {
+      toast(
+        autoSavedCount === 1
+          ? "Auto-saved to Gallery under Converted"
+          : `Auto-saved ${formatNumber(autoSavedCount)} images to Gallery`,
+      );
+    }
   }
 }
 
@@ -277,19 +322,23 @@ function abortBatch() {
   toast("Conversion stopped");
 }
 
-function reconvertAll() {
-  generation++;
-  activeController?.abort();
-  for (const item of items) {
-    if (item.width && item.height) {
-      item.state = "queued";
-      item.progress = 0;
-      item.error = "";
-    }
+function reconvertItems(targetItems) {
+  const list = targetItems.filter((item) => item.width && item.height);
+  if (!list.length) return;
+  for (const item of list) {
+    item.state = "queued";
+    item.progress = 0;
+    item.error = "";
+    item.savedToGallery = false;
+    renderRow(item);
   }
-  items.forEach(renderRow);
   renderSummary();
   pump();
+}
+
+function reconvertStale() {
+  const stale = items.filter((item) => isItemStale(item) || item.state === "aborted" || item.state === "error");
+  reconvertItems(stale.length ? stale : items);
 }
 
 // ─── Adding files ────────────────────────────────────────────────────
@@ -298,7 +347,7 @@ async function addBlobs(list, { fromPaste = false } = {}) {
   const incoming = [...(list || [])];
   const files = incoming.filter((f) => f && isSupportedImageFile(f));
   if (!files.length) {
-    if (incoming.length) toast("Unsupported file type — drop PNG, JPG, WebP, HEIC, AVIF, TIFF, GIF, SVG, or ICO", { error: true });
+    if (incoming.length) toast("Unsupported file type — drop PNG, JPG, WebP, AVIF, GIF, SVG, BMP, or ICO", { error: true });
     return;
   }
 
@@ -323,6 +372,8 @@ async function addBlobs(list, { fromPaste = false } = {}) {
         outW: 0,
         outH: 0,
         outExt: "",
+        settingsKey: "",
+        savedToGallery: false,
         progress: 0,
         state: "queued",
         error: "",
@@ -419,14 +470,15 @@ function clearAll() {
 
 function buildRow(item) {
   const li = document.createElement("li");
-  li.className = "cv-item glass";
-  li.style.setProperty("--i", Math.min(items.length, 10));
+  li.className = "cv-item glass is-entering";
+  li.style.setProperty("--i", Math.min(items.length, 8));
   li.innerHTML = `
     <button type="button" class="cv-thumb" data-act="preview" aria-label="Inspect and compare image quality" data-tip="Inspect &amp; compare"><img alt="" /><span class="cv-thumb-lens" aria-hidden="true">${icon("search")}</span></button>
     <div class="cv-info">
       <div class="cv-name-line">
         <b class="cv-name"></b>
         <span class="cv-fmt" hidden></span>
+        <span class="cv-stale-tag" hidden>Updated settings</span>
       </div>
       <span class="cv-meta"></span>
     </div>
@@ -435,21 +487,26 @@ function buildRow(item) {
       <span class="cv-delta"></span>
     </div>
     <span class="cv-state" aria-hidden="true"></span>
+    <button type="button" class="act" data-act="reconvert" aria-label="Reconvert with new settings" data-tip="Reconvert with current settings" hidden>${icon("restore")}</button>
     <button type="button" class="act" data-act="retry" aria-label="Retry conversion" data-tip="Try again" hidden>${icon("restore")}</button>
     <button type="button" class="act" data-act="download" aria-label="Download converted image" data-tip="Download">${icon("download")}</button>
-    <button type="button" class="act" data-act="remove" aria-label="Remove image" data-tip="Remove">${icon("close")}</button>`;
-  li.querySelector("img").src = item.url;
+    <button type="button" class="act" data-act="remove" aria-label="Remove image" data-tip="Remove">${icon("close")}</button>
+    <i class="cv-row-bar" aria-hidden="true"><i></i></i>`;
+
+  // Play entrance animation strictly once so later state changes never blink or replay opacity: 0.
+  const finishEnter = () => li.classList.remove("is-entering");
+  li.addEventListener("animationend", finishEnter, { once: true });
+  setTimeout(finishEnter, 420);
+
+  const img = li.querySelector("img");
+  img.src = item.url;
+  img.dataset.srcKey = item.url;
+
   li.querySelector('[data-act="preview"]').onclick = () => openCompare(item);
   li.querySelector('[data-act="download"]').onclick = () => downloadItems([item]);
   li.querySelector('[data-act="remove"]').onclick = () => removeItem(item);
-  li.querySelector('[data-act="retry"]').onclick = () => {
-    item.state = "queued";
-    item.error = "";
-    item.progress = 0;
-    renderRow(item);
-    renderSummary();
-    pump();
-  };
+  li.querySelector('[data-act="reconvert"]').onclick = () => reconvertItems([item]);
+  li.querySelector('[data-act="retry"]').onclick = () => reconvertItems([item]);
   item.el = li;
   renderRow(item);
   return li;
@@ -465,18 +522,44 @@ function outName(item) {
   });
 }
 
+function swapThumbSmoothly(img, targetSrc) {
+  if (!img || !targetSrc || img.dataset.srcKey === targetSrc) return;
+  img.dataset.srcKey = targetSrc;
+  const loader = new Image();
+  loader.src = targetSrc;
+  const apply = () => {
+    if (img.dataset.srcKey === targetSrc) img.src = targetSrc;
+  };
+  if (typeof loader.decode === "function") {
+    loader.decode().then(apply, apply);
+  } else {
+    loader.onload = apply;
+    loader.onerror = apply;
+  }
+}
+
 function renderRow(item) {
   const el = item.el;
   if (!el) return;
-  el.dataset.state = item.state;
-  el.querySelector(".cv-name").textContent = item.state === "done" ? outName(item) : item.name;
+  const stale = isItemStale(item);
+  if (el.dataset.state !== item.state) el.dataset.state = item.state;
+  el.dataset.stale = stale ? "true" : "false";
+
+  const nextName = item.state === "done" ? outName(item) : item.name;
+  const nameEl = el.querySelector(".cv-name");
+  if (nameEl.textContent !== nextName) nameEl.textContent = nextName;
+
   const fmtBadge = el.querySelector(".cv-fmt");
   if (item.state === "done" && item.outExt) {
-    fmtBadge.textContent = item.outExt.toUpperCase();
+    const extLabel = item.outExt.toUpperCase();
+    if (fmtBadge.textContent !== extLabel) fmtBadge.textContent = extLabel;
     fmtBadge.hidden = false;
   } else {
     fmtBadge.hidden = true;
   }
+
+  const staleTag = el.querySelector(".cv-stale-tag");
+  if (staleTag) staleTag.hidden = !stale;
 
   const dims = `${formatNumber(item.width)} × ${formatNumber(item.height)}`;
   const size = el.querySelector(".cv-size");
@@ -485,13 +568,18 @@ function renderRow(item) {
   const dl = el.querySelector('[data-act="download"]');
   dl.disabled = item.state !== "done";
   el.querySelector('[data-act="retry"]').hidden = item.state !== "error" && item.state !== "aborted";
+  const reconvBtn = el.querySelector('[data-act="reconvert"]');
+  if (reconvBtn) reconvBtn.hidden = !stale;
 
-  // Keep preview thumbnail crisp (ICO files are rendered via original preview URL so Chrome always displays them).
-  if (item.state === "done" && item.outUrl && item.outExt !== "ico") {
-    el.querySelector(".cv-thumb img").src = item.outUrl;
-  } else {
-    el.querySelector(".cv-thumb img").src = item.url;
+  const rowBar = el.querySelector(".cv-row-bar");
+  if (rowBar) {
+    const pct = item.state === "working" ? Math.max(8, item.progress || 0) : item.state === "done" ? 100 : 0;
+    rowBar.style.setProperty("--pct", `${pct}%`);
   }
+
+  // Only swap preview thumbnail when the URL genuinely changes, pre-decoding first to guarantee zero blink.
+  const desiredThumb = item.state === "done" && item.outUrl && item.outExt !== "ico" ? item.outUrl : item.url;
+  swapThumbSmoothly(el.querySelector(".cv-thumb img"), desiredThumb);
 
   delta.className = "cv-delta";
 
@@ -507,12 +595,12 @@ function renderRow(item) {
     else if (saved.direction === "larger") delta.classList.add("is-larger");
   } else if (item.state === "error" || item.state === "aborted") {
     meta.textContent = item.error || "Could not convert";
-    size.textContent = "";
+    size.textContent = "—";
     delta.textContent = item.state === "aborted" ? "Stopped" : "Failed";
   } else {
     meta.textContent = `${dims} · ${formatBytes(item.blob.size)}`;
-    size.textContent = "";
-    delta.textContent = item.state === "working" ? `Optimizing ${item.progress || 0}%` : "Waiting";
+    size.textContent = item.state === "working" ? `${item.progress || 0}%` : "—";
+    delta.textContent = item.state === "working" ? "Converting" : "Queued";
   }
 }
 
@@ -531,6 +619,7 @@ function renderSummary() {
   }
 
   const done = items.filter((i) => i.state === "done");
+  const stale = items.filter((i) => isItemStale(i));
   const active = items.find((i) => i.state === "working");
   const busy = working || items.some((i) => i.state === "queued" || i.state === "working");
   const before = items.reduce((s, i) => s + i.blob.size, 0);
@@ -546,9 +635,11 @@ function renderSummary() {
   $("sum-title").textContent = `${formatNumber(n)} ${n === 1 ? "image" : "images"}`;
   $("sum-detail").textContent = busy
     ? active
-      ? `Optimizing ${active.name} (${overallPct}%)…`
+      ? `Converting ${active.name} (${overallPct}%)…`
       : `Converting ${formatNumber(done.length)} of ${formatNumber(n)}…`
-    : `${formatBytes(before)} → ${formatBytes(after)}`;
+    : stale.length
+      ? `${formatBytes(before)} → ${formatBytes(after)} · Settings changed`
+      : `${formatBytes(before)} → ${formatBytes(after)}`;
 
   const saving = $("sum-saving");
   const stats = computeSavings(beforeDone, after);
@@ -559,6 +650,16 @@ function renderSummary() {
   $("summary").classList.toggle("is-busy", busy);
   $("progress").style.setProperty("--pct", `${overallPct}%`);
   $("abort").hidden = !busy;
+
+  const reconvBtn = $("reconvert");
+  const reconvLabel = $("reconvert-label");
+  if (reconvBtn) {
+    reconvBtn.hidden = busy || stale.length === 0;
+    if (reconvLabel) {
+      reconvLabel.textContent = stale.length === n ? "Reconvert" : `Reconvert ${formatNumber(stale.length)}`;
+    }
+  }
+
   $("download-all").disabled = !done.length || busy;
   $("save-gallery").disabled = !done.length || busy;
   $("zip").hidden = done.length < 2;
@@ -705,32 +806,19 @@ let _savingToGallery = false;
 async function saveToGallery() {
   const ready = items.filter((i) => i.state === "done");
   if (!ready.length || _savingToGallery) return;
+  const unsaved = ready.filter((i) => !i.savedToGallery);
+  if (!unsaved.length) {
+    toast(ready.length === 1 ? "Already saved to Gallery" : "All converted images are already in Gallery");
+    return;
+  }
   _savingToGallery = true;
   const btn = $("save-gallery");
   const label = btn?.querySelector("span");
   if (btn) btn.disabled = true;
-  const names = uniqueOutputNames(ready, prefs.suffix, namingOptions());
   let saved = 0;
   try {
-    for (let i = 0; i < ready.length; i++) {
-      try {
-        const rawStem = cleanBaseName(ready[i].name);
-        const galleryTitle =
-          prefs.namingMode === "original"
-            ? names[i].replace(/\.[a-z0-9]+$/i, "")
-            : isGenericImageName(rawStem)
-              ? ""
-              : `${rawStem}${prefs.suffix || ""}`;
-        await addCapture({
-          blob: ready[i].out,
-          title: galleryTitle,
-          url: ready[i].sourceUrl || "",
-          type: "converted",
-          width: ready[i].outW,
-          height: ready[i].outH,
-        });
-        saved++;
-      } catch {}
+    for (const item of unsaved) {
+      if (await saveSingleToGallery(item)) saved++;
     }
     if (saved) {
       toast(saved === 1 ? "Saved to Gallery under Converted" : `Saved ${formatNumber(saved)} images to Gallery under Converted`);
@@ -814,21 +902,28 @@ async function setup() {
     const [data, settings] = await Promise.all([chrome.storage.local.get(["converterPrefs"]), getSettings()]);
     prefs = normalizePrefs(data?.converterPrefs || {});
     namingTemplate = settings?.filenameTemplate || SETTINGS_DEFAULTS.filenameTemplate;
+    autoSaveToGallery = settings?.autoSaveConvertedToGallery === true;
   } catch {
     prefs = normalizePrefs({});
     namingTemplate = SETTINGS_DEFAULTS.filenameTemplate;
+    autoSaveToGallery = SETTINGS_DEFAULTS.autoSaveConvertedToGallery;
   }
   savePrefs();
 
-  // Keep converter filenames live-synced whenever the user edits Filename template in Settings.
+  // Keep converter settings live-synced with Settings page changes.
   try {
     chrome.storage?.onChanged?.addListener((changes, area) => {
-      if (area !== "local" || !changes.filenameTemplate) return;
-      const next = changes.filenameTemplate.newValue;
-      namingTemplate = typeof next === "string" && next.trim() ? next.trim() : SETTINGS_DEFAULTS.filenameTemplate;
-      updateNamingPreview();
-      items.forEach(renderRow);
-      if (compareItem) renderCompare();
+      if (area !== "local") return;
+      if (changes.filenameTemplate) {
+        const next = changes.filenameTemplate.newValue;
+        namingTemplate = typeof next === "string" && next.trim() ? next.trim() : SETTINGS_DEFAULTS.filenameTemplate;
+        updateNamingPreview();
+        items.forEach(renderRow);
+        if (compareItem) renderCompare();
+      }
+      if (changes.autoSaveConvertedToGallery) {
+        autoSaveToGallery = changes.autoSaveConvertedToGallery.newValue === true;
+      }
     });
   } catch {}
 
@@ -855,16 +950,16 @@ async function setup() {
       const key = seg.dataset.key;
       const val = b.dataset.value;
       if (key === "namingMode") {
-        changed({ namingMode: val }, { reconvert: false });
+        changed({ namingMode: val });
         return;
       }
       // When toggling KB <-> MB, convert the visible default nicely if switching units.
       if (key === "targetWeightUnit" && val !== prefs.targetWeightUnit) {
         const nextWeight = val === "MB" ? Math.max(0.1, Number((prefs.targetWeight / 1024).toFixed(2))) : Math.round(prefs.targetWeight * 1024);
-        changed({ targetWeightUnit: val, targetWeight: nextWeight }, { delay: 0 });
+        changed({ targetWeightUnit: val, targetWeight: nextWeight });
         return;
       }
-      changed({ [key]: val }, { delay: 0 });
+      changed({ [key]: val });
     });
   }
 
@@ -953,13 +1048,16 @@ async function setup() {
 
   syncControls();
 
-  $("switch-webp")?.addEventListener("click", () => changed({ format: "webp" }, { delay: 0 }));
+  $("switch-webp")?.addEventListener("click", () => {
+    changed({ format: "webp" });
+    reconvertStale();
+  });
 
   $("quality").addEventListener("input", (e) => changed({ quality: e.target.value }));
-  $("target-weight").addEventListener("input", (e) => changed({ targetWeight: e.target.value }, { delay: 420 }));
+  $("target-weight").addEventListener("input", (e) => changed({ targetWeight: e.target.value }));
   $("scale").addEventListener("input", (e) => changed({ scale: e.target.value }));
-  $("max-w").addEventListener("input", (e) => changed({ maxW: e.target.value }, { delay: 450 }));
-  $("max-h").addEventListener("input", (e) => changed({ maxH: e.target.value }, { delay: 450 }));
+  $("max-w").addEventListener("input", (e) => changed({ maxW: e.target.value }));
+  $("max-h").addEventListener("input", (e) => changed({ maxH: e.target.value }));
   $("suffix").addEventListener("input", (e) => {
     prefs = normalizePrefs({ ...prefs, suffix: e.target.value });
     updateNamingPreview();
@@ -967,25 +1065,25 @@ async function setup() {
     items.forEach(renderRow);
     if (compareItem) renderCompare();
   });
-  $("bg-white").addEventListener("click", () => changed({ bgWhite: !prefs.bgWhite }, { delay: 0 }));
+  $("bg-white").addEventListener("click", () => changed({ bgWhite: !prefs.bgWhite }));
 
   view()
     .querySelector('.cv-presets[data-key="quality"]')
     .addEventListener("click", (e) => {
       const c = e.target.closest(".chip");
-      if (c) changed({ quality: c.dataset.value }, { delay: 0 });
+      if (c) changed({ quality: c.dataset.value });
     });
   view()
     .querySelector('.cv-presets[data-key="weight"]')
     .addEventListener("click", (e) => {
       const c = e.target.closest(".chip");
-      if (c) changed({ targetWeight: c.dataset.value, targetWeightUnit: c.dataset.unit || "KB" }, { delay: 0 });
+      if (c) changed({ targetWeight: c.dataset.value, targetWeightUnit: c.dataset.unit || "KB" });
     });
   view()
     .querySelector('.cv-presets[data-key="box"]')
     .addEventListener("click", (e) => {
       const c = e.target.closest(".chip");
-      if (c) changed({ maxW: c.dataset.value, maxH: c.dataset.value }, { delay: 0 });
+      if (c) changed({ maxW: c.dataset.value, maxH: c.dataset.value });
     });
 
   // Files: picker, drop anywhere on the view, paste.
@@ -1037,6 +1135,7 @@ async function setup() {
   });
 
   $("abort").addEventListener("click", abortBatch);
+  $("reconvert")?.addEventListener("click", reconvertStale);
   $("clear").addEventListener("click", clearAll);
   $("download-all").addEventListener("click", () => downloadItems(items));
   $("zip").addEventListener("click", () => downloadZip(items));

@@ -13,6 +13,7 @@ export const DEFAULTS = Object.freeze({
   outputQuality: 0.92, // 0.5 – 1.0, ignored for png
   outputDestination: "both", // both | clipboard | download | none
   saveToGallery: true,
+  autoSaveConvertedToGallery: false, // auto-save finished Batch Converter files into Gallery
   captureDelay: 0, // seconds: 0 | 3 | 5
   filenameTemplate: "{title} - {type} - {date}-{time}",
   actionClick: "region", // region | menu
@@ -69,6 +70,7 @@ export function normalizeSettings(raw = {}) {
     outputQuality: quality,
     outputDestination: destination,
     saveToGallery: raw.saveToGallery !== false,
+    autoSaveConvertedToGallery: raw.autoSaveConvertedToGallery === true,
     captureDelay: delay,
     filenameTemplate: template,
     actionClick: raw.actionClick === "menu" ? "menu" : "region",

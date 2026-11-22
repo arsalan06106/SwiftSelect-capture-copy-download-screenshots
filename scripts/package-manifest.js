@@ -72,13 +72,8 @@ export const CHROME_STORE_FILES = [
   "fonts/inter-latin-ext.woff2",
   "fonts/LICENSE-Inter.txt",
 
-  // Local offline image codecs (MAZANOKE synthesis, zero CDN calls)
-  "vendor/mazanoke/browser-image-compression.js",
-  "vendor/mazanoke/ico.js",
-  "vendor/mazanoke/libheif.js",
+  // Local offline PNG optimizer (zero CDN calls)
   "vendor/mazanoke/upng.js",
-  "vendor/mazanoke/utif.js",
-  "vendor/mazanoke/LICENSE",
   "vendor/mazanoke/ATTRIBUTIONS.md",
 ];
 

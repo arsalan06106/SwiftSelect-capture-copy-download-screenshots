@@ -1,40 +1,32 @@
 /**
- * Browser image conversion & optimization engine synthesized from MAZANOKE
- * (https://github.com/civilblur/mazanoke, GPL-3.0).
+ * Lean, zero-bloat local browser image conversion & optimization engine.
  *
- * Pipeline:
- *   1. Lazy-load Mazanoke's vendor codecs on demand (Chrome MV3 CSP-safe: no eval, no blob workers).
- *   2. Pre-process exotic formats: HEIC/HEIF (libheif-js), TIFF/DNG (UTIF.js), ICO (icojs),
- *      SVG without explicit width/height attributes, AVIF/GIF/BMP.
- *   3. Composite transparency onto white/black when targeting JPG, and apply exact aspect-preserving
- *      resizing (Original / Fit within / Scale / ICO 256px max).
- *   4. Optimize via browser-image-compression (Quality mode or iterative Target File Size mode,
- *      always stripping EXIF metadata).
- *   5. Post-process to `.ico` via icojs when ICO output is selected.
+ * Pipeline (100% on-device, MV3 CSP-safe, zero external requests):
+ *   1. Native browser decoding for PNG, JPG, WebP, AVIF, GIF, BMP, ICO + SVG viewBox normalization.
+ *   2. Exact aspect-preserving canvas rendering (Original / Fit within / Scale / ICO <= 256px)
+ *      with automatic EXIF stripping and optional white/black background compositing for JPG.
+ *   3. Lossy JPG / WebP optimization using native Canvas encoding (Quality mode with smart bloat
+ *      guard, plus iterative binary-search Quality + smooth downscale Target File Size mode).
+ *   4. PNG optimization via lazy-loaded UPNG.js (adaptive palette quantization in Quality mode,
+ *      lossless at 100%, and resolution-preserving Target File Size compression).
+ *   5. Zero-dependency PNG-in-ICO encoding via `encodePngToIco`.
  */
 
 import {
   detectInputMime,
-  isHeicMime,
-  isTiffMime,
-  isIcoMime,
   resolveOutputSpec,
   computeTargetDimensions,
   computeTargetMaxSizeMB,
   pngColorCountFromQuality,
   shouldGuardSameFormatBloat,
+  encodePngToIco,
 } from "./rules.js";
 
 const VENDOR_PATHS = Object.freeze({
-  imageCompression: "vendor/mazanoke/browser-image-compression.js",
-  ico: "vendor/mazanoke/ico.js",
-  utif: "vendor/mazanoke/utif.js",
-  libheif: "vendor/mazanoke/libheif.js",
   upng: "vendor/mazanoke/upng.js",
 });
 
 const loadedScripts = new Map();
-let libheifInstance = null;
 
 function resolveVendorUrl(relPath) {
   try {
@@ -45,64 +37,29 @@ function resolveVendorUrl(relPath) {
   return new URL(relPath, location.href).href;
 }
 
-/** Load a UMD vendor script once via a regular <script> tag (MV3 CSP compliant). */
+/** Load a local UMD vendor script once via a regular <script> tag (MV3 CSP compliant). */
 function loadScript(key) {
   if (loadedScripts.has(key)) return loadedScripts.get(key);
   const src = resolveVendorUrl(VENDOR_PATHS[key]);
   const p = new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[data-mazanoke-vendor="${key}"]`);
+    const existing = document.querySelector(`script[data-swift-vendor="${key}"]`);
     if (existing && existing.dataset.loaded === "true") return resolve();
     const script = document.createElement("script");
     script.src = src;
     script.async = true;
-    script.dataset.mazanokeVendor = key;
+    script.dataset.swiftVendor = key;
     script.onload = () => {
       script.dataset.loaded = "true";
       resolve();
     };
     script.onerror = () => {
       loadedScripts.delete(key);
-      reject(new Error(`Could not load codec: ${key}`));
+      reject(new Error(`Could not load optimizer: ${key}`));
     };
     document.head.appendChild(script);
   });
   loadedScripts.set(key, p);
   return p;
-}
-
-async function getImageCompression() {
-  if (typeof globalThis.imageCompression === "function") return globalThis.imageCompression;
-  await loadScript("imageCompression");
-  if (typeof globalThis.imageCompression !== "function") {
-    throw new Error("Compression engine failed to initialize");
-  }
-  return globalThis.imageCompression;
-}
-
-async function getIcoLib() {
-  if (globalThis.ICO) return globalThis.ICO;
-  await loadScript("ico");
-  if (!globalThis.ICO) throw new Error("ICO codec failed to initialize");
-  return globalThis.ICO;
-}
-
-async function getUtifLib() {
-  if (globalThis.UTIF) return globalThis.UTIF;
-  await loadScript("utif");
-  if (!globalThis.UTIF) throw new Error("TIFF codec failed to initialize");
-  return globalThis.UTIF;
-}
-
-async function getLibheif() {
-  if (libheifInstance) return libheifInstance;
-  if (typeof globalThis.libheif !== "function") {
-    await loadScript("libheif");
-  }
-  if (typeof globalThis.libheif !== "function") {
-    throw new Error("HEIC codec failed to initialize");
-  }
-  libheifInstance = globalThis.libheif();
-  return libheifInstance;
 }
 
 async function getUpngLib() {
@@ -122,16 +79,6 @@ function canvasToBlob(canvas, mime = "image/png", quality) {
       quality,
     );
   });
-}
-
-function rgbaToPngBlob(rgba, width, height) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  const imageData = new ImageData(new Uint8ClampedArray(rgba), width, height);
-  ctx.putImageData(imageData, 0, 0);
-  return canvasToBlob(canvas, "image/png", 1);
 }
 
 function loadHtmlImage(blob) {
@@ -189,11 +136,8 @@ async function renderToCanvasBlob(blob, targetW, targetH, { mime = "image/png", 
   return canvasToBlob(canvas, mime, quality);
 }
 
-/**
- * Encode a canvas as an optimized PNG via UPNG.js:
- * - cnum = 0: lossless PNG (with optimal filter & bit depth)
- * - cnum = 16..256: indexed palette PNG-8 with full alpha (TinyPNG-style 65-80% savings)
- */
+// ─── PNG Compression (UPNG.js) ───────────────────────────────────────
+
 async function encodeCanvasToPng(canvas, cnum) {
   const UPNG = await getUpngLib();
   const ctx = canvas.getContext("2d");
@@ -203,10 +147,6 @@ async function encodeCanvasToPng(canvas, cnum) {
   return new Blob([encoded], { type: "image/png" });
 }
 
-/**
- * Compress a PNG using Quality mode (palette quantization) or Target Size mode
- * (palette reduction first to preserve full resolution, then smooth downscaling).
- */
 async function compressPng(sourceBlob, targetW, targetH, item, prefs, resized, { signal, report }) {
   const isLimitWeight = prefs.compressMethod === "limitWeight";
   const { canvas } = await renderToCanvas(sourceBlob, targetW, targetH, { opaqueBg: false });
@@ -218,13 +158,11 @@ async function compressPng(sourceBlob, targetW, targetH, item, prefs, resized, {
     let bestBlob = await encodeCanvasToPng(canvas, cnum);
     report(78);
 
-    // For tiny/simple graphics or lossless mode, also compare native canvas PNG and keep whichever is smaller.
     if (cnum === 0 || bestBlob.size < 64 * 1024) {
       const nativePng = await canvasToBlob(canvas, "image/png");
       if (nativePng.size < bestBlob.size) bestBlob = nativePng;
     }
 
-    // If re-encoding an existing PNG at quality < 100 without resizing still expanded, try one tighter palette step.
     if (item.inputMime === "image/png" && !resized && cnum > 16 && bestBlob.size > item.blob.size) {
       if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
       const tighter = await encodeCanvasToPng(canvas, Math.max(16, Math.round(cnum * 0.6)));
@@ -238,7 +176,7 @@ async function compressPng(sourceBlob, targetW, targetH, item, prefs, resized, {
   // Target File Size mode for PNG:
   const targetBytes = Math.round(computeTargetMaxSizeMB(prefs) * 1024 * 1024);
 
-  // Pass 1: Try adaptive palette quantization at full target resolution first.
+  // Pass 1: Adaptive palette quantization at full resolution first.
   const palettes = [256, 160, 96, 48, 24];
   let bestBlob = null;
   let bestW = targetW;
@@ -257,7 +195,7 @@ async function compressPng(sourceBlob, targetW, targetH, item, prefs, resized, {
     }
   }
 
-  // Pass 2: Still above target size — smoothly step down dimensions while quantizing.
+  // Pass 2: Smoothly step down dimensions if still above target bytes.
   let curW = targetW;
   let curH = targetH;
   let curSize = bestBlob.size;
@@ -289,74 +227,109 @@ async function compressPng(sourceBlob, targetW, targetH, item, prefs, resized, {
   return { blob: bestBlob, width: bestW, height: bestH };
 }
 
-// ─── Mazanoke Pre-processors ─────────────────────────────────────────
+// ─── Native Canvas Lossy Compression (JPG / WebP) ────────────────────
 
-/** Decode HEIC/HEIF directly via Mazanoke's libheif-js (pure JS, MV3 CSP-safe). */
-async function decodeHeicToPng(file) {
-  const heif = await getLibheif();
-  const buffer = new Uint8Array(await file.arrayBuffer());
-  const decoder = new heif.HeifDecoder();
-  const images = decoder.decode(buffer);
-  if (!images || !images.length) {
-    throw new Error("Could not decode HEIC image");
+async function compressLossy(sourceBlob, targetW, targetH, spec, item, prefs, resized, { signal, report }) {
+  const mime = spec.intermediateMime;
+  const opaqueBg = spec.needsOpaqueBg;
+  const bgWhite = prefs.bgWhite;
+  const isLimitWeight = prefs.compressMethod === "limitWeight";
+
+  const { canvas } = await renderToCanvas(sourceBlob, targetW, targetH, { opaqueBg, bgWhite });
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  report(35);
+
+  if (!isLimitWeight) {
+    const q = Math.min(1, Math.max(0.1, prefs.quality / 100));
+    let compressed = await canvasToBlob(canvas, mime, q);
+    report(75);
+
+    // Smart bloat guard: avoid inflating already-optimized JPG/WebP images when not resizing at quality < 100.
+    if (shouldGuardSameFormatBloat(item.inputMime, mime, resized, prefs.quality) && compressed.size > item.blob.size) {
+      const probes = [Math.max(0.55, q - 0.14), Math.max(0.45, q - 0.24)];
+      for (const probeQ of probes) {
+        if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+        if (probeQ >= q - 0.02) continue;
+        const candidate = await canvasToBlob(canvas, mime, probeQ);
+        if (candidate.size < compressed.size) compressed = candidate;
+        if (compressed.size <= item.blob.size) break;
+      }
+    }
+
+    report(100);
+    return { blob: compressed, width: targetW, height: targetH };
   }
-  const image = images.find((img) => img.is_primary?.()) || images[0];
-  const width = image.get_width();
-  const height = image.get_height();
-  if (!width || !height) throw new Error("Empty HEIC image");
 
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  const imageData = ctx.createImageData(width, height);
+  // Target File Size mode: binary search quality at full target resolution first.
+  const targetBytes = Math.round(computeTargetMaxSizeMB(prefs) * 1024 * 1024);
 
-  await new Promise((resolve, reject) => {
-    image.display(imageData, (displayData) => {
-      if (!displayData) return reject(new Error("HEIC pixel decode failed"));
-      resolve(displayData);
-    });
-  });
+  let bestUnder = null;
+  let smallest = null;
 
-  ctx.putImageData(imageData, 0, 0);
-  const blob = await canvasToBlob(canvas, "image/png", 1);
-  return { blob, width, height };
-}
-
-/** Decode TIFF / DNG via Mazanoke's UTIF.js. */
-async function decodeTiffToPng(file) {
-  const UTIF = await getUtifLib();
-  const buffer = await file.arrayBuffer();
-  const ifds = UTIF.decode(buffer);
-  if (!ifds || !ifds.length) throw new Error("Could not decode TIFF image");
-  UTIF.decodeImage(buffer, ifds[0]);
-  const rgba = UTIF.toRGBA8(ifds[0]);
-  const width = ifds[0].width;
-  const height = ifds[0].height;
-  const blob = await rgbaToPngBlob(rgba, width, height);
-  return { blob, width, height };
-}
-
-/** Decode ICO via Mazanoke's icojs, selecting the highest-resolution frame. */
-async function decodeIcoToPng(file) {
-  const ICO = await getIcoLib();
-  const buffer = await file.arrayBuffer();
-  if (!ICO.isIco(buffer)) {
-    throw new Error("File is not a valid ICO image");
+  const highCandidate = await canvasToBlob(canvas, mime, 0.92);
+  smallest = highCandidate;
+  if (highCandidate.size <= targetBytes) {
+    report(100);
+    return { blob: highCandidate, width: targetW, height: targetH };
   }
-  const frames = await ICO.decodeIco(buffer, "image/png");
-  if (!frames || !frames.length) throw new Error("ICO contains no images");
-  frames.sort((a, b) => (b.width || 0) * (b.height || 0) - (a.width || 0) * (a.height || 0));
-  const best = frames[0];
-  const rawBlob = new Blob([best.buffer], { type: "image/png" });
-  const img = await loadHtmlImage(rawBlob);
-  return { blob: rawBlob, width: img.naturalWidth || best.width, height: img.naturalHeight || best.height };
+
+  let lo = 0.14;
+  let hi = 0.92;
+  for (let i = 0; i < 6; i++) {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    const mid = (lo + hi) / 2;
+    const candidate = await canvasToBlob(canvas, mime, mid);
+    if (candidate.size < smallest.size) smallest = candidate;
+    if (candidate.size <= targetBytes) {
+      bestUnder = candidate;
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+    report(42 + i * 7);
+  }
+
+  if (bestUnder) {
+    report(100);
+    return { blob: bestUnder, width: targetW, height: targetH };
+  }
+
+  // Still above target bytes at lowest quality: smoothly downscale dimensions.
+  let bestBlob = smallest;
+  let bestW = targetW;
+  let bestH = targetH;
+  let curW = targetW;
+  let curH = targetH;
+  let curSize = smallest.size;
+
+  for (let step = 0; step < 6; step++) {
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    if (Math.max(curW, curH) <= 64) break;
+    const ratio = Math.min(0.84, Math.max(0.45, Math.sqrt(targetBytes / Math.max(1, curSize)) * 0.94));
+    const nextW = Math.max(1, Math.round(curW * ratio));
+    const nextH = Math.max(1, Math.round(curH * ratio));
+    if (nextW === curW && nextH === curH) break;
+    curW = nextW;
+    curH = nextH;
+
+    const scaled = await renderToCanvas(sourceBlob, curW, curH, { opaqueBg, bgWhite });
+    const candidate = await canvasToBlob(scaled.canvas, mime, 0.72);
+    curSize = candidate.size;
+    if (candidate.size < bestBlob.size) {
+      bestBlob = candidate;
+      bestW = curW;
+      bestH = curH;
+    }
+    report(84 + step * 2.5);
+    if (candidate.size <= targetBytes) break;
+  }
+
+  report(100);
+  return { blob: bestBlob, width: bestW, height: bestH };
 }
 
-/**
- * Mazanoke SVG pre-processor: ensures explicit width & height attributes exist
- * (derived from viewBox when omitted) so canvas rasterization works reliably.
- */
+// ─── SVG normalizer & Ingestion ──────────────────────────────────────
+
 async function normalizeSvgToPng(file) {
   const text = await file.text();
   const parser = new DOMParser();
@@ -390,33 +363,17 @@ async function normalizeSvgToPng(file) {
 }
 
 /**
- * Probe and decode any supported image (including HEIC, TIFF, ICO, SVG, AVIF)
- * into a browser-safe raster source + real dimensions + preview URL.
+ * Probe and decode any browser-supported image (PNG, JPG, WebP, AVIF, GIF, SVG, BMP, ICO)
+ * into a raster source + dimensions + preview blob.
  */
 export async function ingestImageFile(file) {
   const inputMime = detectInputMime(file);
-
-  if (isHeicMime(inputMime)) {
-    const decoded = await decodeHeicToPng(file);
-    return { inputMime, width: decoded.width, height: decoded.height, rasterBlob: decoded.blob, previewBlob: decoded.blob };
-  }
-
-  if (isTiffMime(inputMime)) {
-    const decoded = await decodeTiffToPng(file);
-    return { inputMime, width: decoded.width, height: decoded.height, rasterBlob: decoded.blob, previewBlob: decoded.blob };
-  }
-
-  if (isIcoMime(inputMime)) {
-    const decoded = await decodeIcoToPng(file);
-    return { inputMime, width: decoded.width, height: decoded.height, rasterBlob: decoded.blob, previewBlob: decoded.blob };
-  }
 
   if (inputMime === "image/svg+xml") {
     const decoded = await normalizeSvgToPng(file);
     return { inputMime, width: decoded.width, height: decoded.height, rasterBlob: decoded.blob, previewBlob: decoded.blob };
   }
 
-  // Standard browser-decodable image (JPG, PNG, WebP, AVIF, GIF, BMP).
   let width = 0;
   let height = 0;
   try {
@@ -432,8 +389,13 @@ export async function ingestImageFile(file) {
 
   if (!width || !height) throw new Error("Empty or unreadable image");
 
-  // AVIF / GIF / BMP are pre-rasterized to PNG when needed by browser-image-compression.
-  const needsPreRaster = inputMime === "image/avif" || inputMime === "image/gif" || inputMime === "image/bmp";
+  // Pre-rasterize ICO / AVIF / GIF / BMP so preview & canvas operations stay fast and reliable.
+  const needsPreRaster =
+    inputMime === "image/avif" ||
+    inputMime === "image/gif" ||
+    inputMime === "image/bmp" ||
+    inputMime === "image/vnd.microsoft.icon" ||
+    inputMime === "image/x-icon";
   const rasterBlob = needsPreRaster ? await renderToCanvasBlob(file, width, height, { mime: "image/png" }) : null;
 
   return {
@@ -459,25 +421,21 @@ export async function convertImageItem(item, prefs, { signal, onProgress } = {})
   };
 
   if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-  report(5);
+  report(8);
 
   const spec = resolveOutputSpec(item.inputMime, prefs.format);
   const [targetW, targetH] = computeTargetDimensions(item.width, item.height, prefs, spec.formatId);
   const resized = targetW !== item.width || targetH !== item.height;
+  const workingBlob = item.rasterBlob || item.blob;
 
-  // Step 1: Prepare clean raster input (handles HEIC/TIFF/ICO/SVG pre-decoded
-  // blobs, exact W×H resizing, and white/black background compositing for JPG).
-  let workingBlob = item.rasterBlob || item.blob;
-
-  // Dedicated ICO pipeline (<= 256×256 lossless PNG wrapped via Mazanoke's icojs).
+  // Dedicated zero-dependency ICO pipeline (<= 256×256 PNG wrapped in standard ICO container).
   if (spec.needsIcoPostProcess) {
     const icoPng = await renderToCanvasBlob(workingBlob, targetW, targetH, { mime: "image/png" });
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     report(75);
-    const ICO = await getIcoLib();
-    const arrayBuffer = await icoPng.arrayBuffer();
-    const icoBuffer = await ICO.encodeIco([{ buffer: arrayBuffer }]);
-    const outputBlob = new Blob([icoBuffer], { type: "image/vnd.microsoft.icon" });
+    const pngBytes = new Uint8Array(await icoPng.arrayBuffer());
+    const icoBytes = encodePngToIco(pngBytes, targetW, targetH);
+    const outputBlob = new Blob([icoBytes], { type: "image/vnd.microsoft.icon" });
     report(100);
     return {
       blob: outputBlob,
@@ -488,8 +446,7 @@ export async function convertImageItem(item, prefs, { signal, onProgress } = {})
     };
   }
 
-  // Dedicated PNG pipeline via UPNG.js (adaptive palette quantization in Quality mode,
-  // lossless optimization at 100%, and resolution-preserving Target Size compression).
+  // Dedicated PNG pipeline via UPNG.js.
   if (spec.intermediateMime === "image/png") {
     report(25);
     const pngResult = await compressPng(workingBlob, targetW, targetH, item, prefs, resized, { signal, report });
@@ -502,96 +459,13 @@ export async function convertImageItem(item, prefs, { signal, onProgress } = {})
     };
   }
 
-  const needsCanvasPrep = resized || spec.needsOpaqueBg;
-  if (needsCanvasPrep) {
-    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-    const prepMime = spec.needsOpaqueBg ? "image/jpeg" : "image/png";
-    const prepQuality = spec.needsOpaqueBg ? 0.98 : undefined;
-    workingBlob = await renderToCanvasBlob(workingBlob, targetW, targetH, {
-      mime: prepMime,
-      quality: prepQuality,
-      opaqueBg: spec.needsOpaqueBg,
-      bgWhite: prefs.bgWhite,
-    });
-  }
-  report(30);
-
-  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-
-  // Step 2: Lossy compression (JPG / WebP) via Mazanoke's browser-image-compression engine.
-  const imageCompression = await getImageCompression();
-  const isLimitWeight = prefs.compressMethod === "limitWeight";
-  const maxSizeMB = isLimitWeight ? computeTargetMaxSizeMB(prefs) : Number.POSITIVE_INFINITY;
-  const initialQuality = isLimitWeight ? 0.92 : Math.min(1, Math.max(0.1, prefs.quality / 100));
-
-  // browser-image-compression expects a File or Blob; wrap as File for consistent metadata.
-  const inputFile =
-    workingBlob instanceof File
-      ? workingBlob
-      : new File([workingBlob], `${item.name || "image"}.png`, { type: workingBlob.type || "image/png" });
-
-  let compressed = await imageCompression(inputFile, {
-    maxSizeMB,
-    initialQuality,
-    maxWidthOrHeight: Math.max(targetW, targetH),
-    useWebWorker: false, // MV3 CSP-safe; runs cleanly without blob workers
-    preserveExif: false, // Privacy: always strip EXIF metadata
-    fileType: spec.intermediateMime,
-    alwaysKeepResolution: !isLimitWeight,
-    maxIteration: isLimitWeight ? 14 : 1,
-    signal,
-    onProgress: (p) => report(30 + p * 0.6),
-  });
-
-  // Smart bloat guard: when re-encoding the same lossy format without resizing at quality < 100,
-  // avoid inflating already-optimized web images while still keeping EXIF stripped.
-  if (
-    !isLimitWeight &&
-    shouldGuardSameFormatBloat(item.inputMime, spec.intermediateMime, resized, prefs.quality) &&
-    compressed.size > item.blob.size
-  ) {
-    const probes = [Math.max(0.55, initialQuality - 0.14), Math.max(0.45, initialQuality - 0.24)];
-    for (const q of probes) {
-      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-      if (q >= initialQuality - 0.02) continue;
-      const candidate = await imageCompression(inputFile, {
-        maxSizeMB: Number.POSITIVE_INFINITY,
-        initialQuality: q,
-        maxWidthOrHeight: Math.max(targetW, targetH),
-        useWebWorker: false,
-        preserveExif: false,
-        fileType: spec.intermediateMime,
-        alwaysKeepResolution: true,
-        maxIteration: 1,
-        signal,
-      });
-      if (candidate.size < compressed.size) compressed = candidate;
-      if (compressed.size <= item.blob.size) break;
-    }
-  }
-
-  // Measure actual output dimensions (limitWeight mode may downscale if needed to hit tight KB targets).
-  let finalW = targetW;
-  let finalH = targetH;
-  try {
-    const bmp = await createImageBitmap(compressed);
-    finalW = bmp.width;
-    finalH = bmp.height;
-    bmp.close();
-  } catch {
-    try {
-      const img = await loadHtmlImage(compressed);
-      finalW = img.naturalWidth || targetW;
-      finalH = img.naturalHeight || targetH;
-    } catch {}
-  }
-
-  report(100);
+  // Native Canvas JPG / WebP compression (zero dependencies, EXIF always stripped).
+  const lossyResult = await compressLossy(workingBlob, targetW, targetH, spec, item, prefs, resized, { signal, report });
   return {
-    blob: compressed,
-    width: finalW,
-    height: finalH,
+    blob: lossyResult.blob,
+    width: lossyResult.width,
+    height: lossyResult.height,
     ext: spec.ext,
-    mime: compressed.type || spec.outputMime,
+    mime: lossyResult.blob.type || spec.outputMime,
   };
 }

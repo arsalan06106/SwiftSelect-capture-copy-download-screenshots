@@ -18,25 +18,30 @@ import {
   describePngQuality,
   shouldGuardSameFormatBloat,
   isPhotoToPngExpansion,
+  encodePngToIco,
+  conversionSettingsKey,
   ICO_MAX_EDGE,
 } from "./rules.js";
 import { sanitizeDownloadFilename, extFromBlob } from "../downloadFile.js";
+import { normalizeSettings, DEFAULTS } from "../settings.js";
 
-test("detectInputMime handles standard and exotic formats even with missing MIME", () => {
-  assert.equal(detectInputMime({ name: "photo.HEIC", type: "" }), "image/heic");
-  assert.equal(detectInputMime({ name: "scan.tif", type: "application/octet-stream" }), "image/tiff");
+test("detectInputMime handles supported web formats and rejects stripped camera-raw/HEIC/TIFF", () => {
   assert.equal(detectInputMime({ name: "favicon.ico", type: "" }), "image/vnd.microsoft.icon");
   assert.equal(detectInputMime({ name: "vector.svg", type: "image/svg+xml" }), "image/svg+xml");
   assert.equal(detectInputMime({ name: "shot.jpg", type: "image/jpg" }), "image/jpeg");
-  assert.equal(isSupportedImageFile({ name: "photo.heic", type: "" }), true);
+  assert.equal(detectInputMime({ name: "hero.avif", type: "" }), "image/avif");
+  assert.equal(detectInputMime({ name: "photo.HEIC", type: "" }), "");
+  assert.equal(isSupportedImageFile({ name: "scan.tif", type: "application/octet-stream" }), false);
+  assert.equal(isSupportedImageFile({ name: "photo.webp", type: "" }), true);
+  assert.equal(isSupportedImageFile({ name: "photo.heic", type: "" }), false);
   assert.equal(isSupportedImageFile({ name: "notes.pdf", type: "application/pdf" }), false);
 });
 
 test("resolveOutputSpec handles auto fallback and ICO post-processing", () => {
-  const autoHeic = resolveOutputSpec("image/heic", "auto");
-  assert.equal(autoHeic.outputMime, "image/png");
-  assert.equal(autoHeic.ext, "png");
-  assert.equal(autoHeic.isLossy, false);
+  const autoSvg = resolveOutputSpec("image/svg+xml", "auto");
+  assert.equal(autoSvg.outputMime, "image/png");
+  assert.equal(autoSvg.ext, "png");
+  assert.equal(autoSvg.isLossy, false);
 
   const autoJpg = resolveOutputSpec("image/jpeg", "auto");
   assert.equal(autoJpg.outputMime, "image/jpeg");
@@ -48,6 +53,43 @@ test("resolveOutputSpec handles auto fallback and ICO post-processing", () => {
   assert.equal(toIco.ext, "ico");
   assert.equal(toIco.intermediateMime, "image/png");
   assert.equal(toIco.needsIcoPostProcess, true);
+});
+
+test("encodePngToIco wraps PNG bytes in a valid single-image ICO container", () => {
+  const fakePng = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
+  const ico = encodePngToIco(fakePng, 256, 128);
+  assert.equal(ico.byteLength, 22 + fakePng.byteLength);
+  const view = new DataView(ico.buffer, ico.byteOffset, ico.byteLength);
+  assert.equal(view.getUint16(0, true), 0); // reserved
+  assert.equal(view.getUint16(2, true), 1); // type = ICO
+  assert.equal(view.getUint16(4, true), 1); // 1 image
+  assert.equal(view.getUint8(6), 0); // 256 encodes as 0 per ICO spec
+  assert.equal(view.getUint8(7), 128);
+  assert.equal(view.getUint32(14, true), fakePng.byteLength);
+  assert.equal(view.getUint32(18, true), 22);
+  assert.deepEqual(Array.from(ico.subarray(22)), Array.from(fakePng));
+});
+
+test("conversionSettingsKey ignores naming/irrelevant toggles and changes on real encoding edits", () => {
+  const base = normalizePrefs({ format: "webp", quality: 82, namingMode: "template", suffix: "" });
+  const renamed = normalizePrefs({ format: "webp", quality: 82, namingMode: "original", suffix: "-opt" });
+  const bgToggled = normalizePrefs({ format: "webp", quality: 82, bgWhite: false });
+  assert.equal(conversionSettingsKey(base, "image/png"), conversionSettingsKey(renamed, "image/png"));
+  assert.equal(conversionSettingsKey(base, "image/png"), conversionSettingsKey(bgToggled, "image/png"));
+
+  const differentQuality = normalizePrefs({ format: "webp", quality: 70 });
+  assert.notEqual(conversionSettingsKey(base, "image/png"), conversionSettingsKey(differentQuality, "image/png"));
+
+  const jpgWhite = normalizePrefs({ format: "jpg", quality: 82, bgWhite: true });
+  const jpgBlack = normalizePrefs({ format: "jpg", quality: 82, bgWhite: false });
+  assert.notEqual(conversionSettingsKey(jpgWhite, "image/png"), conversionSettingsKey(jpgBlack, "image/png"));
+});
+
+test("settings autoSaveConvertedToGallery defaults to false and normalizes strictly", () => {
+  assert.equal(DEFAULTS.autoSaveConvertedToGallery, false);
+  assert.equal(normalizeSettings({}).autoSaveConvertedToGallery, false);
+  assert.equal(normalizeSettings({ autoSaveConvertedToGallery: true }).autoSaveConvertedToGallery, true);
+  assert.equal(normalizeSettings({ autoSaveConvertedToGallery: "yes" }).autoSaveConvertedToGallery, false);
 });
 
 test("computeTargetDimensions preserves aspect ratio, never upscales, and caps ICO at 256px", () => {
