@@ -993,7 +993,9 @@ export async function captureStream({
 
     if (document.documentElement?.style) document.documentElement.style.cursor = "";
     if (document.body?.style) document.body.style.cursor = "";
-    window.SwiftSelect?.ui?.cleanup?.();
+    // Keep the status pill: it is showing the progress and turns into the
+    // result below.
+    window.SwiftSelect?.ui?.cleanup?.(true);
     window.SwiftSelect?.events?.removeListeners?.();
     window.removeEventListener("keydown", onAbortKey, true);
 

@@ -106,6 +106,7 @@
               <i data-icon="info"></i>
             </button>
             <div class="cv-info-pop glass glass-dense" id="cv-info-pop" role="dialog" aria-label="About developer" aria-hidden="true">
+              <div class="dev-banner" aria-hidden="true"></div>
               <div class="dev-card-head">
                 <span class="dev-avatar-wrap">
                   <span class="dev-monogram" aria-hidden="true">MA</span>
@@ -114,8 +115,8 @@
                     id="dev-avatar"
                     src="https://avatars.githubusercontent.com/u/93029775?v=4"
                     alt="Muhammad Arsalan"
-                    width="38"
-                    height="38"
+                    width="56"
+                    height="56"
                     decoding="async"
                     referrerpolicy="no-referrer"
                   />
@@ -124,25 +125,23 @@
                   <b>Muhammad Arsalan</b>
                   <span>@arsalan06106</span>
                 </div>
+                <p class="dev-role">Designs and builds SwiftSelect</p>
               </div>
-              <div class="dev-card-sep" role="presentation"></div>
               <nav class="dev-links" aria-label="Developer profiles">
                 <a href="https://github.com/arsalan06106" target="_blank" rel="noopener noreferrer" class="dev-link" style="--i: 0">
                   <span class="dev-link-icon"><i data-icon="github"></i></span>
                   <span class="dev-link-label">GitHub</span>
-                  <span class="dev-link-ext"><i data-icon="external"></i></span>
                 </a>
                 <a href="https://www.behance.net/arsalan06106" target="_blank" rel="noopener noreferrer" class="dev-link" style="--i: 1">
                   <span class="dev-link-icon"><i data-icon="behance"></i></span>
                   <span class="dev-link-label">Behance</span>
-                  <span class="dev-link-ext"><i data-icon="external"></i></span>
                 </a>
                 <a href="https://x.com/arsalan06106" target="_blank" rel="noopener noreferrer" class="dev-link" style="--i: 2">
                   <span class="dev-link-icon"><i data-icon="x"></i></span>
                   <span class="dev-link-label">X</span>
-                  <span class="dev-link-ext"><i data-icon="external"></i></span>
                 </a>
               </nav>
+              <p class="dev-foot"><span id="dev-version">SwiftSelect</span> · Runs on your device</p>
             </div>
           </div>
 
@@ -596,7 +595,7 @@
               </section>
 
               <section class="group glass" data-tone="pink">
-                <h2 class="group-title"><span class="tile"><i data-icon="fit"></i></span>Size</h2>
+                <h2 class="group-title"><span class="tile"><i data-icon="fit"></i></span>Size &amp; output</h2>
                 <div class="row row-stack">
                   <div class="seg seg-full" role="radiogroup" aria-label="Resize" data-key="resize">
                     <button type="button" role="radio" data-value="none">Original</button>
@@ -625,11 +624,10 @@
                   </div>
                   <input class="range" id="cv-scale" type="range" min="10" max="100" step="5" value="50" aria-label="Scale" />
                 </div>
-              </section>
+              
 
-              <details class="group glass cv-output" data-tone="violet" id="cv-output">
+              <details class="cv-output" id="cv-output">
                 <summary class="cv-output-head">
-                  <span class="tile"><i data-icon="annotated"></i></span>
                   <span class="cv-output-title">
                     <b>Output</b>
                     <code id="cv-name-preview">photo - converted.jpg</code>
@@ -658,6 +656,7 @@
                   </div>
                 </div>
               </details>
+              </section>
             </aside>
           </div>
 

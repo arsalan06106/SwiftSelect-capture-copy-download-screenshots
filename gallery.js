@@ -1831,6 +1831,10 @@ function wireDevInfo() {
   const btn = $("cv-info-btn");
   const pop = $("cv-info-pop");
   if (!wrap || !btn || !pop) return;
+  try {
+    const v = $("dev-version");
+    if (v) v.textContent = `SwiftSelect v${chrome.runtime.getManifest().version}`;
+  } catch {}
   const avatar = $("dev-avatar");
   if (avatar) {
     const markLoaded = () => avatar.classList.add("is-loaded");

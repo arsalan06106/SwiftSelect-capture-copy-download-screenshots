@@ -110,7 +110,8 @@ html[data-theme="dark"] {
 }
 
 :root {
-  --glide: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Unified motion: every surface curve is a liquid spring (see --liquid). */
+  --glide: var(--liquid);
   --text: var(--c-content);
   --text-2: color-mix(in srgb, var(--c-content) 66%, transparent);
   --text-3: color-mix(in srgb, var(--c-content) 44%, transparent);
@@ -155,13 +156,20 @@ html[data-theme="dark"] {
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
   --ease: cubic-bezier(0.2, 0, 0, 1);
-  --spring: cubic-bezier(0.16, 1, 0.3, 1);
-  --bounce: cubic-bezier(0.24, 1.18, 0.36, 1);
-  --release: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: var(--liquid);
+  --bounce: var(--liquid-bounce);
+  --release: var(--liquid);
   --liquid-snap: cubic-bezier(0.32, 0.72, 0, 1);
   /* Floating layers: settle in on a long tail, leave quickly and quietly. */
-  --pop-in: cubic-bezier(0.16, 1, 0.3, 1);
+  --pop-in: var(--liquid);
   --pop-out: cubic-bezier(0.4, 0, 1, 1);
+  /* Liquid motion: springs, not curves. --liquid settles with a ~2 %
+     overshoot (surfaces, panels, popovers, sliding pills); --liquid-bounce
+     overshoots ~10 % (small things: icons, knobs, buttons appearing).
+     Both are linear() samples of a damped spring, so they read the same
+     in every browser that supports linear() and fall back to --pop-in. */
+  --liquid: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.4%, 1);
+  --liquid-bounce: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.1, 1.083 30.4%, 1.019 38.4%, 0.996 42.6%, 0.984 46.9%, 0.986 52.7%, 1.001 65.8%, 1);
 
   --r-panel: 28px;
   --r-card: 22px;
@@ -583,9 +591,9 @@ html[data-theme="dark"] .btn-primary {
 .liquid-pill.is-ready {
   opacity: 1;
   transition:
-    transform 280ms var(--liquid-snap),
-    width 280ms var(--liquid-snap),
-    height 280ms var(--liquid-snap);
+    transform 520ms var(--liquid),
+    width 520ms var(--liquid),
+    height 520ms var(--liquid);
 }
 
 .seg-check {
@@ -649,8 +657,8 @@ html[data-theme="dark"] .btn-primary {
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
     0 1px 3px rgba(0, 0, 0, 0.18);
   transition:
-    transform 240ms var(--liquid-snap),
-    width 160ms var(--liquid-snap);
+    transform 460ms var(--liquid-bounce),
+    width 260ms var(--liquid);
 }
 
 .switch:active::after {
@@ -4896,12 +4904,8 @@ html[data-theme="dark"] .group {
   transition: transform 320ms var(--bounce);
 }
 
-.group:hover .group-title .tile,
-.cv-output-head:hover .tile {
+.group:hover .group-title .tile {
   transform: rotate(-6deg) scale(1.06);
-}
-.cv-output-head .tile {
-  transition: transform 320ms var(--bounce);
 }
 
 .group,
@@ -6081,95 +6085,95 @@ html[data-theme="dark"] #cv-info-btn[aria-expanded="true"] {
   pointer-events: none;
 }
 
+/* ── About the developer ─────────────────────────────────────────────────
+   A small profile card, not a menu: a soft band in the palette's colours,
+   the avatar ringed and resting on its edge, name and handle centred, one
+   line on what he does, then three round glass buttons for the profiles.
+   It grows out of the info button on a liquid spring and the contents
+   follow in a short cascade. */
 .cv-info-pop {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
   z-index: 950;
-  width: 262px;
+  width: 288px;
   max-width: calc(100vw - 28px);
-  padding: 9px;
-  border-radius: 22px;
+  padding: 0 0 12px;
+  border-radius: 26px;
   overflow: hidden;
+  text-align: center;
   box-shadow:
     var(--reflex-panel),
-    0 18px 40px -14px rgba(20, 28, 56, 0.22);
-  transform-origin: calc(100% - 18px) 0;
+    0 22px 48px -16px rgba(20, 28, 56, 0.28);
+  transform-origin: calc(100% - 20px) 0;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateY(-4px) scale(0.96);
+  transform: translateY(-6px) scale(0.9);
   transition:
-    transform 150ms var(--pop-out),
-    opacity 130ms var(--pop-out),
-    visibility 0ms linear 150ms;
+    transform 160ms var(--pop-out),
+    opacity 140ms var(--pop-out),
+    visibility 0ms linear 160ms;
 }
-
 .cv-info-pop.is-portaled {
   position: fixed;
 }
-
 .cv-info-pop.is-open {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateY(0) scale(1);
+  transform: none;
   transition:
-    transform 300ms var(--pop-in),
-    opacity 160ms ease-out,
+    transform 560ms var(--liquid),
+    opacity 180ms ease-out,
     visibility 0ms linear 0ms;
+}
+
+.dev-banner {
+  height: 64px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 60%, transparent), transparent 70%),
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--accent-2) 55%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+  mask-image: linear-gradient(180deg, #000 55%, transparent);
 }
 
 .dev-card-head {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 11px;
-  padding: 6px 8px 10px;
-  opacity: 0;
-  transform: translateY(-3px);
-  transition:
-    opacity 120ms var(--pop-out),
-    transform 150ms var(--pop-out);
+  margin-top: -36px;
+  padding: 0 18px 14px;
 }
-
-.cv-info-pop.is-open .dev-card-head {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity 200ms ease-out 40ms,
-    transform 320ms var(--pop-in) 40ms;
-}
-
 .dev-avatar-wrap {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  flex-shrink: 0;
   overflow: hidden;
   background: linear-gradient(145deg, var(--accent), var(--accent-2));
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.38),
-    0 0 0 1px color-mix(in srgb, var(--c-content) 10%, transparent);
+    0 0 0 3px var(--c-bg),
+    0 0 0 4px color-mix(in srgb, var(--c-content) 8%, transparent),
+    0 10px 22px -8px rgba(20, 28, 56, 0.4);
 }
-
 html[data-theme="dark"] .dev-avatar-wrap {
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
-    0 0 0 1px rgba(255, 255, 255, 0.14);
+    0 0 0 3px rgb(var(--ink, 18 19 27)),
+    0 0 0 4px rgba(255, 255, 255, 0.1),
+    0 10px 22px -8px rgba(0, 0, 0, 0.7);
 }
-
 .dev-monogram {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 12.5px;
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #ffffff;
+  letter-spacing: 0.03em;
+  color: #fff;
 }
-
 .dev-avatar {
   position: relative;
   z-index: 1;
@@ -6177,150 +6181,135 @@ html[data-theme="dark"] .dev-avatar-wrap {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
   opacity: 0;
-  transition: opacity 220ms var(--glide);
+  transition: opacity 260ms ease;
 }
-
 .dev-avatar.is-loaded {
   opacity: 1;
 }
-
 .dev-ident {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
   min-width: 0;
+  max-width: 100%;
 }
-
 .dev-ident b {
-  font-size: 13.5px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.25;
+  font-size: 15.5px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .dev-ident span {
-  font-size: 11.5px;
+  font-size: 12px;
   font-family: var(--mono);
+  color: var(--text-3);
+}
+.dev-role {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
   color: var(--text-2);
-  line-height: 1.25;
 }
 
-.dev-card-sep {
-  height: 1px;
-  margin: 0 6px 6px;
-  background: color-mix(in srgb, var(--c-content) 10%, transparent);
-}
-
+/* Three round glass buttons, label beneath */
 .dev-links {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin: 0 12px;
+  padding: 12px 0 2px;
+  border-top: 1px solid var(--hairline);
 }
-
 .dev-link {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  height: 38px;
-  padding: 0 9px;
-  border-radius: 12px;
-  color: var(--text);
+  gap: 6px;
+  padding: 6px 0 4px;
+  border-radius: 16px;
+  color: var(--text-2);
   text-decoration: none;
-  opacity: 0;
-  transform: translateY(-3px);
+  transition: color 160ms ease;
+}
+.dev-link-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: var(--text);
+  background-color: var(--tint-control);
+  box-shadow: var(--reflex-control);
   transition:
-    background-color 160ms var(--glide),
-    box-shadow 160ms var(--glide),
-    opacity 120ms var(--pop-out),
-    transform 150ms var(--pop-out);
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 420ms var(--liquid);
+}
+.dev-link-icon .icon {
+  width: 18px;
+  height: 18px;
+}
+.dev-link-label {
+  font-size: 11.5px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+}
+.dev-link:hover {
+  color: var(--text);
+}
+.dev-link:hover .dev-link-icon {
+  background-color: var(--tint-hover);
+  transform: translateY(-2px) scale(1.06);
+}
+.dev-link:active .dev-link-icon {
+  transform: scale(0.92);
+  transition-duration: 90ms;
+}
+.dev-link:focus-visible {
+  outline: none;
+}
+.dev-link:focus-visible .dev-link-icon {
+  outline: 2px solid var(--c-action);
+  outline-offset: 2px;
+}
+.dev-foot {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--text-3);
 }
 
-/* Rows arrive one after another; only the entrance is staggered, so hover
-   and press always answer at once. */
-.cv-info-pop.is-open .dev-link {
+/* Contents follow the card in: head, then the buttons one by one */
+.dev-card-head,
+.dev-link,
+.dev-foot {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 120ms var(--pop-out),
+    transform 140ms var(--pop-out),
+    color 160ms ease;
+}
+.cv-info-pop.is-open .dev-card-head,
+.cv-info-pop.is-open .dev-link,
+.cv-info-pop.is-open .dev-foot {
   opacity: 1;
   transform: none;
   transition:
-    background-color 160ms var(--glide),
-    box-shadow 160ms var(--glide),
-    opacity 200ms ease-out calc(60ms + var(--i, 0) * 22ms),
-    transform 320ms var(--pop-in) calc(60ms + var(--i, 0) * 22ms);
+    opacity 220ms ease-out var(--d, 60ms),
+    transform 520ms var(--liquid) var(--d, 60ms),
+    color 160ms ease;
 }
-
-.dev-link:hover {
-  background: color-mix(in srgb, #ffffff 48%, transparent);
-  box-shadow: var(--reflex-control);
+.cv-info-pop.is-open .dev-link {
+  --d: calc(120ms + var(--i, 0) * 45ms);
 }
-
-html[data-theme="dark"] .dev-link:hover {
-  background: rgba(255, 255, 255, 0.09);
-  box-shadow: var(--reflex-control);
-}
-
-.cv-info-pop.is-open .dev-link:active {
-  transform: scale(0.98);
-  transition: transform 90ms var(--ease);
-}
-
-.dev-link-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  color: var(--text-2);
-  background: color-mix(in srgb, var(--c-content) 6%, transparent);
-  transition: color 180ms ease, background-color 180ms ease;
-}
-
-html[data-theme="dark"] .dev-link-icon {
-  background: rgba(255, 255, 255, 0.075);
-}
-
-.dev-link:hover .dev-link-icon {
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-}
-
-.dev-link-icon .icon {
-  width: 14px;
-  height: 14px;
-  stroke-width: 1.85;
-}
-
-.dev-link-label {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 550;
-  letter-spacing: -0.01em;
-}
-
-.dev-link-ext {
-  color: var(--text-3);
-  opacity: 0.6;
-  transition:
-    transform 220ms cubic-bezier(0.22, 1.2, 0.36, 1),
-    opacity 180ms ease,
-    color 180ms ease;
-}
-
-.dev-link-ext .icon {
-  width: 13px;
-  height: 13px;
-  stroke-width: 1.9;
-}
-
-.dev-link:hover .dev-link-ext {
-  opacity: 1;
-  color: var(--text);
-  transform: translate(1.5px, -1.5px);
+.cv-info-pop.is-open .dev-foot {
+  --d: 260ms;
 }
 
 .cv-credit-link .icon {
@@ -7352,8 +7341,7 @@ html[data-theme="dark"] .group:hover {
 }
 /* Section tiles follow their section */
 .group-title .tile,
-html[data-tint] .group-title .tile,
-.cv-output-head .tile {
+html[data-tint] .group-title .tile {
   color: #fff;
   background: linear-gradient(160deg, var(--g), var(--g2));
   box-shadow:
@@ -7695,8 +7683,8 @@ html[data-theme="dark"] .toast {
   pointer-events: auto;
   transform: translateY(0) scale(1);
   transition:
-    transform 300ms var(--pop-in),
-    opacity 160ms ease-out,
+    transform 540ms var(--liquid),
+    opacity 180ms ease-out,
     visibility 0ms linear 0ms;
 }
 .issues-head {
@@ -9392,31 +9380,27 @@ html[data-theme="dark"] body.popup .action-keys .kbd {
    shows what the next file will be called; open, three tight rows. The
    fold animates its real height (interpolate-size), no max-height guess. */
 .cv-side .cv-output {
-  padding: 0;
+  margin: 6px -8px -6px;
+  border-top: 1px solid var(--row-divider, var(--hairline));
   interpolate-size: allow-keywords;
 }
 .cv-output-head {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 12px 14px 12px 16px;
+  margin-top: 6px;
+  padding: 8px 10px 8px 8px;
   list-style: none;
   cursor: pointer;
-  border-radius: inherit;
+  border-radius: 12px;
   user-select: none;
+  transition: background-color 160ms ease;
+}
+.cv-output-head:hover {
+  background-color: color-mix(in srgb, var(--c-content) 5%, transparent);
 }
 .cv-output-head::-webkit-details-marker {
   display: none;
-}
-.cv-output-head .tile {
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
-  flex-shrink: 0;
-}
-.cv-output-head .tile .icon {
-  width: 15px !important;
-  height: 15px !important;
 }
 .cv-output-title {
   display: flex;
@@ -9426,7 +9410,7 @@ html[data-theme="dark"] body.popup .action-keys .kbd {
   flex: 1;
 }
 .cv-output-title b {
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -9444,7 +9428,7 @@ html[data-theme="dark"] body.popup .action-keys .kbd {
   height: 16px;
   flex-shrink: 0;
   color: var(--text-3);
-  transition: transform 260ms var(--pop-in), color 160ms ease;
+  transition: transform 460ms var(--liquid-bounce), color 160ms ease;
 }
 .cv-output-head:hover .cv-output-chev {
   color: var(--text);
@@ -9469,17 +9453,16 @@ html[data-theme="dark"] body.popup .action-keys .kbd {
   block-size: auto;
   opacity: 1;
   transition:
-    block-size 340ms var(--pop-in),
+    block-size 520ms var(--liquid),
     opacity 220ms ease-out 60ms,
-    content-visibility 340ms allow-discrete;
+    content-visibility 520ms allow-discrete;
 }
 .cv-output-body {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin: 0 12px;
-  padding: 6px 0 12px;
-  border-top: 1px solid var(--hairline);
+  margin: 0 4px;
+  padding: 4px 0 10px;
 }
 .cv-opt {
   display: flex;
@@ -9609,7 +9592,7 @@ html[data-theme="dark"] .empty-art :is(.pane-1, .pane-2) {
     0 4px 12px -4px rgba(20, 24, 50, 0.12);
   font-weight: 550;
   letter-spacing: -0.01em;
-  animation: toast-in 460ms var(--pop-in) both;
+  animation: toast-in 640ms var(--liquid) both;
 }
 html[data-theme="dark"] .toast {
   color: #f5f6fb;
@@ -9702,4 +9685,89 @@ html[data-theme="dark"] .toast button:hover {
     opacity: 0.35;
     transform: translateY(1px);
   }
+}
+
+/* ── Dark: the capture toolbar's glass, everywhere ──────────────────────
+   Dark pages wear exactly the material of the dark capture toolbar: a
+   cool ink body, a soft sheen falling from the top edge, a lit top lip
+   and specular top-left edge, a faint bounce off the bottom and an outer
+   hairline that keeps every panel crisp on the dark field. Panels rest on
+   a still canvas (no backdrop blur, see "Rendering cost"), so the ink is
+   a step more solid than the toolbar's lens; the look is the same. */
+html[data-theme="dark"] {
+  --ink: 18 19 27;
+  --glass-base: rgb(var(--ink) / 0.76);
+  --tint-panel: rgb(var(--ink) / 0.72);
+  --tint-dense: rgb(var(--ink) / 0.9);
+  --tint-control: rgba(255, 255, 255, 0.07);
+  --tint-hover: rgba(255, 255, 255, 0.13);
+  --dark-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.012) 38%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.025));
+  --reflex-panel:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.14),
+    inset -1.5px -2px 0 -1px rgba(255, 255, 255, 0.06),
+    inset 0 -8px 14px -10px rgba(255, 255, 255, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 0 0 1px rgba(0, 0, 0, 0.34),
+    0 2px 6px rgba(0, 0, 0, 0.18);
+  --reflex-control:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    inset 1px 1.5px 0 -1px rgba(255, 255, 255, 0.13),
+    inset 0 -4px 8px -6px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.26);
+}
+html[data-theme="dark"] .sidebar.glass {
+  background-image:
+    var(--dark-sheen),
+    radial-gradient(140% 260px at 0% 0%, color-mix(in srgb, var(--accent) var(--k-fpool), transparent), transparent 70%),
+    radial-gradient(120% 260px at 100% 100%, color-mix(in srgb, var(--accent-2) var(--k-fpool), transparent), transparent 72%);
+}
+html[data-theme="dark"] .topbar.glass {
+  background-image:
+    var(--dark-sheen),
+    linear-gradient(100deg, color-mix(in srgb, var(--accent) var(--k-fpool), transparent), transparent 50%, color-mix(in srgb, var(--accent-2) var(--k-fpool), transparent));
+}
+html[data-theme="dark"] :is(.bulk-bar, .lightbox-bar, .dock, .actions.glass, .recent.glass) {
+  background-image: var(--dark-sheen);
+}
+html[data-theme="dark"] :is(.group, .cv-drop, .cv-summary, .modal, .select-menu, .canvas-note, .cv-item.glass, .issues-pop, .cv-info-pop, .cv-compare, .annotate-empty) {
+  background-image:
+    var(--dark-sheen),
+    radial-gradient(130% 200px at 0% 0%, color-mix(in srgb, var(--g2) calc(var(--k-pool) + 6%), transparent), transparent 70%);
+}
+html[data-theme="dark"][data-tint="none"] :is(.group, .cv-drop, .cv-summary, .modal, .select-menu, .canvas-note, .cv-item.glass, .issues-pop, .cv-info-pop, .cv-compare, .annotate-empty, .sidebar.glass, .topbar.glass) {
+  background-image: var(--dark-sheen);
+}
+html[data-theme="dark"] .card.glass::before {
+  background-image:
+    var(--dark-sheen),
+    radial-gradient(120% 150px at 0% 0%, color-mix(in srgb, var(--g2) 15%, transparent), transparent 72%);
+}
+
+/* ── Converter on narrower windows ──────────────────────────────────────
+   Files come first at every width (you drop, then tweak), the two settings
+   cards sit side by side while there is room for both, and the summary's
+   actions wrap instead of pushing the page sideways. */
+@media (max-width: 1040px) {
+  #convert-view .cv-side {
+    order: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    align-items: start;
+    gap: 12px;
+  }
+  #convert-view .cv-summary-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 6px;
+  }
+}
+@media (max-width: 900px) {
+  #convert-view .cv-side {
+    order: 0;
+  }
+}
+#convert-view {
+  overflow-x: clip;
 }

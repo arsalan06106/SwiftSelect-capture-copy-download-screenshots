@@ -432,6 +432,7 @@ export async function ensureUi() {
     const { host, el } = makeShadowOverlay("div", "qs-status", "", false);
     statusHost = host;
     statusEl = el;
+    pinStatusHost(host);
     statusHost.style.display = "none";
     statusEl.style.display = "none";
   }
@@ -962,14 +963,143 @@ export function setSelecting(isSelecting) {
   }
 }
 
+/**
+ * The status pill's host is pinned with the same counter-shift the full-page
+ * unroll uses, so the pill stays put on screen while <html> is moved. With
+ * no unroll the variables are unset and the shift is zero.
+ */
+function pinStatusHost(host) {
+  Object.assign(host.style, {
+    inset: "auto",
+    left: "0px",
+    top: "0px",
+    width: "100vw",
+    height: "100vh",
+    transform: "translate3d(calc(-1 * var(--scroll-left, 0px)), calc(-1 * var(--scroll-top, 0px)), 0)",
+  });
+  host.style.setProperty("transition", "none", "important");
+}
+
+function ensureStatusEl() {
+  if (statusHost?.isConnected && statusEl) return;
+  if (statusHost?.parentNode) statusHost.parentNode.removeChild(statusHost);
+  const { host, el } = makeShadowOverlay("div", "qs-status");
+  statusHost = host;
+  statusEl = el;
+  pinStatusHost(host);
+}
+
+const LIQUID_EASE = "linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.1, 1.083 30.4%, 1.019 38.4%, 0.996 42.6%, 0.984 46.9%, 0.986 52.7%, 1.001 65.8%, 1)";
+
+/**
+ * One surface, new contents: the pill springs from its old width to the
+ * new one, the icon tile turns into the new one, and anything new on the
+ * right (buttons) pops in one after another.
+ */
+function morphStatus(fromWidth, fromProgress) {
+  if (!statusEl || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const toWidth = statusEl.getBoundingClientRect().width;
+  statusEl.getAnimations().forEach((a) => {
+    if (a.id === "qs-morph") a.cancel();
+  });
+  if (Math.abs(toWidth - fromWidth) > 1) {
+    const w = statusEl.animate(
+      [{ width: `${fromWidth}px` }, { width: `${toWidth}px` }],
+      { duration: 620, easing: LIQUID_EASE },
+    );
+    w.id = "qs-morph";
+  }
+  const icon = statusEl.querySelector(".qs-status-icon");
+  icon?.animate(
+    [
+      { transform: "scale(0.6) rotate(-35deg)", opacity: 0.2 },
+      { transform: "scale(1) rotate(0deg)", opacity: 1 },
+    ],
+    { duration: 560, easing: LIQUID_EASE },
+  );
+  statusEl.querySelectorAll(".qs-save-btn").forEach((b, i) => {
+    b.animate(
+      [
+        { transform: "scale(0.4)", opacity: 0 },
+        { transform: "scale(1)", opacity: 1 },
+      ],
+      { duration: 520, delay: (fromProgress ? 140 : 60) + i * 70, easing: LIQUID_EASE, fill: "backwards" },
+    );
+  });
+}
+
+// ─── Full-page capture progress, shown in the status pill itself ─────
+
+export function showProgressStatus({ title = "Capturing page", total = 0 } = {}) {
+  ensureStatusEl();
+  if (hideStatusTimer) clearTimeout(hideStatusTimer);
+  statusTimeout = 0;
+  statusEl.className = "qs-status qs-progressing";
+  statusEl.dataset.kind = "progress";
+  while (statusEl.firstChild) statusEl.removeChild(statusEl.firstChild);
+
+  const iconEl = document.createElement("div");
+  iconEl.className = "qs-status-icon";
+  iconEl.innerHTML =
+    '<svg class="qs-status-ring" viewBox="0 0 24 24" fill="none" stroke-linecap="round">' +
+    '<circle class="qs-ring-track" cx="12" cy="12" r="8.5"/><circle class="qs-ring-arc" cx="12" cy="12" r="8.5"/></svg>';
+  const text = document.createElement("span");
+  text.className = "qs-status-text";
+  const b = document.createElement("b");
+  b.textContent = title;
+  const small = document.createElement("small");
+  small.textContent = total > 1 ? `Part 1 of ${total} · Esc to stop` : "Esc to stop";
+  text.append(b, small);
+  const pct = document.createElement("span");
+  pct.className = "qs-status-pct";
+  pct.textContent = "0%";
+  const bar = document.createElement("span");
+  bar.className = "qs-status-bar";
+  bar.innerHTML = "<i></i>";
+  statusEl.append(iconEl, text, pct, bar);
+
+  applyElementTheme(statusEl, currentUserTheme);
+  statusHost.style.display = "";
+  statusEl.style.display = "flex";
+  statusEl.style.animation = "none";
+  void statusEl.offsetWidth;
+  statusEl.style.animation = "";
+  currentStatus = "progress";
+}
+
+export function updateProgressStatus(done, total) {
+  if (currentStatus !== "progress" || !statusEl) return;
+  const pctVal = total > 0 ? Math.max(0, Math.min(100, Math.round((done / total) * 100))) : 0;
+  const fill = statusEl.querySelector(".qs-status-bar > i");
+  if (fill) fill.style.transform = `scaleX(${pctVal / 100})`;
+  const pct = statusEl.querySelector(".qs-status-pct");
+  if (pct) pct.textContent = `${pctVal}%`;
+  const small = statusEl.querySelector(".qs-status-text small");
+  if (small && total > 1) small.textContent = `Part ${Math.min(done + 1, total)} of ${total} · Esc to stop`;
+  if (done >= total) stitchingProgressStatus();
+}
+
+export function stitchingProgressStatus() {
+  if (currentStatus !== "progress" || !statusEl || statusEl.classList.contains("is-stitching")) return;
+  statusEl.classList.add("is-stitching");
+  const b = statusEl.querySelector(".qs-status-text b");
+  const small = statusEl.querySelector(".qs-status-text small");
+  const pct = statusEl.querySelector(".qs-status-pct");
+  const fill = statusEl.querySelector(".qs-status-bar > i");
+  if (b) b.textContent = "Putting it together";
+  if (small) small.textContent = "Almost done";
+  if (pct) pct.textContent = "";
+  if (fill) fill.style.transform = "scaleX(1)";
+}
+
+export function isProgressStatus() {
+  return currentStatus === "progress";
+}
+
 export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, options = {}) {
   if (!msg || !msg.trim()) return;
 
-  if (!statusHost || !statusEl) {
-    const { host, el } = makeShadowOverlay("div", "qs-status");
-    statusHost = host;
-    statusEl = el;
-  }
+  ensureStatusEl();
 
   if (hideStatusTimer) clearTimeout(hideStatusTimer);
 
@@ -980,6 +1110,9 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     statusHost.style.display !== "none" &&
     !statusEl.classList.contains("qs-hiding")
   );
+
+  const fromWidth = isUpdating ? statusEl.getBoundingClientRect().width : 0;
+  const wasProgress = statusEl.classList.contains("qs-progressing");
 
   statusEl.className = "qs-status";
   statusEl.classList.remove("qs-hiding");
@@ -1129,36 +1262,26 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
   currentStatus = type;
   statusTimeout = timeout;
   wireStatusHoverPause();
-
   if (!isUpdating && !noAnim) {
     statusEl.style.animation = "none";
     void statusEl.offsetWidth;
     statusEl.style.animation = "";
   }
 
+  // An update keeps the pill and changes what is in it: stale motion is
+  // dropped, the new text rises in, and the pill morphs to its new shape.
   if (isUpdating) {
-    statusEl.getAnimations().forEach(anim => { if (!anim.animationName) anim.cancel(); });
-    const textSpan = statusEl.querySelector('span');
-    if (textSpan) {
-      textSpan.animate([
-        { opacity: 0, transform: "scale(0.94)" },
-        { opacity: 1, transform: "scale(1)" }
-      ], {
-        duration: 180,
-        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-      });
-    }
-
-    const icon = statusEl.querySelector('.qs-status-icon');
-    if (icon) {
-      icon.animate([
-        { opacity: 0, transform: "scale(0.88)" },
-        { opacity: 1, transform: "scale(1)" }
-      ], {
-        duration: 180,
-        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-      });
-    }
+    statusEl.getAnimations().forEach((anim) => {
+      if (!anim.animationName) anim.cancel();
+    });
+    statusEl.querySelector(".qs-status-text")?.animate(
+      [
+        { opacity: 0, transform: "translateY(6px)" },
+        { opacity: 1, transform: "none" },
+      ],
+      { duration: 320, delay: 60, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "backwards" },
+    );
+    if (fromWidth) morphStatus(fromWidth, wasProgress);
   }
 
   armStatusHide(timeout);
@@ -1187,19 +1310,14 @@ function makePdfButton(sourceBlob, pdfType) {
   btn.className = "qs-save-btn qs-status-pdf-btn";
   btn.setAttribute("aria-label", "Save as PDF");
   attachTooltip(btn, "Save as PDF", "Paged A4, breaks between lines", "", 450, statusEl.getRootNode());
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "2");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
-  svg.innerHTML =
-    '<path class="pdf-sheet" d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5"/>' +
-    '<path class="pdf-spin" d="M12 9.5a3.5 3.5 0 1 0 3.5 3.5"/><path class="pdf-check" d="M9.2 14l2 2 3.6-4"/>';
-  const label = document.createElement("span");
-  label.textContent = "PDF";
-  btn.append(svg, label);
+  const STROKE = 'fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"';
+  btn.innerHTML =
+    `<svg viewBox="0 0 24 24" ${STROKE}>` +
+    '<path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5"/>' +
+    '<path d="M8.8 12.6h6.4M8.8 16h4.2"/></svg>' +
+    `<span class="pdf-state pdf-busy"><svg viewBox="0 0 24 24" ${STROKE}><path d="M12 4.5a7.5 7.5 0 1 1-7.5 7.5" stroke-width="2.2"/></svg></span>` +
+    `<span class="pdf-state pdf-done"><svg viewBox="0 0 24 24" ${STROKE}><path d="M6 12.5l4 4 8-8.5" stroke-width="2.4"/></svg></span>` +
+    `<span class="pdf-state pdf-failed"><svg viewBox="0 0 24 24" ${STROKE}><path d="M12 7v6.5M12 17v.01" stroke-width="2.4"/></svg></span>`;
 
   btn.onclick = async () => {
     if (btn.classList.contains("is-busy") || btn.classList.contains("is-done")) return;
@@ -1207,27 +1325,22 @@ function makePdfButton(sourceBlob, pdfType) {
     statusBusy = true;
     if (hideStatusTimer) clearTimeout(hideStatusTimer);
     btn.classList.add("is-busy");
-    label.textContent = "Making…";
+    btn.setAttribute("aria-label", "Making PDF");
     try {
-      const pdf = await imageToPdf(sourceBlob, {
-        title: document.title || "Screenshot",
-        onProgress: (done, total) => {
-          if (total > 1) label.textContent = `${done}/${total}`;
-        },
-      });
+      const pdf = await imageToPdf(sourceBlob, { title: document.title || "Screenshot" });
       const ok = await downloadBlob(pdf, getSmartFilename(pdfType, "pdf"));
       btn.classList.remove("is-busy");
       if (ok === false) throw new Error("Download blocked");
       btn.classList.add("is-done");
-      label.textContent = "Saved";
+      btn.setAttribute("aria-label", "PDF saved");
     } catch (e) {
       console.warn("SwiftSelect: PDF export failed:", e?.message || e);
       btn.classList.remove("is-busy");
       btn.classList.add("is-failed");
-      label.textContent = "Failed";
+      btn.setAttribute("aria-label", "PDF failed, try again");
       setTimeout(() => {
         btn.classList.remove("is-failed");
-        label.textContent = "PDF";
+        btn.setAttribute("aria-label", "Save as PDF");
       }, 2200);
     } finally {
       statusBusy = false;
