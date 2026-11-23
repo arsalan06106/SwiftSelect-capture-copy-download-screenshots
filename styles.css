@@ -1272,30 +1272,21 @@
   color: #161826 !important;
 }
 
-/* Dark Theme Liquid Glass Tooltip — crystal Fresnel glass, zero heavy drop shadow */
+/* Dark Theme Liquid Glass Tooltip */
 .qs-theme-glass-dark.qs-custom-tooltip,
 .qs-theme-glass-dark .qs-custom-tooltip,
 .qs-theme-dark .qs-custom-tooltip,
 .qs-theme-dark.qs-guide .qs-custom-tooltip {
-  color: #f3f5fc !important;
-  background-color: rgba(24, 29, 46, 0.38) !important;
-  background-image: linear-gradient(
-    152deg,
-    rgba(255, 255, 255, 0.16) 0%,
-    rgba(255, 255, 255, 0.03) 34%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0.06) 100%
-  ) !important;
-  border: none !important;
-  backdrop-filter: blur(28px) saturate(205%) brightness(1.18) contrast(1.03) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(205%) brightness(1.18) contrast(1.03) !important;
+  color: #f0f0f2 !important;
+  background: rgba(24, 24, 28, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.26),
-    inset 1.5px 2px 0px -1px rgba(255, 255, 255, 0.3),
-    inset -1.5px -1.5px 0px -1px rgba(255, 255, 255, 0.14),
-    inset 0 10px 20px -14px rgba(255, 255, 255, 0.1),
-    0 4px 14px -4px rgba(0, 0, 0, 0.22) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 24px 48px -6px rgba(0, 0, 0, 0.65),
+    0 12px 24px -6px rgba(0, 0, 0, 0.45) !important;
 }
 
 .qs-theme-dark .qs-tooltip-key,
@@ -4606,42 +4597,14 @@
   color: #fff !important;
 }
 
-/* Full-size 76px Liquid Glass status toast — true 10-layer optical refraction, zero colored outer glow */
+/* Status message at its original, roomier size (76 px), with every part
+   scaled to match: 46 px tile and buttons, 16 px text, even insets. */
 .qs-status.qs-theme-glass[data-kind] {
   height: auto !important;
   min-height: 76px !important;
-  padding: 12px 26px 12px 15px !important;
+  padding: 0 28px 0 15px !important;
   gap: 14px !important;
-  border-radius: 999px !important;
   font-size: 16px !important;
-  font-weight: 560 !important;
-  letter-spacing: -0.01em !important;
-  color: #161725 !important;
-  background-color: color-mix(in srgb, var(--qs-tone-a) 15%, rgba(255, 255, 255, 0.56)) !important;
-  background-image:
-    linear-gradient(
-      148deg,
-      rgba(255, 255, 255, 0.56) 0%,
-      rgba(255, 255, 255, 0.08) 36%,
-      rgba(255, 255, 255, 0) 64%,
-      rgba(255, 255, 255, 0.22) 100%
-    ),
-    linear-gradient(105deg, color-mix(in srgb, var(--qs-tone-a) 20%, transparent), transparent 62%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(210%) !important;
-  backdrop-filter: blur(28px) saturate(210%) !important;
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 14%), transparent),
-    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 92%), transparent),
-    inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 82%), transparent),
-    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent),
-    inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent),
-    inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent),
-    inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent),
-    inset 2px -6.5px 1px -4px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent),
-    0 10px 26px -12px rgba(15, 23, 42, 0.16) !important;
-  transition:
-    opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 360ms cubic-bezier(0.32, 0.72, 0, 1) !important;
 }
 
 .qs-status.qs-theme-glass[data-kind]:has(.qs-save-btn) {
@@ -4725,10 +4688,13 @@
 }
 
 /* =========================================
-   12. SWIFTSELECT · TRUE OPTICAL DARK LIQUID GLASS (ZERO DROP-SHADOW CRUTCH)
+   12. SWIFTSELECT 2.3 · DARK GLASS, REBUILT
    =========================================
-   Defined purely by crystal translucency, high-saturation optical refraction,
-   and Fresnel specular edge light — zero muddy black drop-shadow halos. */
+   Dark glass used to be a thin smoke tint, so it only looked dark on dark
+   pages; over a white page it turned to grey fog. It now carries its own
+   body: a deep, nearly opaque ink with the same blue → violet → pink wash
+   as light glass, a single lit top edge instead of bright double rims, and
+   an outer hairline so it stays crisp on black pages too. */
 
 .qs-guide.qs-theme-glass-dark,
 .qs-status.qs-theme-glass-dark,
@@ -4737,68 +4703,57 @@
 .qs-annotate-toolbar.qs-theme-glass-dark,
 .qs-crop-controls.qs-theme-glass-dark,
 .qs-stroke-popover.qs-theme-glass-dark,
-.qs-dl-popover.qs-theme-glass-dark,
 .qs-custom-tooltip.qs-theme-glass-dark {
-  --glass-reflex-light: 0.38 !important;
-  --glass-reflex-dark: 0.5 !important;
-  --qs-ink: 24 29 46;
+  --glass-reflex-light: 0.32 !important;
+  --glass-reflex-dark: 1.6 !important;
+  --qs-ink: 17 19 27;
   --qs-dark-edge:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.26),
-    inset 1.5px 2px 0px -1px rgba(255, 255, 255, 0.3),
-    inset -1.5px -1.5px 0px -1px rgba(255, 255, 255, 0.14),
-    inset 0 14px 28px -18px rgba(255, 255, 255, 0.09),
-    inset 0 -10px 20px -16px rgba(255, 255, 255, 0.05),
-    0 4px 16px -6px rgba(0, 0, 0, 0.24);
-  --qs-dark-wash:
-    linear-gradient(
-      152deg,
-      rgba(255, 255, 255, 0.16) 0%,
-      rgba(255, 255, 255, 0.03) 28%,
-      rgba(255, 255, 255, 0) 56%,
-      rgba(255, 255, 255, 0.065) 100%
-    ),
-    linear-gradient(
-      118deg,
-      rgba(91, 155, 255, 0.1),
-      rgba(177, 138, 255, 0.055) 48%,
-      rgba(255, 134, 186, 0.075)
-    );
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.09),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(0, 0, 0, 0.38),
+    0 2px 6px rgba(0, 0, 0, 0.22),
+    0 16px 36px -12px rgba(0, 0, 0, 0.55);
+  --qs-dark-wash: linear-gradient(
+    115deg,
+    rgba(91, 155, 255, 0.2),
+    rgba(177, 138, 255, 0.12) 46%,
+    rgba(255, 134, 186, 0.16)
+  );
 }
 
 /* Capture toolbar shell */
 .qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark > .qs-glass-surface {
-  background-color: rgb(var(--qs-ink) / 0.34);
+  background-color: rgb(var(--qs-ink) / 0.84);
   background-image: var(--qs-dark-wash);
-  -webkit-backdrop-filter: blur(28px) saturate(205%) brightness(1.18) contrast(1.03);
-  backdrop-filter: blur(28px) saturate(205%) brightness(1.18) contrast(1.03);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
   box-shadow: var(--qs-dark-edge);
 }
 
-/* Its pills: crystal dark glass droplets (zero drop shadow) */
+/* Its pills: lighter than the shell, never darker, so they read as raised */
 .qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle) {
   color: #f5f6fb !important;
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.085) !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.24),
-    inset -1px -1px 0px -0.8px rgba(255, 255, 255, 0.12) !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 1px 2px rgba(0, 0, 0, 0.28) !important;
 }
 
 .qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle):hover {
-  background-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(255, 255, 255, 0.16) !important;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.36),
-    inset -1px -1px 0px -0.8px rgba(255, 255, 255, 0.16) !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.26),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 6px 14px -6px rgba(0, 0, 0, 0.6) !important;
 }
 
 .qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle):active {
   background-color: rgba(255, 255, 255, 0.06) !important;
-  transform: scale(0.96) !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.28) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* The colour tiles keep full strength on dark glass */
@@ -4815,51 +4770,39 @@
 .qs-theme-glass.qs-theme-glass-dark:is(.qs-hud, .qs-key-guide),
 .qs-custom-tooltip.qs-theme-glass-dark {
   color: #f5f6fb !important;
-  background-color: rgb(var(--qs-ink) / 0.34) !important;
+  background-color: rgb(var(--qs-ink) / 0.86) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  box-shadow: var(--qs-dark-edge) !important;
+}
+
+.qs-annotate-toolbar.qs-theme-glass-dark,
+.qs-crop-controls.qs-theme-glass-dark {
   background-image: var(--qs-dark-wash) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(205%) brightness(1.18) contrast(1.03) !important;
-  backdrop-filter: blur(28px) saturate(205%) brightness(1.18) contrast(1.03) !important;
-  box-shadow: var(--qs-dark-edge) !important;
 }
 
-/* Dark full-size 76px Liquid Glass status toast — crystal Fresnel rim, zero drop-shadow mud */
+/* Status message: the outcome colour over the same ink */
 .qs-status.qs-theme-glass.qs-theme-glass-dark[data-kind] {
-  color: #f4f6fc !important;
-  background-color: color-mix(in srgb, var(--qs-tone-a) 12%, rgba(24, 29, 46, 0.36)) !important;
-  background-image:
-    linear-gradient(
-      152deg,
-      rgba(255, 255, 255, 0.16) 0%,
-      rgba(255, 255, 255, 0.035) 30%,
-      rgba(255, 255, 255, 0) 58%,
-      rgba(255, 255, 255, 0.07) 100%
-    ),
-    linear-gradient(105deg, color-mix(in srgb, var(--qs-tone-a) 16%, transparent), transparent 58%) !important;
-  -webkit-backdrop-filter: blur(30px) saturate(210%) brightness(1.18) contrast(1.03) !important;
-  backdrop-filter: blur(30px) saturate(210%) brightness(1.18) contrast(1.03) !important;
-  box-shadow: var(--qs-dark-edge) !important;
-}
-
-.qs-status.qs-theme-glass.qs-theme-glass-dark[data-kind] .qs-status-icon {
-  background: linear-gradient(160deg, var(--qs-tone-a), var(--qs-tone-b)) !important;
+  color: #fff !important;
+  background-color: color-mix(in srgb, var(--qs-tone-a) 15%, rgb(var(--qs-ink) / 0.88)) !important;
+  background-image: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--qs-tone-a) 30%, transparent),
+    transparent 62%
+  ) !important;
   box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.16) !important;
-}
-
-.qs-status.qs-theme-glass.qs-theme-glass-dark[data-kind] .qs-status-icon svg.qs-status-glyph {
-  stroke: #ffffff !important;
-  color: #ffffff !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+    inset 0 0 0 1px color-mix(in srgb, var(--qs-tone-a) 26%, rgba(255, 255, 255, 0.08)),
+    0 0 0 1px rgba(0, 0, 0, 0.38),
+    0 16px 36px -12px color-mix(in srgb, var(--qs-tone-b) 45%, rgba(0, 0, 0, 0.6)) !important;
 }
 
 .qs-status.qs-theme-glass.qs-theme-glass-dark[data-kind] .qs-save-btn {
-  color: #f4f6fc !important;
+  color: #fff !important;
   background-color: rgba(255, 255, 255, 0.1) !important;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.09),
-    inset 1.8px 1.5px 0px -1.2px rgba(255, 255, 255, 0.36),
-    inset -1.5px -1.2px 0px -1.2px rgba(255, 255, 255, 0.2),
-    0 3px 8px rgba(0, 0, 0, 0.3) !important;
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07) !important;
 }
 
 /* ==========================================================================
@@ -5557,7 +5500,7 @@
   border-color: var(--tbe) !important;
 }
 
-/* Dark: smoked obsidian liquid glass with palette refraction */
+/* Dark: the same look over ink */
 .qs-guide.qs-theme-glass-dark,
 .qs-status.qs-theme-glass-dark,
 .qs-hud.qs-theme-glass-dark,
@@ -5565,23 +5508,14 @@
 .qs-annotate-toolbar.qs-theme-glass-dark,
 .qs-crop-controls.qs-theme-glass-dark,
 .qs-stroke-popover.qs-theme-glass-dark,
-.qs-dl-popover.qs-theme-glass-dark,
 .qs-custom-tooltip.qs-theme-glass-dark {
-  --qs-ink: 14 16 24;
-  --qs-dark-wash:
-    linear-gradient(
-      155deg,
-      rgba(255, 255, 255, 0.13) 0%,
-      rgba(255, 255, 255, 0.03) 26%,
-      rgba(255, 255, 255, 0) 56%,
-      rgba(255, 255, 255, 0.035) 100%
-    ),
-    linear-gradient(
-      118deg,
-      color-mix(in srgb, var(--tb1) 72%, transparent),
-      color-mix(in srgb, var(--tb2) 52%, transparent) 48%,
-      color-mix(in srgb, var(--tb3) 72%, transparent)
-    );
+  --qs-ink: 20 21 29;
+  --qs-dark-wash: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--tb1) 80%, transparent),
+    color-mix(in srgb, var(--tb2) 70%, transparent) 48%,
+    color-mix(in srgb, var(--tb3) 80%, transparent)
+  );
 }
 .qs-stroke-popover.qs-theme-glass-dark,
 .qs-custom-tooltip.qs-theme-glass-dark,
@@ -6252,7 +6186,7 @@
   backdrop-filter: blur(26px) saturate(190%) !important;
 }
 .qs-status.qs-theme-glass:not(.qs-theme-glass-dark)[data-kind] {
-  background-color: color-mix(in srgb, var(--qs-tone-a) 15%, rgba(255, 255, 255, 0.56)) !important;
+  background-color: color-mix(in srgb, var(--qs-tone-a) 16%, rgba(252, 252, 255, 0.76)) !important;
 }
 
 /* ── Panel tokens: text that holds on any page ─────────────────────────── */
@@ -6691,16 +6625,16 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translateX(-50%) translateY(-6px) scale(0.96);
+  transform: translateX(-50%) translateY(-4px) scale(0.96);
   border-radius: 18px;
   transition:
-    transform 190ms cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 160ms cubic-bezier(0.4, 0, 0.2, 1),
-    visibility 0ms linear 190ms;
+    transform 150ms cubic-bezier(0.4, 0, 1, 1),
+    opacity 130ms cubic-bezier(0.4, 0, 1, 1),
+    visibility 0ms linear 150ms;
 }
 
 .qs-stroke-popover.qs-pop-up {
-  transform: translateX(-50%) translateY(6px) scale(0.96);
+  transform: translateX(-50%) translateY(4px) scale(0.96);
 }
 
 .qs-stroke-popover.is-open {
@@ -6709,8 +6643,8 @@
   pointer-events: auto;
   transform: translateX(-50%) translateY(0) scale(1);
   transition:
-    transform 280ms cubic-bezier(0.22, 1.12, 0.36, 1),
-    opacity 190ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 160ms ease-out,
     visibility 0ms linear 0ms;
 }
 
@@ -6932,7 +6866,7 @@
   --tba1: #5b9bff;
   --tba2: #2f5ef0;
   border-radius: 22px;
-  background-color: rgba(255, 255, 255, 0.56);
+  background-color: rgba(255, 255, 255, 0.8);
   background-image:
     linear-gradient(
       148deg,
@@ -6953,17 +6887,18 @@
     inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.16),
     inset 0px 3px 4px -2px rgba(0, 0, 0, 0.15),
     inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.08),
-    0 12px 30px -12px rgba(15, 23, 42, 0.16);
-  transform: translateX(-50%) translateY(-6px) scale(0.94);
+    0 18px 44px -12px rgba(15, 23, 42, 0.3),
+    0 4px 12px rgba(15, 23, 42, 0.08);
+  transform: translateX(-50%) translateY(-4px) scale(0.96);
   transform-origin: 50% 0;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   user-select: none;
   transition:
-    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
-    opacity 160ms cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0ms linear 220ms;
+    transform 150ms cubic-bezier(0.4, 0, 1, 1),
+    opacity 130ms cubic-bezier(0.4, 0, 1, 1),
+    visibility 0ms linear 150ms;
 }
 
 .qs-dl-popover,
@@ -6974,7 +6909,7 @@
 
 .qs-dl-popover.qs-pop-up {
   transform-origin: 50% 100%;
-  transform: translateX(-50%) translateY(6px) scale(0.94);
+  transform: translateX(-50%) translateY(4px) scale(0.96);
 }
 
 .qs-dl-popover.is-open {
@@ -6983,36 +6918,33 @@
   pointer-events: auto;
   transform: translateX(-50%) translateY(0) scale(1);
   transition:
-    transform 340ms cubic-bezier(0.32, 0.72, 0, 1),
-    opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 160ms ease-out,
     visibility 0ms linear 0ms;
 }
 
-/* Dark Liquid Glass Format Popover: crystal Fresnel glass, zero heavy drop shadow */
+/* Dark format picker: the same deep ink as the editor toolbar it drops from */
 .qs-dl-popover.qs-theme-glass-dark {
-  --c-content: #f4f6fc;
-  --c-bg: #181d2e;
-  color: #f4f6fc;
-  background-color: rgba(24, 29, 46, 0.38);
-  background-image:
-    linear-gradient(
-      152deg,
-      rgba(255, 255, 255, 0.16) 0%,
-      rgba(255, 255, 255, 0.035) 28%,
-      rgba(255, 255, 255, 0) 56%,
-      rgba(255, 255, 255, 0.07) 100%
-    ),
-    radial-gradient(125% 155px at 0% 0%, color-mix(in srgb, var(--tb1) 65%, transparent), transparent 68%);
-  backdrop-filter: blur(32px) saturate(210%) brightness(1.18) contrast(1.03);
-  -webkit-backdrop-filter: blur(32px) saturate(210%) brightness(1.18) contrast(1.03);
+  --c-content: #f0f2f8;
+  --c-bg: #181920;
+  --glass-reflex-dark: 2;
+  --glass-reflex-light: 0.3;
+  color: #f0f2f8;
+  background-color: rgba(20, 21, 29, 0.88);
+  background-image: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--tb1) 70%, transparent),
+    color-mix(in srgb, var(--tb2) 55%, transparent) 48%,
+    color-mix(in srgb, var(--tb3) 70%, transparent)
+  );
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.26),
-    inset 1.5px 2px 0px -1px rgba(255, 255, 255, 0.3),
-    inset -1.5px -1.5px 0px -1px rgba(255, 255, 255, 0.14),
-    inset 0 14px 28px -18px rgba(255, 255, 255, 0.09),
-    inset 0 -10px 20px -16px rgba(255, 255, 255, 0.05),
-    0 6px 20px -8px rgba(0, 0, 0, 0.26);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.38),
+    0 22px 48px -12px rgba(0, 0, 0, 0.65),
+    0 4px 14px rgba(0, 0, 0, 0.32);
 }
 
 .qs-dl-head {
@@ -7061,28 +6993,28 @@
   text-align: left;
   cursor: pointer;
   opacity: 0;
-  transform: translateY(-4px);
-  filter: blur(4px);
+  transform: translateY(-3px);
   transition:
-    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 300ms cubic-bezier(0.32, 0.72, 0, 1),
-    opacity 200ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 240ms cubic-bezier(0.22, 1, 0.36, 1);
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 120ms cubic-bezier(0.4, 0, 1, 1),
+    transform 150ms cubic-bezier(0.4, 0, 1, 1);
 }
 
+/* Rows arrive one after another; only the entrance is staggered, so hover
+   and press always answer at once. */
 .qs-dl-popover.is-open .qs-dl-opt {
   opacity: 1;
-  transform: translateY(0);
-  filter: none;
-  transition-delay: calc(var(--i, 0) * 26ms);
+  transform: none;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 200ms ease-out calc(50ms + var(--i, 0) * 22ms),
+    transform 320ms cubic-bezier(0.16, 1, 0.3, 1) calc(50ms + var(--i, 0) * 22ms);
 }
 
-.qs-dl-popover.is-open .qs-dl-opt:hover,
-.qs-dl-popover.is-open .qs-dl-opt:active,
-.qs-dl-popover.is-open .qs-dl-opt.is-converting,
-.qs-dl-popover.is-open .qs-dl-opt.is-done {
-  transition-delay: 0ms;
+.qs-dl-popover.is-open .qs-dl-opt:disabled {
+  opacity: 0.42;
 }
 
 .qs-dl-opt:hover:not(:disabled) {
@@ -7090,7 +7022,6 @@
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.84);
-  transform: translateX(2px);
 }
 
 .qs-dl-popover.qs-theme-glass-dark .qs-dl-opt:hover:not(:disabled) {
@@ -7098,12 +7029,11 @@
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.26);
-  transform: translateX(2px);
 }
 
-.qs-dl-opt:active:not(:disabled) {
-  transform: scale(0.97);
-  transition-duration: 90ms;
+.qs-dl-popover.is-open .qs-dl-opt:active:not(:disabled) {
+  transform: scale(0.98);
+  transition: transform 90ms ease-out;
 }
 
 .qs-dl-opt:disabled {
@@ -7221,7 +7151,6 @@
 
 .qs-dl-opt:hover .qs-dl-status {
   color: var(--c-content);
-  transform: translateY(1px);
 }
 
 .qs-dl-opt.is-converting .qs-dl-status {
@@ -7307,3 +7236,148 @@
   }
 }
 
+
+/* ==========================================================================
+   DARK LIQUID GLASS
+   Two earlier attempts each lost half of the idea. A thin smoke tint stayed
+   glass but turned to grey fog on white pages; a near-opaque ink stayed dark
+   but went flat and stopped feeling like the rest of SwiftSelect.
+
+   Here the darkness comes from the lens, not the paint: the backdrop is
+   blurred, saturated and dimmed to half brightness *inside* the glass, and
+   only a moderate ink body sits on top. A white page therefore lands at the
+   same deep tone as the old ink (≈ #3d3e44 before the wash), a black page
+   stays black, and anything colourful underneath still refracts through as
+   a deep, saturated glow. The rims are the light toolbar's reflex recipe,
+   rescaled for dark: a lit top lip, a specular top-left edge, a faint
+   bounce off the bottom and an outer hairline so it never melts into a
+   dark page.
+   ========================================================================== */
+
+.qs-guide.qs-theme-glass-dark,
+.qs-status.qs-theme-glass-dark,
+.qs-hud.qs-theme-glass-dark,
+.qs-key-guide.qs-theme-glass-dark,
+.qs-annotate-toolbar.qs-theme-glass-dark,
+.qs-crop-controls.qs-theme-glass-dark,
+.qs-stroke-popover.qs-theme-glass-dark,
+.qs-custom-tooltip.qs-theme-glass-dark,
+.qs-dl-popover.qs-theme-glass-dark {
+  --qs-ink: 18 19 27;
+  --qs-dark-lens: blur(24px) saturate(185%) brightness(0.5);
+  --qs-dark-sheen: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.075),
+    rgba(255, 255, 255, 0.015) 42%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.03)
+  );
+  --qs-dark-edge:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+    inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.16),
+    inset -1.5px -2px 0 -1px rgba(255, 255, 255, 0.07),
+    inset 0 -8px 14px -10px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.075),
+    0 0 0 1px rgba(0, 0, 0, 0.34),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    0 16px 36px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Bars: capture toolbar, editor toolbar, crop bar, size readout, key guide */
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark > .qs-glass-surface {
+  background-color: rgb(var(--qs-ink) / 0.6);
+  background-image: var(--qs-dark-sheen), var(--qs-dark-wash);
+  -webkit-backdrop-filter: var(--qs-dark-lens);
+  backdrop-filter: var(--qs-dark-lens);
+  box-shadow: var(--qs-dark-edge);
+}
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark.qs-grow > .qs-glass-surface {
+  background-color: rgb(var(--qs-ink) / 0.74);
+}
+.qs-annotate-toolbar.qs-theme-glass-dark,
+.qs-crop-controls.qs-theme-glass-dark,
+.qs-theme-glass.qs-theme-glass-dark:is(.qs-hud, .qs-key-guide) {
+  background-color: rgb(var(--qs-ink) / 0.62) !important;
+  background-image: var(--qs-dark-sheen), var(--qs-dark-wash) !important;
+  -webkit-backdrop-filter: var(--qs-dark-lens) !important;
+  backdrop-filter: var(--qs-dark-lens) !important;
+  box-shadow: var(--qs-dark-edge) !important;
+}
+
+/* Layers that carry reading text sit a step more solid */
+.qs-stroke-popover.qs-theme-glass-dark,
+.qs-custom-tooltip.qs-theme-glass-dark {
+  background-color: rgb(var(--qs-ink) / 0.8) !important;
+  background-image: var(--qs-dark-sheen), var(--qs-dark-wash) !important;
+  -webkit-backdrop-filter: var(--qs-dark-lens) !important;
+  backdrop-filter: var(--qs-dark-lens) !important;
+  box-shadow: var(--qs-dark-edge) !important;
+}
+.qs-dl-popover.qs-theme-glass-dark {
+  --qs-dark-wash: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--tb1) 80%, transparent),
+    color-mix(in srgb, var(--tb2) 70%, transparent) 48%,
+    color-mix(in srgb, var(--tb3) 80%, transparent)
+  );
+  background-color: rgb(var(--qs-ink) / 0.8);
+  background-image: var(--qs-dark-sheen), var(--qs-dark-wash);
+  -webkit-backdrop-filter: var(--qs-dark-lens);
+  backdrop-filter: var(--qs-dark-lens);
+  box-shadow: var(--qs-dark-edge);
+}
+
+/* Status message: the outcome colour tints the lens */
+.qs-status.qs-theme-glass.qs-theme-glass-dark[data-kind] {
+  background-color: color-mix(in srgb, var(--qs-tone-a) 14%, rgb(var(--qs-ink) / 0.66)) !important;
+  background-image:
+    var(--qs-dark-sheen),
+    linear-gradient(105deg, color-mix(in srgb, var(--qs-tone-a) 26%, transparent), transparent 62%) !important;
+  -webkit-backdrop-filter: var(--qs-dark-lens) !important;
+  backdrop-filter: var(--qs-dark-lens) !important;
+  box-shadow:
+    var(--qs-dark-edge),
+    inset 0 0 0 1px color-mix(in srgb, var(--qs-tone-a) 22%, transparent) !important;
+}
+
+/* Pills: small droplets of the same glass, lit from above */
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle) {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 70%) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.17),
+    inset 1px 1.5px 0 -1px rgba(255, 255, 255, 0.14),
+    inset 0 -4px 8px -6px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.065),
+    0 1px 2px rgba(0, 0, 0, 0.26) !important;
+}
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle):hover {
+  background-color: rgba(255, 255, 255, 0.13) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.26),
+    inset 1px 1.5px 0 -1px rgba(255, 255, 255, 0.2),
+    inset 0 -4px 8px -6px rgba(255, 255, 255, 0.09),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 6px 14px -6px rgba(0, 0, 0, 0.55) !important;
+}
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark .qs-guide-buttons .qs-guide-btn:not(.qs-theme-toggle):active {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+}
+
+/* No see-through for people who asked for less of it */
+@media (prefers-reduced-transparency: reduce) {
+  .qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark > .qs-glass-surface,
+  .qs-dl-popover.qs-theme-glass-dark {
+    background-color: rgb(var(--qs-ink) / 0.96);
+  }
+  .qs-annotate-toolbar.qs-theme-glass-dark,
+  .qs-crop-controls.qs-theme-glass-dark,
+  .qs-theme-glass.qs-theme-glass-dark:is(.qs-hud, .qs-key-guide),
+  .qs-stroke-popover.qs-theme-glass-dark,
+  .qs-custom-tooltip.qs-theme-glass-dark {
+    background-color: rgb(var(--qs-ink) / 0.96) !important;
+  }
+}

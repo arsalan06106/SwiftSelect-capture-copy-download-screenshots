@@ -121,19 +121,18 @@ export function mountPill(container, activeSelector) {
     if (ready && prevX !== null && prevY !== null && !reducedMotion()) {
       const dx = Math.abs(x - prevX);
       const dy = Math.abs(y - prevY);
+      // A short hop stretches the pill a touch along its path, like a drop
+      // being pulled; a long one barely more. Never squashes, never flashes.
       if ((dx > 4 || dy > 4) && typeof pill.animate === "function") {
         const horiz = dx >= dy;
-        const sx = horiz ? 1.045 : 0.965;
-        const sy = horiz ? 0.94 : 1.06;
+        const pull = Math.min(0.035, 0.012 + Math.max(dx, dy) / 6000);
+        const sx = horiz ? 1 + pull : 1 - pull / 2;
+        const sy = horiz ? 1 - pull / 2 : 1 + pull;
         try {
           morphAnim?.cancel();
           morphAnim = pill.animate(
-            [
-              { scale: "1 1", filter: "brightness(1)" },
-              { scale: `${sx} ${sy}`, filter: "brightness(1.12)", offset: 0.36 },
-              { scale: "1 1", filter: "brightness(1)" },
-            ],
-            { duration: 360, easing: "cubic-bezier(0.32, 0.72, 0, 1)" },
+            [{ scale: "1 1" }, { scale: `${sx} ${sy}`, offset: 0.4 }, { scale: "1 1" }],
+            { duration: 280, easing: "ease-out" },
           );
         } catch {}
       }
