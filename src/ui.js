@@ -85,33 +85,15 @@ export let safetyListenersAdded = false;
 export let cachedCssText = stylesCss;
 
 /**
- * Inter ships with the extension (Macs use their own San Francisco, which
- * comes first in the stack and cannot be redistributed). @font-face inside a shadow root
- * is ignored, so the faces are registered on the document under a private
- * family name ("SS Inter") that no page stylesheet will ever ask for.
- * They are read as bytes, so a strict page CSP (font-src) cannot block them.
- * Until they arrive (or if they cannot), the stack falls back to Segoe UI /
- * the system font, so nothing waits on this.
+ * Content-script overlays deliberately use the native system UI font stack
+ * (-apple-system / SF Pro Display / Segoe UI Variable / system-ui) so injected
+ * scripts never issue cross-origin chrome-extension:// font fetches inside
+ * host web pages (which triggers Chrome's "Unsafe attempt to load URL" error
+ * on sites such as YouTube). Extension pages load Inter via same-origin
+ * @font-face rules in pages.css.
  */
-let fontsRequested = false;
 export function loadFonts() {
-  if (fontsRequested) return;
-  fontsRequested = true;
-  const faces = [
-    ["inter-latin.woff2", "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD"],
-    ["inter-latin-ext.woff2", "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+20A0-20AB, U+20AD-20C0, U+2C60-2C7F, U+A720-A7FF"],
-  ];
-  for (const [file, unicodeRange] of faces) {
-    (async () => {
-      try {
-        const res = await fetch(chrome.runtime.getURL(`fonts/${file}`));
-        if (!res.ok) return;
-        const face = new FontFace("SS Inter", await res.arrayBuffer(), { weight: "100 900", display: "swap", unicodeRange });
-        await face.load();
-        document.fonts.add(face);
-      } catch {}
-    })();
-  }
+  // Intentionally a no-op in content scripts.
 }
 
 export async function loadStyles() {

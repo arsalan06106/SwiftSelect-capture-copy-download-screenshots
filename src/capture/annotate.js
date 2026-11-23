@@ -660,41 +660,43 @@ function toggleFill() {
   _syncStyleUI();
 }
 
-/** Smoothly morph a button's icon into a drawn emerald checkmark and back. */
+/** Smoothly crossfade a button's icon into a crisp drawn emerald checkmark and back without ever blanking out. */
 function flashDone(btn, ok) {
   if (!btn || !ok) return;
   if (btn._doneTimers) {
     btn._doneTimers.forEach((id) => clearTimeout(id));
   }
+  if (btn._doneRaf) {
+    cancelAnimationFrame(btn._doneRaf);
+    btn._doneRaf = 0;
+  }
   btn._doneTimers = [];
 
   let overlay = btn.querySelector(":scope > .qs-morph-check");
-  if (overlay) overlay.remove();
+  if (!overlay) {
+    overlay = document.createElement("span");
+    overlay.className = "qs-morph-check";
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.innerHTML =
+      '<svg class="qs-morph-svg" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline class="qs-morph-path" points="20 6 9 17 4 12"/></svg>';
+    btn.appendChild(overlay);
+  }
 
-  btn.classList.remove("is-done-flash", "is-done-leaving");
-  overlay = document.createElement("span");
-  overlay.className = "qs-morph-check";
-  overlay.setAttribute("aria-hidden", "true");
-  overlay.innerHTML =
-    '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline class="qs-morph-path" points="20 6 9 17 4 12"/></svg>';
-  btn.appendChild(overlay);
-
-  // Commit initial hidden frame so the spring morph transitions cleanly.
+  // Reset state cleanly before starting the next draw cycle.
+  btn.classList.remove("is-done-flash");
   void overlay.offsetWidth;
-  btn.classList.add("is-done-flash");
+
+  btn._doneRaf = requestAnimationFrame(() => {
+    btn._doneRaf = 0;
+    btn.classList.add("is-done-flash");
+  });
 
   const t1 = setTimeout(() => {
     btn.classList.remove("is-done-flash");
-    btn.classList.add("is-done-leaving");
-  }, 1300);
-
-  const t2 = setTimeout(() => {
-    btn.classList.remove("is-done-leaving");
-    overlay.remove();
     btn._doneTimers = null;
-  }, 1680);
+  }, 1150);
 
-  btn._doneTimers.push(t1, t2);
+  btn._doneTimers.push(t1);
 }
 
 // ─── Remembered style ────────────────────────────────────────────────
@@ -1989,7 +1991,7 @@ function buildAnnotationUI() {
   saveMainBtn.className = "qs-dl-main";
   saveMainBtn.setAttribute("aria-label", "Download image");
   saveMainBtn.innerHTML =
-    '<svg class="tool-icon-save is-filled" viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path class="dl-arrow" d="M19 9h-4V3H9v6H5l7 7 7-7z"/><path class="dl-bar" d="M5 18v2h14v-2H5z"/></svg>';
+    '<svg class="tool-icon-save" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><polyline points="7.5 10.5 12 15 16.5 10.5"/><path d="M5 19h14"/></svg>';
   const initialDefExt = (getOutputSettingsSync().ext || "png").toUpperCase();
   attachTooltip(saveMainBtn, "Download", `Save as ${initialDefExt}`, keyHint("Ctrl+S"), 200, _annotateHost);
 
@@ -2004,7 +2006,7 @@ function buildAnnotationUI() {
   dlCaretBtn.setAttribute("aria-expanded", "false");
   dlCaretBtn.setAttribute("aria-label", "Download in other formats");
   dlCaretBtn.innerHTML =
-    '<svg class="qs-dl-caret" viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4.5 6 7.5 9 4.5"/></svg>';
+    '<svg class="qs-dl-caret" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4.5 6 7.5 9 4.5"/></svg>';
   attachTooltip(dlCaretBtn, "Other Formats", "PNG, JPG, WebP or ICO", "", 200, _annotateHost);
 
   dlSplit.append(saveMainBtn, dlSep, dlCaretBtn);
@@ -2144,8 +2146,8 @@ function buildAnnotationUI() {
         }
         _dlCloseTimer = setTimeout(() => {
           setDownloadPopoverOpen(false);
-          setTimeout(() => flashDone(saveMainBtn, true), 110);
-        }, 720);
+          setTimeout(() => flashDone(saveMainBtn, true), 160);
+        }, 560);
       } else {
         row.classList.remove("is-converting");
         row.classList.add("is-error");
