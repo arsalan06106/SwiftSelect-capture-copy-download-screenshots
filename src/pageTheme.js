@@ -26,7 +26,8 @@
   // of the interface wears it follow from it. Dynamic picks a new palette
   // each time a page opens, never the same one twice in a row. Mirrored in
   // localStorage so the first frame already has the right glass.
-  var DYNAMIC = ["ocean", "aurora", "sunset", "forest", "balanced"];
+  // Green (forest) and grey (balanced) are left out of the rotation.
+  var DYNAMIC = ["ocean", "aurora", "sunset"];
   var current = null;
   function setColour(mode) {
     var m = mode === "calm" || mode === "plain" ? mode : "dynamic";

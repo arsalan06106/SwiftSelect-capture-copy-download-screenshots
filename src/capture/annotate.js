@@ -21,6 +21,7 @@ import { setLastBlob, downloadBlob } from "./download.js";
 import { saveToGallery } from "./deliver.js";
 import { loadStyles, getCachedCssText, attachTooltip, hideCustomTooltip, trackSheen, setTooltipGuard } from "../ui.js";
 import { encodePngToIco, ICO_MAX_EDGE } from "../converter/rules.js";
+import { imageToPdf } from "../pdf.js";
 
 let _annotateHost = null;
 let _toolbarEl = null;
@@ -908,6 +909,37 @@ function buildZoomControl() {
 // ─── Stage: the gallery-preview look ─────────────────────────────────
 
 let _onStageResize = null;
+let _onToolbarResize = null;
+let _toolbarFitObserver = null;
+
+/**
+ * Keep the editor toolbar inside the window. Its tools never shrink, so on
+ * a narrow window it would run off both edges; instead it is zoomed by
+ * exactly the shortfall (zoom keeps it centred and every tool reachable).
+ * Measured, not guessed: the toolbar's width depends on its contents.
+ */
+function fitToolbarToViewport() {
+  const tb = _toolbarEl;
+  if (!tb || !tb.isConnected) return;
+  tb.style.zoom = "";
+  // The tools are centred and never shrink, so they can spill past both
+  // edges of the bar; measure their real span rather than scrollWidth
+  // (which cannot see overflow on the left).
+  let minL = Infinity;
+  let maxR = -Infinity;
+  // Layout offsets, not on-screen rects: they ignore the entrance
+  // animation's scale, so the fit is right even mid-animation.
+  for (const child of tb.children) {
+    if (!child.offsetWidth) continue;
+    minL = Math.min(minL, child.offsetLeft);
+    maxR = Math.max(maxR, child.offsetLeft + child.offsetWidth);
+  }
+  if (!Number.isFinite(minL)) return;
+  const cs = getComputedStyle(tb);
+  const need = maxR - minL + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const avail = window.innerWidth - 16;
+  if (need > avail && need > 0) tb.style.zoom = String(Math.max(0.5, avail / need).toFixed(3));
+}
 let _stageShot = null; // snapshot of the page behind the editor, when there is one
 let _closeArmed = false;
 let _closeArmTimer = 0;
@@ -1865,10 +1897,15 @@ function buildAnnotationUI() {
     if (_currentTool === "crop") return;
     setPopoverOpen(!popover.classList.contains("is-open"));
   };
-  window.addEventListener("resize", () => {
+  // One listener per editor, removed on close (it used to pile up with
+  // every in-page editor that was opened).
+  if (_onToolbarResize) window.removeEventListener("resize", _onToolbarResize);
+  _onToolbarResize = () => {
+    fitToolbarToViewport();
     if (popover.classList.contains("is-open")) placePopover();
     if (_dlPopoverEl && _dlPopoverEl.classList.contains("is-open")) placeDownloadPopover();
-  });
+  };
+  window.addEventListener("resize", _onToolbarResize);
 
   if (_closePopoverHandler) {
     window.removeEventListener("pointerdown", _closePopoverHandler, true);
@@ -2007,7 +2044,7 @@ function buildAnnotationUI() {
   dlCaretBtn.setAttribute("aria-label", "Download in other formats");
   dlCaretBtn.innerHTML =
     '<svg class="qs-dl-caret" viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4.5 6 7.5 9 4.5"/></svg>';
-  attachTooltip(dlCaretBtn, "Other Formats", "PNG, JPG, WebP or ICO", "", 200, _annotateHost);
+  attachTooltip(dlCaretBtn, "Other Formats", "PNG, JPG, WebP, ICO or PDF", "", 200, _annotateHost);
 
   dlSplit.append(saveMainBtn, dlSep, dlCaretBtn);
   _dlTriggerEl = dlSplit;
@@ -2017,6 +2054,7 @@ function buildAnnotationUI() {
     { id: "jpg", label: "JPG", desc: "Compact photo · white bg" },
     { id: "webp", label: "WebP", desc: "Smallest size · alpha" },
     { id: "ico", label: "ICO", desc: "Favicon / icon · ≤256 px" },
+    { id: "pdf", label: "PDF", desc: "Paged A4 document" },
   ];
 
   const dlPopover = document.createElement("div");
@@ -2214,6 +2252,15 @@ function buildAnnotationUI() {
   actionsGroup.appendChild(closeBtn);
 
   toolbar.appendChild(actionsGroup);
+
+  // Tool groups change size when their contents do (text options, crop);
+  // re-fit whenever one does.
+  _toolbarFitObserver?.disconnect();
+  if (typeof ResizeObserver === "function") {
+    _toolbarFitObserver = new ResizeObserver(() => fitToolbarToViewport());
+    for (const group of toolbar.children) _toolbarFitObserver.observe(group);
+  }
+  requestAnimationFrame(fitToolbarToViewport);
 
   _annotateHost.appendChild(toolbar);
 
@@ -4204,7 +4251,7 @@ async function handleSaveAnnotatedFormat(formatId, onProgress = () => {}) {
 
   _selectedShapeIndex = -1;
   renderCanvas();
-  const exportCanvas = getCleanExportCanvas(fmt === "jpg");
+  const exportCanvas = getCleanExportCanvas(fmt === "jpg" || fmt === "pdf");
   if (!exportCanvas) return { ok: false, bytes: 0 };
 
   onProgress(52);
@@ -4236,6 +4283,12 @@ async function handleSaveAnnotatedFormat(formatId, onProgress = () => {}) {
     const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
     const icoBytes = encodePngToIco(pngBytes, w, h);
     blob = new Blob([icoBytes], { type: "image/x-icon" });
+  } else if (fmt === "pdf") {
+    blob = await imageToPdf(exportCanvas, {
+      title: _sourceMeta?.title || "Screenshot",
+      onProgress: (done, total) => onProgress(52 + (done / total) * 36),
+    });
+    ext = "pdf";
   } else {
     const mime = fmt === "jpg" ? "image/jpeg" : fmt === "webp" ? "image/webp" : "image/png";
     ext = fmt === "jpg" ? "jpg" : fmt === "webp" ? "webp" : "png";
@@ -4247,7 +4300,8 @@ async function handleSaveAnnotatedFormat(formatId, onProgress = () => {}) {
   onProgress(90);
   await nextPaintFrame();
 
-  setLastBlob(blob, ext, "annotated");
+  // The last image is what Copy and the status pill reuse; a PDF is not one.
+  if (ext !== "pdf") setLastBlob(blob, ext, "annotated");
   const ok = await downloadBlob(blob, getSmartFilename("annotated", ext, _sourceMeta));
   if (ok) _markSaved();
   notify(ok ? `Saved as ${ext.toUpperCase()} (${formatExportBytes(blob.size)})` : "Download failed", ok ? "saved" : "error");
@@ -4432,6 +4486,10 @@ export function closeAnnotationEditor() {
   window.removeEventListener("keydown", onAnnotateKeyDown, true);
   if (_onStageResize) window.removeEventListener("resize", _onStageResize);
   _onStageResize = null;
+  if (_onToolbarResize) window.removeEventListener("resize", _onToolbarResize);
+  _onToolbarResize = null;
+  _toolbarFitObserver?.disconnect();
+  _toolbarFitObserver = null;
   if (_closePopoverHandler) {
     window.removeEventListener("pointerdown", _closePopoverHandler, true);
     window.removeEventListener("click", _closePopoverHandler, true);
@@ -4445,9 +4503,12 @@ export function closeAnnotationEditor() {
   hideCropControls();
 
   if (_toolbarEl) {
-    _toolbarEl.style.transform = "translate3d(0, -18px, 0) scale(0.93)";
+    // translate/scale compose with the toolbar's own centring transform;
+    // overwriting `transform` made it jump sideways as it closed.
+    _toolbarEl.style.transition = "translate 0.18s ease, scale 0.18s ease, opacity 0.18s ease";
+    _toolbarEl.style.translate = "0 -18px";
+    _toolbarEl.style.scale = "0.93";
     _toolbarEl.style.opacity = "0";
-    _toolbarEl.style.transition = "transform 0.18s ease, opacity 0.18s ease";
   }
   if (_annotateCanvas) {
     _annotateCanvas.style.transform = "scale(0.96)";

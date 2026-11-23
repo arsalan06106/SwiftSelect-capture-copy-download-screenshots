@@ -83,6 +83,7 @@ if (typeof window !== "undefined" && window === window.top && !window.__swiftSel
         ui.showSettingsModal();
         sendResponse({ success: true });
       } else if (message.type === "fullpage-progress") {
+        if (message.total) fullpage.handleRemoteProgress(message.current, message.total);
         const ps = ui.guideShadow?.querySelector(".qs-progress-text");
         if (ps) {
           ps.textContent = `${message.progress}%`;

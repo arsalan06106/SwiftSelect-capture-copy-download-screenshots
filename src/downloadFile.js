@@ -24,6 +24,7 @@ const MIME_EXT_MAP = {
   "image/vnd.microsoft.icon": "ico",
   "image/x-icon": "ico",
   "application/zip": "zip",
+  "application/pdf": "pdf",
 };
 
 /** Infer a clean file extension from a Blob's MIME type. */

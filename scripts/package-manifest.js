@@ -55,6 +55,7 @@ export const CHROME_STORE_FILES = [
   "src/convertRedirect.js",
   "src/converter/rules.js",
   "src/converter/engine.js",
+  "src/pdf.js",
 
   // Icons
   "icons/app16.png",

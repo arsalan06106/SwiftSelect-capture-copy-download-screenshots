@@ -24,6 +24,7 @@ import {
   formatBytes,
 } from "./src/storage.js";
 import { getSettings, buildFilename } from "./src/settings.js";
+import { imageToPdf } from "./src/pdf.js";
 import { downloadBlobFile } from "./src/downloadFile.js";
 import { listIssues, dismissIssue, clearIssues, ISSUES_KEY } from "./src/issues.js";
 import {
@@ -598,6 +599,29 @@ function downloadRecords(records) {
     else setTimeout(run, i * 140);
   });
   toast(records.length === 1 ? "Download started" : `Downloading ${formatNumber(records.length)} files`);
+}
+
+/** A capture as a paged A4 PDF, built on this device. */
+let pdfBusy = false;
+async function downloadRecordAsPdf(r) {
+  if (!r || pdfBusy) return;
+  pdfBusy = true;
+  const btn = $("lb-pdf");
+  btn?.classList.add("is-busy");
+  btn?.setAttribute("aria-busy", "true");
+  try {
+    const pdf = await imageToPdf(r.blob, { title: displayTitle(r) });
+    const name = filenameFor(r).replace(/\.[a-z0-9]{2,5}$/i, "") + ".pdf";
+    await downloadBlobFile(pdf, name);
+    toast(`Saved as PDF (${formatBytes(pdf.size)})`);
+  } catch (err) {
+    console.warn("SwiftSelect: PDF export failed", err);
+    toast("Could not make the PDF", { error: true });
+  } finally {
+    pdfBusy = false;
+    btn?.classList.remove("is-busy");
+    btn?.removeAttribute("aria-busy");
+  }
 }
 
 function annotateRecord(r) {
@@ -1464,6 +1488,7 @@ function wireLightbox() {
     const r = currentLightboxRecord();
     if (r) downloadRecords([r]);
   });
+  $("lb-pdf")?.addEventListener("click", () => downloadRecordAsPdf(currentLightboxRecord()));
   $("lb-convert")?.addEventListener("click", () => {
     const r = currentLightboxRecord();
     if (!r) return;

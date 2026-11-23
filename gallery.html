@@ -627,35 +627,37 @@
                 </div>
               </section>
 
-              <section class="group glass" data-tone="violet">
-                <h2 class="group-title"><span class="tile"><i data-icon="annotated"></i></span>Output</h2>
-                <div class="row row-stack">
-                  <div class="row-label cv-inline">
-                    <b>File naming</b>
-                    <button type="button" class="cv-template-link" id="cv-edit-template">Edit template</button>
+              <details class="group glass cv-output" data-tone="violet" id="cv-output">
+                <summary class="cv-output-head">
+                  <span class="tile"><i data-icon="annotated"></i></span>
+                  <span class="cv-output-title">
+                    <b>Output</b>
+                    <code id="cv-name-preview">photo - converted.jpg</code>
+                  </span>
+                  <i data-icon="chevron" class="cv-output-chev"></i>
+                </summary>
+                <div class="cv-output-body">
+                  <div class="cv-opt">
+                    <span class="cv-opt-label">Naming</span>
+                    <div class="seg cv-opt-seg" role="radiogroup" aria-label="File naming" data-key="namingMode">
+                      <button type="button" role="radio" data-value="template">Engine</button>
+                      <button type="button" role="radio" data-value="original">Original</button>
+                    </div>
                   </div>
-                  <div class="seg seg-full" role="radiogroup" aria-label="File naming" data-key="namingMode">
-                    <button type="button" role="radio" data-value="template">Naming engine</button>
-                    <button type="button" role="radio" data-value="original">Original name</button>
+                  <div class="cv-opt">
+                    <label class="cv-opt-label" for="cv-suffix">Suffix <code>.<em id="cv-ext-demo" class="cv-ext-demo">jpg</em></code></label>
+                    <input class="input cv-opt-input" id="cv-suffix" type="text" maxlength="40" placeholder="none" spellcheck="false" autocomplete="off" />
                   </div>
-                  <div class="cv-name-preview"><code id="cv-name-preview">photo - converted.jpg</code></div>
+                  <div class="cv-opt" id="cv-bg-row">
+                    <span class="cv-opt-label" title="JPG has no alpha channel. Off fills transparent areas with black.">White behind transparency</span>
+                    <button type="button" class="switch" id="cv-bg-white" role="switch" aria-checked="true" aria-label="Fill transparency with white"></button>
+                  </div>
+                  <div class="cv-opt-foot">
+                    <button type="button" class="cv-template-link" id="cv-edit-template">Edit naming template</button>
+                    <span class="cv-privacy"><i data-icon="lock"></i>On-device · EXIF stripped</span>
+                  </div>
                 </div>
-                <div class="row row-stack">
-                  <div class="row-label">
-                    <b>File name suffix</b>
-                    <span>Optional tag appended before <code>.<em id="cv-ext-demo" class="cv-ext-demo">jpg</em></code></span>
-                  </div>
-                  <input class="input" id="cv-suffix" type="text" maxlength="40" placeholder="none" spellcheck="false" autocomplete="off" />
-                </div>
-                <div class="row" id="cv-bg-row">
-                  <div class="row-label">
-                    <b>Fill transparency with white</b>
-                    <span>JPG has no alpha channel. Off fills black.</span>
-                  </div>
-                  <button type="button" class="switch" id="cv-bg-white" role="switch" aria-checked="true" aria-label="Fill transparency with white"></button>
-                </div>
-                <p class="cv-note cv-privacy"><i data-icon="lock"></i><span>Everything happens on this device. EXIF metadata such as camera details and location is always stripped.</span></p>
-              </section>
+              </details>
             </aside>
           </div>
 
@@ -737,6 +739,7 @@
         <button type="button" class="btn btn-icon" id="lb-fit" aria-label="Toggle fit" data-tip="Fit / actual size" data-tip-pos="bottom"><i data-icon="fit"></i></button>
         <button type="button" class="btn" id="lb-copy"><i data-icon="copy"></i>Copy</button>
         <button type="button" class="btn" id="lb-download"><i data-icon="download"></i>Download</button>
+        <button type="button" class="btn btn-icon" id="lb-pdf" aria-label="Save as PDF" data-tip="Save as PDF · paged A4" data-tip-pos="bottom"><i data-icon="pdf"></i></button>
         <button type="button" class="btn" id="lb-convert" data-tip="Optimize or change format" data-tip-pos="bottom"><i data-icon="convert"></i>Convert</button>
         <button type="button" class="btn btn-primary" id="lb-annotate"><i data-icon="annotated"></i>Annotate</button>
         <button type="button" class="btn btn-icon" id="lb-trash" aria-label="Move to Trash" data-tip="Move to Trash" data-tip-pos="bottom"><i data-icon="trash"></i></button>

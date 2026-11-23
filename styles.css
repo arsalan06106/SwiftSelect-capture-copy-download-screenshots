@@ -7381,3 +7381,290 @@
     background-color: rgb(var(--qs-ink) / 0.96) !important;
   }
 }
+
+/* ==========================================================================
+   FULL-PAGE CAPTURE PROGRESS
+   Sits in the strip the capture never stitches (see capture/progress.js),
+   centred, 52 px tall. Ring + title + part count + percentage, with a hair
+   progress bar along the bottom edge carrying a slow travelling glint. It
+   rises in on a long settle, the bar eases between frames, stitching swaps
+   the bar for a shimmer, and success draws a check before it sinks away.
+   ========================================================================== */
+.qs-progress {
+  --qs-p1: #5b9bff;
+  --qs-p2: #8a6cff;
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  height: 52px;
+  padding: 0 16px 0 9px;
+  border-radius: 999px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, sans-serif;
+  color: #161826;
+  background-color: rgba(252, 252, 255, 0.8);
+  background-image: linear-gradient(110deg, rgba(91, 155, 255, 0.16), rgba(177, 138, 255, 0.1) 50%, rgba(255, 134, 186, 0.12));
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
+    inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.8),
+    inset 0 -6px 10px -8px rgba(20, 24, 50, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 0 0 1px rgba(20, 24, 50, 0.07),
+    0 14px 32px -12px rgba(20, 24, 50, 0.3),
+    0 3px 8px -3px rgba(20, 24, 50, 0.12);
+  opacity: 0;
+  transform: translate(-50%, 16px) scale(0.92);
+  pointer-events: none;
+  user-select: none;
+}
+.qs-progress.qs-theme-glass-dark,
+.qs-progress.qs-theme-dark {
+  color: #f5f6fb;
+  background-color: rgb(18 19 27 / 0.66);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.015) 42%, transparent 60%, rgba(255, 255, 255, 0.03)),
+    linear-gradient(115deg, rgba(91, 155, 255, 0.18), rgba(177, 138, 255, 0.1) 46%, rgba(255, 134, 186, 0.14));
+  -webkit-backdrop-filter: blur(24px) saturate(185%) brightness(0.5);
+  backdrop-filter: blur(24px) saturate(185%) brightness(0.5);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+    inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.16),
+    inset -1.5px -2px 0 -1px rgba(255, 255, 255, 0.07),
+    inset 0 -8px 14px -10px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.075),
+    0 0 0 1px rgba(0, 0, 0, 0.34),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    0 16px 36px -12px rgba(0, 0, 0, 0.5);
+}
+.qs-progress.is-in {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition:
+    opacity 220ms ease-out,
+    transform 460ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.qs-progress.is-out {
+  opacity: 0;
+  transform: translate(-50%, 10px) scale(0.95);
+  transition:
+    opacity 180ms cubic-bezier(0.4, 0, 1, 1),
+    transform 200ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Ring: a soft track and a turning accent arc; becomes a drawn check */
+.qs-progress-ring {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(160deg, var(--qs-p1), var(--qs-p2));
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.14);
+  transition: background 260ms ease;
+}
+.qs-progress-ring svg {
+  position: absolute;
+  inset: 5px;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke-linecap: round;
+}
+.qs-progress-track {
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 2.4;
+}
+.qs-progress-arc {
+  stroke: #fff;
+  stroke-width: 2.4;
+  stroke-dasharray: 16 41;
+  transform-origin: 12px 12px;
+  animation: qsProgressSpin 900ms linear infinite;
+  transition: opacity 160ms ease;
+}
+.qs-progress-done {
+  opacity: 0;
+  stroke: #fff;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+}
+.qs-progress-done path {
+  stroke-dasharray: 18;
+  stroke-dashoffset: 18;
+}
+.qs-progress.is-done .qs-progress-ring {
+  background: linear-gradient(160deg, #4cd98a, #11a65a);
+}
+.qs-progress.is-done .qs-progress-arc,
+.qs-progress.is-done .qs-progress-track {
+  opacity: 0;
+}
+.qs-progress.is-done .qs-progress-done {
+  opacity: 1;
+}
+.qs-progress.is-done .qs-progress-done path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 300ms cubic-bezier(0.22, 1, 0.36, 1) 60ms;
+}
+
+/* Text */
+.qs-prog-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+  padding-bottom: 6px;
+  line-height: 1.2;
+}
+.qs-prog-text b {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.qs-prog-text small {
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.62;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qs-progress-pct {
+  flex-shrink: 0;
+  min-width: 38px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Bar: a slim track under the text, clear of the pill's curved ends */
+.qs-progress-bar {
+  position: absolute;
+  left: 52px;
+  right: 18px;
+  bottom: 5px;
+  height: 2.5px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.qs-progress-bar > i {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--qs-p1), var(--qs-p2));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.qs-progress-bar > i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent);
+  transform: translateX(-100%);
+  animation: qsProgressGlint 1400ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.qs-progress.is-stitching .qs-progress-bar > i {
+  background: linear-gradient(90deg, var(--qs-p1), var(--qs-p2), var(--qs-p1));
+  background-size: 200% 100%;
+  animation: qsProgressShimmer 1100ms linear infinite;
+}
+.qs-progress.is-done .qs-progress-bar > i {
+  background: linear-gradient(90deg, #4cd98a, #11a65a);
+}
+.qs-progress.is-done .qs-progress-bar > i::after {
+  animation: none;
+}
+
+@keyframes qsProgressSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes qsProgressGlint {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes qsProgressShimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qs-progress,
+  .qs-progress.is-in,
+  .qs-progress.is-out {
+    transition: opacity 120ms linear !important;
+    transform: translate(-50%, 0) !important;
+  }
+  .qs-progress-arc,
+  .qs-progress-bar > i::after,
+  .qs-progress.is-stitching .qs-progress-bar > i {
+    animation: none !important;
+  }
+}
+
+/* Status pill: "PDF" save button (full-page captures). A labelled pill
+   beside the round buttons; spins while the PDF is built, then checks. */
+.qs-status.qs-theme-glass[data-kind] .qs-save-btn.qs-status-pdf-btn {
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 0 14px 0 11px !important;
+  gap: 6px !important;
+  font: 600 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: 0.01em !important;
+  border-radius: 999px !important;
+}
+.qs-status-pdf-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0;
+}
+.qs-status-pdf-btn .pdf-spin,
+.qs-status-pdf-btn .pdf-check {
+  opacity: 0;
+}
+.qs-status-pdf-btn.is-busy .pdf-spin {
+  opacity: 1;
+  transform-origin: 12px 13px;
+  animation: qsProgressSpin 800ms linear infinite;
+}
+.qs-status-pdf-btn.is-done .pdf-check {
+  opacity: 1;
+  stroke-dasharray: 9;
+  stroke-dashoffset: 9;
+  animation: qsDlCheckDraw 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.qs-status-pdf-btn.is-done {
+  color: #059669 !important;
+}
+.qs-theme-glass-dark .qs-status-pdf-btn.is-done {
+  color: #34d399 !important;
+}
+.qs-status-pdf-btn.is-failed {
+  color: #e5323b !important;
+}
+.qs-status-pdf-btn.is-busy {
+  pointer-events: none;
+}

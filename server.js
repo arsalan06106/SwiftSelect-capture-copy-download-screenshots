@@ -66,6 +66,8 @@ function send(res, status, contentType, body, method = "GET") {
   res.writeHead(status, {
     "Content-Type": contentType,
     "Content-Length": String(buf.length),
+    // A preview server: always revalidate, so an edit shows on the next load.
+    "Cache-Control": "no-cache",
   });
   res.end(method === "HEAD" ? undefined : buf);
 }
@@ -89,6 +91,7 @@ function sendFile(res, filePath, method = "GET") {
   res.writeHead(200, {
     "Content-Type": contentType,
     "Content-Length": String(stat.size),
+    "Cache-Control": "no-cache",
   });
   if (method === "HEAD") {
     res.end();

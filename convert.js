@@ -942,6 +942,19 @@ async function setup() {
     });
   }
 
+  // The folded Output card remembers whether it was left open.
+  const output = $("output");
+  if (output) {
+    try {
+      output.open = localStorage.getItem("ss.cvOutputOpen") === "1";
+    } catch {}
+    output.addEventListener("toggle", () => {
+      try {
+        localStorage.setItem("ss.cvOutputOpen", output.open ? "1" : "0");
+      } catch {}
+    });
+  }
+
   $("edit-template")?.addEventListener("click", () => {
     location.hash = "#settings";
     setTimeout(() => {

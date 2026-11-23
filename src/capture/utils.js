@@ -78,7 +78,8 @@ export function getAllSettingsSync() {
 // wear one of five glass looks. With Colour on Dynamic a different one is
 // picked each time the toolbar opens; Calm and Plain keep the quiet "clear"
 // look. The editor keeps whichever the toolbar last wore.
-export const TOOLBAR_LOOKS = ["clear", "sunset", "ocean", "aurora", "mint"];
+// Dynamic rotation: no green (mint) look.
+export const TOOLBAR_LOOKS = ["clear", "sunset", "ocean", "aurora"];
 let _look = null;
 
 export function pickToolbarLook() {

@@ -10,6 +10,13 @@ import { setLastBlob, downloadBlob } from "./download.js";
 import { saveToGallery } from "./deliver.js";
 import { wantsCopy } from "../settings.js";
 import { handleCaptureVisible, captureFrame } from "./region.js";
+import {
+  PROGRESS_BAND,
+  showCaptureProgress,
+  setCaptureProgress,
+  setCaptureStitching,
+  hideCaptureProgress,
+} from "./progress.js";
 
 let _unrollStyle = null;
 let _unrollScrollStyle = null;
@@ -538,7 +545,17 @@ export function handleUnrollPage(data = {}) {
     cropRect = mediaInfo.cropRect;
   }
 
+  // The progress pill lives in a strip at the bottom of the viewport that
+  // the capture never stitches. That only holds when the page is stepped
+  // vertically in several rows; a horizontal capture or a cropped media
+  // capture uses whole frames, so there the strip stays off.
+  const reserveBottom =
+    mode !== "horizontal" && !cropRect && contentHeight > window.innerHeight - PROGRESS_BAND + 5
+      ? PROGRESS_BAND
+      : 0;
+
   return {
+    reserveBottom,
     innerWidth: window.innerWidth,
     innerHeight: window.innerHeight,
     clientWidth,
@@ -715,10 +732,11 @@ export async function captureStream({
 
     const hasCrop = !!cropRect;
     const isHorizontalOnly = mode === "horizontal";
+    const reserve = meta.reserveBottom || 0;
 
     const yPoints = (isHorizontalOnly || (hasCrop && Math.round(cropRect.height * dpr) <= innerHeight * dpr))
       ? [0]
-      : computeGridPoints(rectHeight, innerHeight, 2);
+      : computeGridPoints(rectHeight, innerHeight - reserve, 2);
 
     const xPoints = (hasCrop && Math.round(cropRect.width * dpr) <= innerWidth * dpr)
       ? [0]
@@ -731,6 +749,8 @@ export async function captureStream({
     const projectedW = Math.ceil(rectWidth * dpr);
     const projectedH = isHorizontalOnly ? Math.ceil(innerHeight * dpr) : Math.ceil(rectHeight * dpr);
     const fitsCanvas = projectedW <= 32767 && projectedH <= 32767 && projectedW * projectedH <= 268435456;
+
+    if (reserve) showCaptureProgress({ total: totalFrames });
 
     // Use lossless compositor snapshots for up to 12 viewports
     if (totalFrames <= 12 && fitsCanvas) {
@@ -759,6 +779,7 @@ export async function captureStream({
 
           frameCount++;
           const progress = Math.min(100, Math.round((frameCount / totalFrames) * 100));
+          setCaptureProgress(frameCount, totalFrames);
           window.SwiftSelect.ui.updateBadge(`${progress}%`, "#BA4B5C");
           if (btn) {
             let ps = btn.querySelector(".qs-progress-text");
@@ -774,6 +795,7 @@ export async function captureStream({
 
       handleRestoreUnroll();
       if (_abortCapture) throw new Error("Capture Aborted");
+      setCaptureStitching();
 
       const effectiveClientW = clientWidth || innerWidth;
       const hasHorizontalOverflow = rectWidth > innerWidth + 5;
@@ -864,6 +886,7 @@ export async function captureStream({
       });
 
       if (_abortCapture || result?.abort) throw new Error("Capture Aborted");
+      setCaptureStitching();
       if (!result || !result.success) {
         throw new Error(result?.error || `${label} capture failed`);
       }
@@ -974,11 +997,15 @@ export async function captureStream({
     window.SwiftSelect?.events?.removeListeners?.();
     window.removeEventListener("keydown", onAbortKey, true);
 
+    await hideCaptureProgress("done");
+
     const kb = blob?.size ? blob.size / 1024 : 0;
     const sizeText = kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(kb))} KB`;
     window.SwiftSelect?.ui?.setStatus?.(statusMsg, 5000, statusType, false, {
       sourceBlob: blob,
       downloaded: true,
+      offerPdf: true,
+      pdfType: filenameType,
       detail:
         stitchedWidth && stitchedHeight
           ? `${stitchedWidth.toLocaleString()} × ${stitchedHeight.toLocaleString()} · ${String(fileExt || "png").toUpperCase()} · ${sizeText}`
@@ -989,6 +1016,7 @@ export async function captureStream({
     setTimeout(() => window.SwiftSelect?.ui?.updateBadge?.(""), 1500);
   } catch (err) {
     const cancelled = _abortCapture || /aborted|cancelled/i.test(err?.message || "");
+    hideCaptureProgress("stop");
     if (!cancelled) console.warn(`SwiftSelect: ${label} capture stopped:`, err?.message || err);
     handleRestoreUnroll();
     window.SwiftSelect?.ui?.updateBadge?.("ERR", "#EF4444");
@@ -1045,4 +1073,9 @@ export async function handleCaptureHorizontal() {
     label: "Horizontal View",
     filenameType: "horizontal",
   });
+}
+
+/** Progress reported by the offscreen capture (very long pages). */
+export function handleRemoteProgress(current, total) {
+  setCaptureProgress(current, total);
 }

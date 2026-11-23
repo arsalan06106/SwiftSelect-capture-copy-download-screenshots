@@ -21,9 +21,10 @@ import {
   isPageDark,
 } from "./theme.js";
 import { removeListeners } from "./events.js";
-import { getOutputSettingsSync, pickToolbarLook, currentToolbarLook } from "./capture/utils.js";
+import { getOutputSettingsSync, pickToolbarLook, currentToolbarLook, getSmartFilename } from "./capture/utils.js";
 import { openAnnotationEditor } from "./capture/annotate.js";
-import { handleSaveAction, getLastBlob } from "./capture/download.js";
+import { handleSaveAction, getLastBlob, downloadBlob } from "./capture/download.js";
+import { imageToPdf } from "./pdf.js";
 import { openPeek, closePeek, isPeekOpen } from "./peek.js";
 import stylesCss from "./styles.min.css";
 
@@ -1116,11 +1117,18 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     statusEl.appendChild(annotateBtn);
   }
 
+  // Full-page captures can also leave as a paged PDF.
+  if (options?.offerPdf && options?.sourceBlob) {
+    statusEl.appendChild(makePdfButton(options.sourceBlob, options.pdfType || "fullpage"));
+    timeout = Math.max(timeout, 6000);
+  }
 
   applyElementTheme(statusEl, currentUserTheme);
   statusHost.style.display = "";
   statusEl.style.display = "flex";
   currentStatus = type;
+  statusTimeout = timeout;
+  wireStatusHoverPause();
 
   if (!isUpdating && !noAnim) {
     statusEl.style.animation = "none";
@@ -1153,6 +1161,84 @@ export function setStatus(msg, timeout = 1500, type = "info", noAnim = false, op
     }
   }
 
+  armStatusHide(timeout);
+}
+
+let statusTimeout = 0;
+let statusHovered = false;
+let statusBusy = false;
+
+/** Pointer on the pill (reaching for a button) holds it open. */
+function wireStatusHoverPause() {
+  if (!statusEl || statusEl.dataset.hoverWired) return;
+  statusEl.dataset.hoverWired = "1";
+  statusEl.addEventListener("pointerenter", () => {
+    statusHovered = true;
+    if (hideStatusTimer) clearTimeout(hideStatusTimer);
+  });
+  statusEl.addEventListener("pointerleave", () => {
+    statusHovered = false;
+    if (statusTimeout > 0 && !statusBusy) armStatusHide(1800);
+  });
+}
+
+function makePdfButton(sourceBlob, pdfType) {
+  const btn = document.createElement("button");
+  btn.className = "qs-save-btn qs-status-pdf-btn";
+  btn.setAttribute("aria-label", "Save as PDF");
+  attachTooltip(btn, "Save as PDF", "Paged A4, breaks between lines", "", 450, statusEl.getRootNode());
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.innerHTML =
+    '<path class="pdf-sheet" d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5"/>' +
+    '<path class="pdf-spin" d="M12 9.5a3.5 3.5 0 1 0 3.5 3.5"/><path class="pdf-check" d="M9.2 14l2 2 3.6-4"/>';
+  const label = document.createElement("span");
+  label.textContent = "PDF";
+  btn.append(svg, label);
+
+  btn.onclick = async () => {
+    if (btn.classList.contains("is-busy") || btn.classList.contains("is-done")) return;
+    hideCustomTooltip();
+    statusBusy = true;
+    if (hideStatusTimer) clearTimeout(hideStatusTimer);
+    btn.classList.add("is-busy");
+    label.textContent = "Making…";
+    try {
+      const pdf = await imageToPdf(sourceBlob, {
+        title: document.title || "Screenshot",
+        onProgress: (done, total) => {
+          if (total > 1) label.textContent = `${done}/${total}`;
+        },
+      });
+      const ok = await downloadBlob(pdf, getSmartFilename(pdfType, "pdf"));
+      btn.classList.remove("is-busy");
+      if (ok === false) throw new Error("Download blocked");
+      btn.classList.add("is-done");
+      label.textContent = "Saved";
+    } catch (e) {
+      console.warn("SwiftSelect: PDF export failed:", e?.message || e);
+      btn.classList.remove("is-busy");
+      btn.classList.add("is-failed");
+      label.textContent = "Failed";
+      setTimeout(() => {
+        btn.classList.remove("is-failed");
+        label.textContent = "PDF";
+      }, 2200);
+    } finally {
+      statusBusy = false;
+      if (!statusHovered) armStatusHide(2400);
+    }
+  };
+  return btn;
+}
+
+function armStatusHide(timeout) {
+  if (hideStatusTimer) clearTimeout(hideStatusTimer);
   if (timeout > 0) {
     hideStatusTimer = setTimeout(() => {
       if (!statusEl) return;

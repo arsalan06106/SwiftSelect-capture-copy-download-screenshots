@@ -25,6 +25,7 @@ const ICONS = {
   settings: '<g class="p-gear"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></g>',
   copy: '<path class="p-back" d="M15.5 8.5V6a2.5 2.5 0 0 0-2.5-2.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/><rect class="p-front" x="8.5" y="8.5" width="12" height="12" rx="2.5"/>',
   download: '<path class="p-arrow" d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path class="p-base" d="M5 19.5h14"/>',
+  pdf: '<path d="M14 3.5H7.5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8z"/><path d="M14 3.5V8h4.5"/><path class="p-arrow" d="M12 10.5v6M9.5 14l2.5 2.5 2.5-2.5"/>',
   trash: '<g class="p-lid"><path d="M4 7h16"/><path d="M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2"/></g><path class="p-bin" d="M6.5 7l.8 11.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8L17.5 7"/><path class="p-bin" d="M10 11v5M14 11v5"/>',
   restore: '<g class="p-spin"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/></g>',
   check: '<path class="p-check" d="m5 12.5 4.5 4.5L19 7.5"/>',
@@ -393,7 +394,16 @@ export function toast(message, { action = "", onAction = null, error = false, du
   }
 
   _rail.appendChild(el);
-  setTimeout(dismiss, action ? Math.max(duration, 5200) : duration);
+
+  // The countdown pauses while the pointer rests on the toast, so an Undo
+  // never slips away while someone is reaching for it.
+  const life = action ? Math.max(duration, 5200) : duration;
+  let timer = setTimeout(dismiss, life);
+  el.addEventListener("pointerenter", () => clearTimeout(timer));
+  el.addEventListener("pointerleave", () => {
+    clearTimeout(timer);
+    timer = setTimeout(dismiss, 1600);
+  });
   return dismiss;
 }
 

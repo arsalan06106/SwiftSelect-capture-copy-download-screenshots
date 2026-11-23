@@ -295,7 +295,7 @@ async function captureFullPage(
   // Generate 2D grid coordinates for full width & height coverage
   const yPoints = (isHorizontalOnly || (hasCrop && Math.round(cropRect.height * dpr) <= rawH))
     ? [0]
-    : computeGridPoints(rectHeight, innerHeight, OVERLAP);
+    : computeGridPoints(rectHeight, innerHeight - (meta.reserveBottom || 0), OVERLAP);
 
   const xPoints = (hasCrop && Math.round(cropRect.width * dpr) <= rawW)
     ? [0]

@@ -4896,8 +4896,12 @@ html[data-theme="dark"] .group {
   transition: transform 320ms var(--bounce);
 }
 
-.group:hover .group-title .tile {
+.group:hover .group-title .tile,
+.cv-output-head:hover .tile {
   transform: rotate(-6deg) scale(1.06);
+}
+.cv-output-head .tile {
+  transition: transform 320ms var(--bounce);
 }
 
 .group,
@@ -7348,7 +7352,8 @@ html[data-theme="dark"] .group:hover {
 }
 /* Section tiles follow their section */
 .group-title .tile,
-html[data-tint] .group-title .tile {
+html[data-tint] .group-title .tile,
+.cv-output-head .tile {
   color: #fff;
   background: linear-gradient(160deg, var(--g), var(--g2));
   box-shadow:
@@ -9319,39 +9324,6 @@ html[data-theme="dark"] .card-thumb {
   opacity: 0.68;
 }
 
-/* Sleek, unobtrusive native toasts */
-.toast-rail {
-  bottom: 24px;
-  gap: 8px;
-}
-
-.toast {
-  min-height: 46px;
-  padding: 6px 14px 6px 7px;
-  gap: 10px;
-  font-size: 13.5px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-}
-
-.toast:not(:has(button)) {
-  padding-right: 18px;
-}
-
-.toast .icon {
-  width: 32px;
-  height: 32px;
-  padding: 7px;
-  stroke-width: 2.1;
-}
-
-.toast button {
-  height: 32px;
-  margin-left: 4px;
-  padding: 0 13px;
-  font-size: 12.5px;
-}
-
 /* 6. Popup polish: crisp Convert action, harmonized footer radius & keycaps */
 .popup-head .popup-tool {
   color: var(--text);
@@ -9413,3 +9385,321 @@ html[data-theme="dark"] body.popup .action-keys .kbd {
   }
 }
 
+
+/* ── Converter · Output, folded ─────────────────────────────────────────
+   Naming, suffix and the white fill are set once and rarely touched, so
+   they live in one folded card. Closed, it is a single row that still
+   shows what the next file will be called; open, three tight rows. The
+   fold animates its real height (interpolate-size), no max-height guess. */
+.cv-side .cv-output {
+  padding: 0;
+  interpolate-size: allow-keywords;
+}
+.cv-output-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px 12px 16px;
+  list-style: none;
+  cursor: pointer;
+  border-radius: inherit;
+  user-select: none;
+}
+.cv-output-head::-webkit-details-marker {
+  display: none;
+}
+.cv-output-head .tile {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.cv-output-head .tile .icon {
+  width: 15px !important;
+  height: 15px !important;
+}
+.cv-output-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.cv-output-title b {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.cv-output-title code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cv-output-chev {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-3);
+  transition: transform 260ms var(--pop-in), color 160ms ease;
+}
+.cv-output-head:hover .cv-output-chev {
+  color: var(--text);
+}
+.cv-output[open] .cv-output-chev {
+  transform: rotate(180deg);
+}
+.cv-output-head:focus-visible {
+  outline: 2px solid var(--c-action);
+  outline-offset: -2px;
+}
+.cv-output::details-content {
+  block-size: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    block-size 240ms var(--pop-out),
+    opacity 140ms var(--pop-out),
+    content-visibility 240ms allow-discrete;
+}
+.cv-output[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+  transition:
+    block-size 340ms var(--pop-in),
+    opacity 220ms ease-out 60ms,
+    content-visibility 340ms allow-discrete;
+}
+.cv-output-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 12px;
+  padding: 6px 0 12px;
+  border-top: 1px solid var(--hairline);
+}
+.cv-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 4px;
+}
+.cv-opt[hidden] {
+  display: none;
+}
+.cv-opt-label {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text);
+  white-space: nowrap;
+}
+.cv-opt-label code {
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-3);
+  background: color-mix(in srgb, var(--c-content) 6%, transparent);
+}
+.cv-opt-label code em {
+  font-style: normal;
+}
+.cv-side .cv-opt-seg {
+  padding: 3px;
+}
+.cv-side .cv-opt-seg > button {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12.5px;
+}
+.cv-side .cv-opt-input {
+  width: 132px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12.5px;
+}
+.cv-opt .switch {
+  transform: scale(0.88);
+  transform-origin: right center;
+}
+.cv-opt-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 10px 4px 0;
+  border-top: 1px solid var(--hairline);
+}
+.cv-side .cv-opt-foot .cv-privacy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  margin-left: auto;
+  border: 0;
+  font-size: 11px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.cv-side .cv-opt-foot .cv-privacy .icon {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-output::details-content,
+  .cv-output-chev {
+    transition: none;
+  }
+}
+
+/* ── Empty state: the front pane frosts what is behind it ───────────────
+   The two tilted panes behind must read as depth, not as outlines seen
+   through the front one. The front pane keeps its own blur (it is a single
+   static element, so it costs nothing while scrolling) and in dark gets a
+   denser body; the back panes step down so the stack has a clear order. */
+.empty-art .pane-3.glass {
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+  backdrop-filter: blur(14px) saturate(160%) !important;
+}
+.empty-art .pane-1,
+.empty-art .pane-2 {
+  opacity: 0.5;
+}
+html[data-theme="dark"] .empty-art .pane-3 {
+  background-color: color-mix(in srgb, var(--h4a) var(--k-frame), rgba(26, 28, 38, 0.9));
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 18px 36px -18px rgba(0, 0, 0, 0.7);
+}
+html[data-theme="dark"] .empty-art :is(.pane-1, .pane-2) {
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* ── Toasts: the same pill as the status message on web pages ────────────
+   One component in two places. Gallery toasts share the in-page status
+   message's geometry (76 px pill, 46 px tile, 16 px text) and its glass:
+   light is frosted white tinted by the outcome, dark is the dark liquid
+   lens (backdrop dimmed inside the glass, ink body, lit rims). They rise
+   on a long settle, leave fast, and wait while the pointer is on them. */
+.toast {
+  position: relative;
+  color: var(--text);
+  background-color: color-mix(in srgb, var(--tone-a) 16%, rgba(252, 252, 255, 0.76));
+  background-image: linear-gradient(105deg, color-mix(in srgb, var(--tone-a) 22%, transparent), transparent 62%);
+  -webkit-backdrop-filter: blur(26px) saturate(190%);
+  backdrop-filter: blur(26px) saturate(190%);
+  box-shadow:
+    var(--reflex-panel),
+    inset 0 0 0 1px color-mix(in srgb, var(--tone-b) 18%, transparent),
+    0 0 0 1px rgba(20, 24, 50, 0.06),
+    0 18px 40px -14px rgba(20, 24, 50, 0.3),
+    0 4px 12px -4px rgba(20, 24, 50, 0.12);
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  animation: toast-in 460ms var(--pop-in) both;
+}
+html[data-theme="dark"] .toast {
+  color: #f5f6fb;
+  background-color: color-mix(in srgb, var(--tone-a) 14%, rgb(18 19 27 / 0.66));
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.015) 42%, transparent 60%, rgba(255, 255, 255, 0.03)),
+    linear-gradient(105deg, color-mix(in srgb, var(--tone-a) 26%, transparent), transparent 62%);
+  -webkit-backdrop-filter: blur(24px) saturate(185%) brightness(0.5);
+  backdrop-filter: blur(24px) saturate(185%) brightness(0.5);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+    inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.16),
+    inset -1.5px -2px 0 -1px rgba(255, 255, 255, 0.07),
+    inset 0 -8px 14px -10px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px color-mix(in srgb, var(--tone-a) 22%, rgba(255, 255, 255, 0.075)),
+    0 0 0 1px rgba(0, 0, 0, 0.34),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    0 16px 36px -12px rgba(0, 0, 0, 0.5);
+}
+.toast .icon,
+.toast.is-error .icon {
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(160deg, var(--tone-a), var(--tone-b));
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.14);
+}
+.toast button {
+  color: var(--text);
+  background-color: color-mix(in srgb, #ffffff 56%, transparent);
+  box-shadow: var(--reflex-control);
+  transition:
+    background-color 160ms ease,
+    scale 140ms var(--pop-in);
+}
+.toast button:hover {
+  background-color: color-mix(in srgb, #ffffff 86%, transparent);
+}
+html[data-theme="dark"] .toast button {
+  color: #f5f6fb;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+html[data-theme="dark"] .toast button:hover {
+  background-color: rgba(255, 255, 255, 0.17);
+}
+.toast button:active {
+  scale: 0.95;
+}
+.toast.is-leaving {
+  animation: toast-out 200ms var(--pop-out) forwards;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast .icon,
+  .toast.is-leaving {
+    animation-duration: 1ms !important;
+  }
+}
+
+/* Lightbox "Save as PDF": the page glyph pulses while the PDF is built */
+#lb-pdf.is-busy {
+  pointer-events: none;
+}
+#lb-pdf.is-busy .icon {
+  animation: pdf-busy 900ms ease-in-out infinite;
+}
+@keyframes pdf-busy {
+  50% {
+    opacity: 0.35;
+    transform: translateY(1px);
+  }
+}
