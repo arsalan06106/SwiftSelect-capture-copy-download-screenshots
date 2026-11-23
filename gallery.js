@@ -1732,22 +1732,45 @@ async function renderIssues({ fresh = false } = {}) {
   );
 }
 
+function positionTopbarPopover(btn, pop) {
+  if (!btn || !pop) return;
+  const r = btn.getBoundingClientRect();
+  const margin = 14;
+  const top = Math.round(r.bottom + 10);
+  const right = Math.max(margin, Math.round(window.innerWidth - r.right));
+  pop.style.top = `${top}px`;
+  pop.style.right = `${right}px`;
+  pop.style.left = "auto";
+}
+
 function closeIssues() {
   const pop = $("issues-pop");
+  if (!pop) return;
   pop.classList.remove("is-open");
   pop.setAttribute("aria-hidden", "true");
-  $("issues-btn").setAttribute("aria-expanded", "false");
+  $("issues-btn")?.setAttribute("aria-expanded", "false");
 }
 
 function wireIssues() {
-  $("issues-btn").addEventListener("click", (e) => {
+  const btn = $("issues-btn");
+  const pop = $("issues-pop");
+  if (!btn || !pop) return;
+  // Portal outside .topbar.glass so backdrop-filter blurs the live page beneath
+  if (pop.parentElement !== document.body) {
+    pop.classList.add("is-portaled");
+    document.body.appendChild(pop);
+  }
+  const syncPos = () => {
+    if (pop.classList.contains("is-open")) positionTopbarPopover(btn, pop);
+  };
+  btn.addEventListener("click", (e) => {
     e.stopPropagation();
-    const pop = $("issues-pop");
     const next = !pop.classList.contains("is-open");
+    if (next) positionTopbarPopover(btn, pop);
     pop.classList.toggle("is-open", next);
     pop.setAttribute("aria-hidden", String(!next));
-    $("issues-btn").setAttribute("aria-expanded", String(next));
-    $("issues").classList.remove("is-new");
+    btn.setAttribute("aria-expanded", String(next));
+    $("issues")?.classList.remove("is-new");
   });
   $("issues-list").addEventListener("click", async (e) => {
     const b = e.target.closest(".issue-dismiss");
@@ -1759,14 +1782,15 @@ function wireIssues() {
   });
   $("issues-clear").addEventListener("click", () => clearIssues());
   document.addEventListener("click", (e) => {
-    if ($("issues-pop").classList.contains("is-open") && !e.target.closest("#issues")) closeIssues();
+    if (pop.classList.contains("is-open") && !pop.contains(e.target) && !e.target.closest("#issues")) closeIssues();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && $("issues-pop").classList.contains("is-open")) {
+    if (e.key === "Escape" && pop.classList.contains("is-open")) {
       e.stopPropagation();
       closeIssues();
     }
   }, true);
+  window.addEventListener("resize", syncPos, { passive: true });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes[ISSUES_KEY]) {
       const before = changes[ISSUES_KEY].oldValue?.length || 0;
@@ -1782,7 +1806,16 @@ function wireDevInfo() {
   const btn = $("cv-info-btn");
   const pop = $("cv-info-pop");
   if (!wrap || !btn || !pop) return;
+  // Portal outside .topbar.glass so backdrop-filter genuinely refracts & blurs content beneath
+  if (pop.parentElement !== document.body) {
+    pop.classList.add("is-portaled");
+    document.body.appendChild(pop);
+  }
+  const syncPos = () => {
+    if (pop.classList.contains("is-open")) positionTopbarPopover(btn, pop);
+  };
   const setOpen = (open) => {
+    if (open) positionTopbarPopover(btn, pop);
     pop.classList.toggle("is-open", open);
     pop.setAttribute("aria-hidden", String(!open));
     btn.setAttribute("aria-expanded", String(open));
@@ -1792,7 +1825,7 @@ function wireDevInfo() {
     setOpen(!pop.classList.contains("is-open"));
   });
   document.addEventListener("click", (e) => {
-    if (pop.classList.contains("is-open") && !wrap.contains(e.target)) setOpen(false);
+    if (pop.classList.contains("is-open") && !pop.contains(e.target) && !wrap.contains(e.target)) setOpen(false);
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && pop.classList.contains("is-open")) {
@@ -1801,6 +1834,7 @@ function wireDevInfo() {
       btn.focus();
     }
   }, true);
+  window.addEventListener("resize", syncPos, { passive: true });
 }
 
 // ─── Import: drop image files or paste an image ──────────────────────
