@@ -1806,6 +1806,18 @@ function wireDevInfo() {
   const btn = $("cv-info-btn");
   const pop = $("cv-info-pop");
   if (!wrap || !btn || !pop) return;
+  const avatar = $("dev-avatar");
+  if (avatar) {
+    const markLoaded = () => avatar.classList.add("is-loaded");
+    const markFailed = () => avatar.setAttribute("hidden", "");
+    if (avatar.complete) {
+      if (avatar.naturalWidth > 0) markLoaded();
+      else markFailed();
+    } else {
+      avatar.addEventListener("load", markLoaded, { once: true });
+      avatar.addEventListener("error", markFailed, { once: true });
+    }
+  }
   // Portal outside .topbar.glass so backdrop-filter genuinely refracts & blurs content beneath
   if (pop.parentElement !== document.body) {
     pop.classList.add("is-portaled");

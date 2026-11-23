@@ -81,6 +81,13 @@ export function mountPill(container, activeSelector) {
   pill.setAttribute("aria-hidden", "true");
   container.prepend(pill);
 
+  let prevX = null;
+  let prevY = null;
+  let morphAnim = null;
+  const reducedMotion = () =>
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+
   const sync = () => {
     const active = container.querySelector(activeSelector);
     if (!active || !active.offsetWidth) {
@@ -88,20 +95,58 @@ export function mountPill(container, activeSelector) {
       return;
     }
     pill.style.opacity = "";
-    // Sub-pixel geometry, measured against the container and divided by its
-    // on-screen scale, so the pill is exact even while a parent is mid
-    // entrance animation (offset* would round to whole pixels).
-    const c = container.getBoundingClientRect();
-    const r = active.getBoundingClientRect();
-    const k = container.offsetWidth ? c.width / container.offsetWidth : 1;
-    const x = (r.left - c.left) / k - container.clientLeft;
-    const y = (r.top - c.top) / k - container.clientTop;
+    // Measure untransformed layout geometry relative to the container so
+    // :active press scaling on the clicked button can NEVER lock the pill
+    // to shrunk dimensions or offset its edges from the item.
+    let x = 0;
+    let y = 0;
+    let node = active;
+    while (node && node !== container) {
+      x += node.offsetLeft;
+      y += node.offsetTop;
+      node = node.offsetParent;
+    }
+    // Fallback if container is not an offsetParent chain ancestor.
+    if (node !== container) {
+      const c = container.getBoundingClientRect();
+      const r = active.getBoundingClientRect();
+      const k = container.offsetWidth ? c.width / container.offsetWidth : 1;
+      x = (r.left - c.left) / k - container.clientLeft;
+      y = (r.top - c.top) / k - container.clientTop;
+    }
+    const w = active.offsetWidth;
+    const h = active.offsetHeight;
+
+    const ready = pill.classList.contains("is-ready");
+    if (ready && prevX !== null && prevY !== null && !reducedMotion()) {
+      const dx = Math.abs(x - prevX);
+      const dy = Math.abs(y - prevY);
+      if ((dx > 4 || dy > 4) && typeof pill.animate === "function") {
+        const horiz = dx >= dy;
+        const sx = horiz ? 1.045 : 0.965;
+        const sy = horiz ? 0.94 : 1.06;
+        try {
+          morphAnim?.cancel();
+          morphAnim = pill.animate(
+            [
+              { scale: "1 1", filter: "brightness(1)" },
+              { scale: `${sx} ${sy}`, filter: "brightness(1.12)", offset: 0.36 },
+              { scale: "1 1", filter: "brightness(1)" },
+            ],
+            { duration: 360, easing: "cubic-bezier(0.32, 0.72, 0, 1)" },
+          );
+        } catch {}
+      }
+    }
+    prevX = x;
+    prevY = y;
+
     pill.style.setProperty("--pill-x", `${x.toFixed(2)}px`);
     pill.style.setProperty("--pill-y", `${y.toFixed(2)}px`);
-    pill.style.setProperty("--pill-w", `${(r.width / k).toFixed(2)}px`);
-    pill.style.setProperty("--pill-h", `${(r.height / k).toFixed(2)}px`);
+    pill.style.setProperty("--pill-w", `${w.toFixed(2)}px`);
+    pill.style.setProperty("--pill-h", `${h.toFixed(2)}px`);
     // First placement must not animate from the corner.
-    if (!pill.classList.contains("is-ready")) {
+    if (!ready) {
       requestAnimationFrame(() => requestAnimationFrame(() => pill.classList.add("is-ready")));
     }
   };
