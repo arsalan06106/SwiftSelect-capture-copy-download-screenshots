@@ -44,6 +44,12 @@ export function neutralizeStickyElements() {
           return NodeFilter.FILTER_REJECT;
         if (node.hasAttribute("data-swiftselect-unroll"))
           return NodeFilter.FILTER_REJECT;
+        // SwiftSelect's own overlays (the status pill showing capture
+        // progress, the toolbar, the editor) must stay pinned to the
+        // viewport. Turning the status host into an absolute element is
+        // what made the progress appear only after the capture ended.
+        if (node.classList?.contains("qs-shadow-host") || node.id === "swiftselect-annotate-root")
+          return NodeFilter.FILTER_REJECT;
         if (node.id === "swift-select-filters") return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },

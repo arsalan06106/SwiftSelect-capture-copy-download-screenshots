@@ -9771,3 +9771,36 @@ html[data-theme="dark"] .card.glass::before {
 #convert-view {
   overflow-x: clip;
 }
+
+/* ── Converter width ────────────────────────────────────────────────────
+   On a wide window the file column ran edge to edge (a 1,100 px drop zone
+   for a few thumbnails). The layout now caps at a reading width and sits
+   centred, so the files and their settings stay one compact unit with
+   calm margins either side. */
+#convert-view .cv-layout {
+  max-width: 1120px;
+  margin-inline: auto;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+}
+@media (max-width: 1040px) {
+  #convert-view .cv-layout {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 760px;
+  }
+}
+
+/* ── Dark readability ───────────────────────────────────────────────────
+   Secondary and tertiary text were 72 % and 52 % of the ink, which on
+   tinted glass dropped below comfortable contrast. Raised, and the panel
+   body a step more solid so the coloured field stays a glow behind it. */
+html[data-theme="dark"] {
+  --text-2: color-mix(in srgb, var(--c-content) 82%, transparent);
+  --text-3: color-mix(in srgb, var(--c-content) 64%, transparent);
+  --glass-base: rgb(var(--ink) / 0.82);
+  --tint-panel: rgb(var(--ink) / 0.78);
+}
+html[data-theme="dark"] .cv-output-title code,
+html[data-theme="dark"] .cv-name-preview code {
+  color: var(--text-2);
+}

@@ -7595,12 +7595,14 @@
 }
 :where(.qs-guide, .qs-status, .qs-hud, .qs-key-guide, .qs-stroke-popover, .qs-dl-popover, .qs-custom-tooltip).qs-theme-glass-dark,
 :where(#swiftselect-annotate-root)[data-tone="dark"] {
-  --lg-body: rgb(18 19 27 / 0.62);
-  --lg-dense: rgb(18 19 27 / 0.82);
+  /* Readability first: a denser body and a stronger, dimmer lens turn
+     whatever is behind into soft colour instead of detail under text. */
+  --lg-body: rgb(18 19 27 / 0.74);
+  --lg-dense: rgb(18 19 27 / 0.88);
   --lg-wash:
     linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.015) 42%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.03)),
     linear-gradient(115deg, color-mix(in srgb, var(--tb1, rgba(91, 155, 255, 0.2)) 80%, transparent), color-mix(in srgb, var(--tb2, rgba(177, 138, 255, 0.12)) 70%, transparent) 48%, color-mix(in srgb, var(--tb3, rgba(255, 134, 186, 0.16)) 80%, transparent));
-  --lg-blur: blur(24px) saturate(185%) brightness(0.5);
+  --lg-blur: blur(32px) saturate(160%) brightness(0.42);
   --lg-ink: #f5f6fb;
   --lg-edge:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
@@ -7707,4 +7709,94 @@
     --lg-body: rgb(18 19 27 / 0.96);
     --lg-dense: rgb(18 19 27 / 0.97);
   }
+}
+
+/* Dark text on the glass: secondary lines stay clearly readable */
+.qs-theme-glass-dark .qs-status-text small,
+.qs-theme-glass-dark .qs-dl-desc,
+#swiftselect-annotate-root[data-tone="dark"] .qs-stage-meta {
+  opacity: 0.82 !important;
+  color: rgba(240, 242, 250, 0.86) !important;
+}
+
+/* ── Toolbar panel (Gallery / Settings), refined ────────────────────────
+   Open, the toolbar carries reading content, so it switches to the dense
+   glass and the look's wash drops to half strength: colour stays a glow,
+   never a fill behind text. The settings sit on one calm inner sheet with
+   even rhythm, so they read as a single group under the tab bar. */
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-grow > .qs-glass-surface {
+  background-color: var(--lg-dense) !important;
+  background-image: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--tb1, transparent) 50%, transparent),
+    color-mix(in srgb, var(--tb2, transparent) 50%, transparent) 50%,
+    color-mix(in srgb, var(--tb3, transparent) 50%, transparent)
+  ) !important;
+}
+.qs-guide:not(.qs-annotate-toolbar):not(.qs-crop-controls).qs-theme-glass.qs-theme-glass-dark.qs-grow > .qs-glass-surface {
+  background-image: var(--lg-wash) !important;
+}
+:where(.qs-peek-drawer) {
+  --pk-sheet: rgba(255, 255, 255, 0.5);
+  --pk-sheet-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(20, 24, 50, 0.05);
+}
+.qs-theme-glass-dark :where(.qs-peek-drawer),
+:where(.qs-peek-drawer).qs-theme-glass-dark {
+  --pk-sheet: rgba(255, 255, 255, 0.045);
+  --pk-sheet-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.qs-peek-head {
+  padding: 2px 2px 0 !important;
+}
+.qs-peek-head .qs-peek-sub {
+  opacity: 0.85;
+}
+.qs-ps {
+  gap: 14px !important;
+  margin-top: 2px;
+  padding: 14px 14px 14px !important;
+  border-radius: 22px;
+  background: var(--pk-sheet);
+  box-shadow: var(--pk-sheet-edge);
+}
+.qs-ps-grid {
+  gap: 14px 14px !important;
+}
+.qs-ps-field {
+  gap: 7px !important;
+}
+.qs-ps-label {
+  font-size: 10.5px !important;
+  letter-spacing: 0.08em !important;
+}
+.qs-ps-quality {
+  min-height: 40px !important;
+  padding: 0 16px 0 14px !important;
+}
+.qs-ps-quality .qs-ps-q {
+  min-width: 30px !important;
+  font-size: 13px !important;
+}
+.qs-ps-chips {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px !important;
+}
+:where(.qs-peek-drawer) .qs-ps-chip {
+  min-width: 0;
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    color 160ms ease,
+    transform 420ms linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.1, 1.083 30.4%, 1.019 38.4%, 0.996 42.6%, 0.984 46.9%, 0.986 52.7%, 1.001 65.8%, 1) !important;
+}
+:where(.qs-peek-drawer) .qs-ps-chip:active {
+  transform: scale(0.95);
+  transition-duration: 90ms !important;
+}
+.qs-peek-drawer {
+  --pk-soft: rgba(27, 28, 42, 0.7);
+}
+.qs-theme-glass-dark .qs-peek-drawer {
+  --pk-soft: rgba(242, 243, 248, 0.74);
 }
