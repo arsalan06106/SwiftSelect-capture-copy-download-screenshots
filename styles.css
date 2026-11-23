@@ -7398,20 +7398,70 @@
   max-width: calc(100vw - 24px) !important;
   padding-right: 24px !important;
 }
-.qs-status.qs-progressing .qs-status-ring {
+.qs-status.qs-progressing .qs-hourglass {
   width: 26px !important;
   height: 26px !important;
+  overflow: visible;
+  transform-origin: 50% 50%;
+  animation: hgTurn 2600ms infinite;
 }
-.qs-status-ring .qs-ring-track {
-  stroke: rgba(255, 255, 255, 0.3);
-  stroke-width: 2.4;
+.qs-hourglass .hg-glass,
+.qs-hourglass .hg-cap {
+  stroke: #fff !important;
+  stroke-width: 1.7 !important;
+  fill: none !important;
 }
-.qs-status-ring .qs-ring-arc {
-  stroke: #fff;
-  stroke-width: 2.4;
-  stroke-dasharray: 15 39;
-  transform-origin: 12px 12px;
-  animation: qsRingSpin 900ms linear infinite;
+.qs-hourglass .hg-cap {
+  stroke-width: 2 !important;
+}
+.qs-hourglass .hg-sand {
+  fill: rgba(255, 255, 255, 0.92) !important;
+  stroke: none !important;
+}
+.qs-hourglass .hg-top {
+  transform-origin: 12px 11.4px;
+  animation: hgDrain 2600ms infinite;
+}
+.qs-hourglass .hg-bot {
+  transform-origin: 12px 19.4px;
+  animation: hgFill 2600ms infinite;
+}
+.qs-hourglass .hg-stream {
+  stroke: rgba(255, 255, 255, 0.95) !important;
+  stroke-width: 1.4 !important;
+  stroke-dasharray: 0.1 2.2;
+  fill: none !important;
+  animation: hgStream 2600ms linear infinite;
+}
+/* Drain over most of the cycle, then a springy half-turn. Turned over, a
+   full bottom bulb is a full top bulb, so the loop has no seam. */
+@keyframes hgDrain {
+  0% { transform: scaleY(1); }
+  76%, 100% { transform: scaleY(0.04); }
+}
+@keyframes hgFill {
+  0% { transform: scaleY(0.04); }
+  76%, 100% { transform: scaleY(1); }
+}
+@keyframes hgStream {
+  0% { stroke-dashoffset: 0; opacity: 1; }
+  70% { opacity: 1; }
+  76%, 100% { stroke-dashoffset: -16; opacity: 0; }
+}
+@keyframes hgTurn {
+  0%, 78% {
+    transform: rotate(0deg);
+    animation-timing-function: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.1, 1.083 30.4%, 1.019 38.4%, 0.996 42.6%, 0.984 46.9%, 0.986 52.7%, 1.001 65.8%, 1);
+  }
+  100% {
+    transform: rotate(180deg);
+  }
+}
+/* Putting it together: the sand keeps running, a touch quicker */
+.qs-status.is-stitching .qs-hourglass,
+.qs-status.is-stitching .qs-hourglass .hg-sand,
+.qs-status.is-stitching .qs-hourglass .hg-stream {
+  animation-duration: 1600ms !important;
 }
 .qs-status.qs-progressing .qs-status-text {
   flex: 1 !important;
@@ -7482,7 +7532,9 @@
     box-shadow 420ms ease !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  .qs-status-ring .qs-ring-arc,
+  .qs-hourglass,
+  .qs-hourglass .hg-sand,
+  .qs-hourglass .hg-stream,
   .qs-status-bar > i::after,
   .qs-status.is-stitching .qs-status-bar > i {
     animation: none !important;
@@ -7782,21 +7834,128 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px !important;
 }
+
+/* After a capture: labelled mini switches. The whole button toggles; the
+   track and knob carry the state so it reads as on/off at a glance. On is
+   raised with an accent track and the knob springs right; off is a quiet
+   recessed well with a grey track. No dead space: label left, switch
+   right, filling the column. */
+.qs-ps-chips {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px !important;
+}
 :where(.qs-peek-drawer) .qs-ps-chip {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
   min-width: 0;
+  height: 38px !important;
+  padding: 0 9px 0 13px !important;
+  border-radius: 999px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--pk-soft) !important;
+  background: var(--pk-well) !important;
+  box-shadow: inset 0 0 0 1px var(--pk-line) !important;
+  cursor: pointer;
   transition:
-    background-color 180ms ease,
-    box-shadow 180ms ease,
-    color 160ms ease,
-    transform 420ms linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.1, 1.083 30.4%, 1.019 38.4%, 0.996 42.6%, 0.984 46.9%, 0.986 52.7%, 1.001 65.8%, 1) !important;
+    background-color 220ms ease,
+    color 200ms ease,
+    box-shadow 220ms ease,
+    transform 460ms linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.1, 1.083 30.4%, 1.019 38.4%, 0.996 42.6%, 0.984 46.9%, 0.986 52.7%, 1.001 65.8%, 1) !important;
+}
+:where(.qs-peek-drawer) .qs-ps-chip:hover {
+  color: var(--pk-text) !important;
 }
 :where(.qs-peek-drawer) .qs-ps-chip:active {
-  transform: scale(0.95);
+  transform: scale(0.94) !important;
   transition-duration: 90ms !important;
+}
+:where(.qs-peek-drawer) .qs-ps-chip:focus-visible {
+  outline: 2px solid var(--tba2);
+  outline-offset: 2px;
+}
+:where(.qs-peek-drawer) .qs-ps-chip[aria-checked="true"] {
+  color: var(--pk-text) !important;
+  background: var(--pk-raised) !important;
+  box-shadow: var(--pk-raised-shadow) !important;
+}
+.qs-ps-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The switch: 28 x 17 track, 13 px knob */
+.qs-ps-chip .qs-ps-knob {
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px !important;
+  height: 17px !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--pk-text) 18%, transparent) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.14) !important;
+  transform: none !important;
+  transition: background-color 240ms ease !important;
+}
+.qs-ps-chip .qs-ps-knob::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.22),
+    0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  transition:
+    transform 480ms linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.1, 1.083 30.4%, 1.019 38.4%, 0.996 42.6%, 0.984 46.9%, 0.986 52.7%, 1.001 65.8%, 1),
+    width 200ms ease;
+}
+.qs-ps-chip:active .qs-ps-knob::after {
+  width: 16px;
+}
+.qs-ps-chip[aria-checked="true"] .qs-ps-knob {
+  background: linear-gradient(135deg, var(--tba1), var(--tba2)) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25) !important;
+}
+.qs-ps-chip[aria-checked="true"] .qs-ps-knob::after {
+  transform: translateX(11px);
+}
+.qs-ps-chip[aria-checked="true"]:active .qs-ps-knob::after {
+  transform: translateX(8px);
+}
+.qs-theme-glass-dark .qs-ps-chip .qs-ps-knob {
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+.qs-theme-glass-dark .qs-ps-chip[aria-checked="true"] .qs-ps-knob {
+  background: linear-gradient(135deg, var(--tba1), var(--tba2)) !important;
+}
+@media (max-width: 560px) {
+  .qs-ps-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qs-ps-chip .qs-ps-knob::after,
+  :where(.qs-peek-drawer) .qs-ps-chip {
+    transition-duration: 1ms !important;
+  }
 }
 .qs-peek-drawer {
   --pk-soft: rgba(27, 28, 42, 0.7);
 }
 .qs-theme-glass-dark .qs-peek-drawer {
   --pk-soft: rgba(242, 243, 248, 0.74);
+}
+
+/* The panel's tab pill slides on the same spring as the drawer */
+.qs-panel-tab-pill {
+  transition:
+    transform 560ms linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.4%, 1),
+    width 560ms linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.4%, 1) !important;
 }

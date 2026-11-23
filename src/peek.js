@@ -403,12 +403,29 @@ function showTab(tab, { instant = false } = {}) {
   }
 
   if (instant || prefersReducedMotion()) return;
+  // Liquid switch: the drawer springs to the new pane's height, the pane
+  // glides in from the side of the tab it came from, and the tab pill
+  // stretches toward its target before settling.
   const after = p.body.offsetHeight;
   if (before && after && before !== after) {
-    p.body.animate([{ height: `${before}px` }, { height: `${after}px` }], { duration: 280, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+    p.body.animate([{ height: `${before}px` }, { height: `${after}px` }], { duration: 620, easing: LIQUID });
   }
-  p[tab].animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+  const order = Object.keys(TABS);
+  const dir = order.indexOf(tab) > order.indexOf(s.prevTab ?? tab) ? 1 : -1;
+  s.prevTab = tab;
+  p[tab].animate(
+    [
+      { opacity: 0, transform: `translateX(${dir * 18}px) scale(0.985)` },
+      { opacity: 1, transform: "none" },
+    ],
+    { duration: 560, easing: LIQUID },
+  );
+  const pill = p.tabs.querySelector(".qs-panel-tab-pill");
+  pill?.animate([{ scale: "1 1" }, { scale: "1.08 0.92", offset: 0.35 }, { scale: "1 1" }], { duration: 420, easing: "ease-out" });
 }
+
+const LIQUID =
+  "linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.4%, 1)";
 
 function placeTabPill() {
   const p = s.panes;

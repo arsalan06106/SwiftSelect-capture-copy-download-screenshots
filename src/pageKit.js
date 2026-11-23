@@ -340,6 +340,110 @@ if (typeof document !== "undefined") {
 let _rail = null;
 
 /** toast("Copied") or toast("Deleted", { action: "Undo", onAction, error }). */
+// ─── Liquid motion helpers ───────────────────────────────────────────
+// The same spring the capture pill uses when progress turns into the
+// result. Shared so every morph in the pages moves alike.
+export const LIQUID =
+  "linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001 85.4%, 1)";
+export const LIQUID_BOUNCE =
+  "linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.099 24.3%, 1.108 26%, 1.1, 1.083 30.4%, 1.019 38.4%, 0.996 42.6%, 0.984 46.9%, 0.986 52.7%, 1.001 65.8%, 1)";
+
+function reducedMotion() {
+  try {
+    return matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Change an element's contents and let it spring to its new size: the box
+ * goes from its old width/height to the new one on the liquid spring while
+ * the new contents rise in. `mutate` makes the change synchronously.
+ */
+export function morph(el, mutate, { duration = 600, contents = true } = {}) {
+  if (!el || !el.isConnected || reducedMotion() || el.offsetParent === null) {
+    mutate();
+    return;
+  }
+  const a = el.getBoundingClientRect();
+  mutate();
+  const b = el.getBoundingClientRect();
+  el.getAnimations().forEach((x) => x.id === "morph" && x.cancel());
+  if (Math.abs(a.width - b.width) > 1 || Math.abs(a.height - b.height) > 1) {
+    const anim = el.animate(
+      [
+        { width: `${a.width}px`, height: `${a.height}px` },
+        { width: `${b.width}px`, height: `${b.height}px` },
+      ],
+      { duration, easing: LIQUID },
+    );
+    anim.id = "morph";
+  }
+  if (contents) {
+    for (const child of el.children) {
+      child.animate(
+        [
+          { opacity: 0, transform: "translateY(5px) scale(0.92)" },
+          { opacity: 1, transform: "none" },
+        ],
+        { duration: Math.round(duration * 0.75), easing: LIQUID_BOUNCE },
+      );
+    }
+  }
+}
+
+/**
+ * The button itself says it worked: it morphs into a green "done" state
+ * (check + label), holds for a beat, then morphs back. Text buttons show
+ * the label; icon buttons just the check.
+ */
+const _confirmTimers = new WeakMap();
+export function confirmButton(btn, label = "Done", { hold = 1500 } = {}) {
+  if (!btn) return;
+  clearTimeout(_confirmTimers.get(btn));
+  if (!btn.dataset.restore) btn.dataset.restore = btn.innerHTML;
+  const iconOnly = btn.classList.contains("btn-icon");
+  morph(btn, () => {
+    btn.classList.add("is-confirmed");
+    btn.innerHTML = icon("check") + (iconOnly ? "" : `<span>${label}</span>`);
+  });
+  _confirmTimers.set(
+    btn,
+    setTimeout(() => {
+      if (!btn.isConnected) return;
+      morph(btn, () => {
+        btn.classList.remove("is-confirmed");
+        btn.innerHTML = btn.dataset.restore;
+        delete btn.dataset.restore;
+      });
+    }, hold),
+  );
+}
+
+/**
+ * Animate a set of elements from where they were to where they are after
+ * `mutate` (FLIP), on the spring. Used where items appear, leave or reorder.
+ */
+export function flip(elements, mutate, { duration = 560 } = {}) {
+  const list = [...elements].filter(Boolean);
+  if (reducedMotion()) {
+    mutate();
+    return;
+  }
+  const first = new Map(list.map((el) => [el, el.getBoundingClientRect()]));
+  mutate();
+  for (const el of list) {
+    if (!el.isConnected) continue;
+    const a = first.get(el);
+    const b = el.getBoundingClientRect();
+    const dx = a.left - b.left;
+    const dy = a.top - b.top;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) continue;
+    el.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], { duration, easing: LIQUID, composite: "add" });
+  }
+}
+
 export function toast(message, { action = "", onAction = null, error = false, duration = 2600 } = {}) {
   if (!_rail) {
     _rail = document.createElement("div");
@@ -375,11 +479,17 @@ export function toast(message, { action = "", onAction = null, error = false, du
   text.textContent = message;
   el.appendChild(text);
 
+  // Leaving, the others glide into the gap instead of jumping.
+  const removeNow = () => {
+    if (!el.isConnected) return;
+    const rest = [..._rail.children].filter((c) => c !== el);
+    flip(rest, () => el.remove());
+  };
   const dismiss = () => {
     if (el.classList.contains("is-leaving")) return;
     el.classList.add("is-leaving");
-    el.addEventListener("animationend", () => el.remove(), { once: true });
-    setTimeout(() => el.remove(), 400);
+    el.addEventListener("animationend", removeNow, { once: true });
+    setTimeout(removeNow, 400);
   };
 
   if (action) {
@@ -393,7 +503,8 @@ export function toast(message, { action = "", onAction = null, error = false, du
     el.appendChild(btn);
   }
 
-  _rail.appendChild(el);
+  // Arriving, the ones already showing make room on the spring.
+  flip([..._rail.children], () => _rail.appendChild(el));
 
   // The countdown pauses while the pointer rests on the toast, so an Undo
   // never slips away while someone is reaching for it.

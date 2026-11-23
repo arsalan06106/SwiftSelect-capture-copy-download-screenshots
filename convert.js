@@ -11,7 +11,7 @@
 import { addCapture, getCapture, formatBytes } from "./src/storage.js";
 import { getSettings, DEFAULTS as SETTINGS_DEFAULTS } from "./src/settings.js";
 import { downloadBlobFile } from "./src/downloadFile.js";
-import { icon, hydrateIcons, enableSheen, mountPill, toast, formatNumber, hideTooltip } from "./src/pageKit.js";
+import { icon, hydrateIcons, enableSheen, mountPill, toast, formatNumber, hideTooltip, morph, confirmButton } from "./src/pageKit.js";
 import {
   DEFAULT_PREFS,
   FORMATS,
@@ -664,7 +664,11 @@ function renderSummary() {
   $("save-gallery").disabled = !done.length || busy;
   $("zip").hidden = done.length < 2;
   $("zip").disabled = busy;
-  $("download-label").textContent = done.length > 1 ? `Download ${formatNumber(done.length)} files` : "Download";
+  const dlLabel = $("download-label");
+  const dlText = done.length > 1 ? `Download ${formatNumber(done.length)} files` : "Download";
+  if (dlLabel && dlLabel.textContent !== dlText && !$("download-all").classList.contains("is-confirmed")) {
+    morph($("download-all"), () => (dlLabel.textContent = dlText), { contents: false });
+  }
 }
 
 // ─── Interactive Split / Original / Converted quality inspector ──────
@@ -779,6 +783,7 @@ function downloadItems(list) {
     else setTimeout(run, i * 140);
   });
   toast(ready.length === 1 ? "Download started" : `Downloading ${formatNumber(ready.length)} files`);
+  if (list === items) confirmButton($("download-all"), ready.length === 1 ? "Downloaded" : `${formatNumber(ready.length)} downloaded`);
 }
 
 async function downloadZip(list) {
@@ -794,6 +799,7 @@ async function downloadZip(list) {
     const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     downloadBlobFile(zip, `SwiftSelect converted ${stamp}.zip`);
     toast(`Downloading ${formatNumber(ready.length)} files as one ZIP`);
+    confirmButton(btn);
   } catch (err) {
     toast("Could not build the ZIP", { error: true });
     console.warn("SwiftSelect: zip failed", err);
@@ -822,15 +828,7 @@ async function saveToGallery() {
     }
     if (saved) {
       toast(saved === 1 ? "Saved to Gallery under Converted" : `Saved ${formatNumber(saved)} images to Gallery under Converted`);
-      if (btn && label) {
-        const origLabel = label.textContent;
-        btn.classList.add("is-saved-flash");
-        label.textContent = "Saved!";
-        setTimeout(() => {
-          btn.classList.remove("is-saved-flash");
-          label.textContent = origLabel;
-        }, 1400);
-      }
+      if (btn) confirmButton(btn, "Saved");
     } else {
       toast("Could not save to the Gallery", { error: true });
     }

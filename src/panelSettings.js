@@ -7,9 +7,6 @@
 import { getSettings, setSettings, wantsCopy, wantsDownload, destinationFromToggles } from "./settings.js";
 import { pickToolbarLook } from "./capture/utils.js";
 
-const CHECK =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
-
 function field(label, key, options) {
   return `<div class="qs-ps-field"><span class="qs-ps-label">${label}</span>
     <div class="qs-ps-seg" role="radiogroup" aria-label="${label}" data-key="${key}">${options
@@ -17,8 +14,10 @@ function field(label, key, options) {
       .join("")}</div></div>`;
 }
 
+// Each option is a labelled mini switch: the label says what it does, the
+// track and knob say whether it is on, the way every switch does.
 function chip(key, label) {
-  return `<button type="button" class="qs-ps-chip" role="switch" data-toggle="${key}"><i>${CHECK}</i>${label}</button>`;
+  return `<button type="button" class="qs-ps-chip" role="switch" aria-label="${label}" data-toggle="${key}"><span class="qs-ps-chip-label">${label}</span><i class="qs-ps-knob" aria-hidden="true"></i></button>`;
 }
 
 export function mountSettingsTab(root) {

@@ -1040,9 +1040,15 @@ export function showProgressStatus({ title = "Capturing page", total = 0 } = {})
 
   const iconEl = document.createElement("div");
   iconEl.className = "qs-status-icon";
+  // An hourglass: sand drains from the top bulb, grains fall, and when the
+  // top is empty the glass turns over on a spring and starts again.
   iconEl.innerHTML =
-    '<svg class="qs-status-ring" viewBox="0 0 24 24" fill="none" stroke-linecap="round">' +
-    '<circle class="qs-ring-track" cx="12" cy="12" r="8.5"/><circle class="qs-ring-arc" cx="12" cy="12" r="8.5"/></svg>';
+    '<svg class="qs-hourglass" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path class="hg-sand hg-top" d="M8.6 5.6h6.8c-.5 2.2-3.1 3.9-3.4 5.7-.3-1.8-2.9-3.5-3.4-5.7z"/>' +
+    '<path class="hg-sand hg-bot" d="M8.7 19.4h6.6c-.2-1.9-1.9-3-3.3-3.7-1.4.7-3.1 1.8-3.3 3.7z"/>' +
+    '<path class="hg-stream" d="M12 11.6v7.2"/>' +
+    '<path class="hg-glass" d="M8 3.5c0 4.2 3.6 5.6 3.6 8.5S8 16.3 8 20.5M16 3.5c0 4.2-3.6 5.6-3.6 8.5S16 16.3 16 20.5"/>' +
+    '<path class="hg-cap" d="M6.5 3.5h11M6.5 20.5h11"/></svg>';
   const text = document.createElement("span");
   text.className = "qs-status-text";
   const b = document.createElement("b");

@@ -39,6 +39,7 @@ import {
   formatDateTime,
   formatRelative,
   send,
+  confirmButton,
 } from "./src/pageKit.js";
 
 const $ = (id) => document.getElementById(id);
@@ -582,6 +583,7 @@ async function copyRecord(r, card) {
       setTimeout(() => card.classList.remove("is-copied"), 1400);
     } else {
       toast("Copied to clipboard");
+      confirmButton($("lb-copy"), "Copied");
     }
   } catch (err) {
     console.warn("SwiftSelect: copy failed", err);
@@ -614,6 +616,7 @@ async function downloadRecordAsPdf(r) {
     const name = filenameFor(r).replace(/\.[a-z0-9]{2,5}$/i, "") + ".pdf";
     await downloadBlobFile(pdf, name);
     toast(`Saved as PDF (${formatBytes(pdf.size)})`);
+    confirmButton(btn);
   } catch (err) {
     console.warn("SwiftSelect: PDF export failed", err);
     toast("Could not make the PDF", { error: true });
@@ -1486,7 +1489,9 @@ function wireLightbox() {
   });
   $("lb-download").addEventListener("click", () => {
     const r = currentLightboxRecord();
-    if (r) downloadRecords([r]);
+    if (!r) return;
+    downloadRecords([r]);
+    confirmButton($("lb-download"), "Downloaded");
   });
   $("lb-pdf")?.addEventListener("click", () => downloadRecordAsPdf(currentLightboxRecord()));
   $("lb-convert")?.addEventListener("click", () => {

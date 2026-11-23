@@ -6054,15 +6054,11 @@ html[data-theme="dark"] .cv-delta.is-larger {
 }
 
 /* Compact topbar Developer Info button & sculpted liquid-glass popover */
+/* The developer card is reachable from every view of the Gallery */
 .cv-info-wrap {
-  display: none;
+  display: block;
   position: relative;
   flex-shrink: 0;
-}
-
-body.is-convert .cv-info-wrap,
-body.is-settings .cv-info-wrap {
-  display: block;
 }
 
 #cv-info-btn[aria-expanded="true"] {
@@ -9803,4 +9799,45 @@ html[data-theme="dark"] {
 html[data-theme="dark"] .cv-output-title code,
 html[data-theme="dark"] .cv-name-preview code {
   color: var(--text-2);
+}
+
+/* ── Buttons that answer on themselves ──────────────────────────────────
+   After Download, ZIP or To Gallery the button morphs into a green "done"
+   state on the liquid spring (see confirmButton in pageKit.js), the check
+   draws itself in, and a beat later it morphs back. */
+.btn.is-confirmed,
+#cv-download-all,
+#cv-save-gallery {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.btn.is-confirmed,
+.btn.is-confirmed:hover {
+  color: #fff !important;
+  background: linear-gradient(160deg, #4cd98a, #11a65a) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+    0 8px 18px -10px rgba(17, 166, 90, 0.8) !important;
+  pointer-events: none;
+}
+.btn.is-confirmed .icon {
+  color: #fff !important;
+  stroke-width: 2.4;
+}
+.btn.is-confirmed .icon path {
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  animation: btn-check-draw 360ms cubic-bezier(0.22, 1, 0.36, 1) 80ms forwards;
+}
+@keyframes btn-check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.is-confirmed .icon path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
 }
