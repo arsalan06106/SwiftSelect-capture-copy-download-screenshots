@@ -134,8 +134,11 @@ function handleRequest(req, res) {
     return send(res, 400, "text/plain; charset=utf-8", "Bad request", method);
   }
 
-  // Default route opens the Chrome Web Store v2 Asset Studio showcase (live extension remains at /gallery.html).
-  if (pathname === "/" || pathname === "/store-assets-v2.html") {
+  // Default route opens Swift Gallery (including embedded Annotate Studio, Batch Converter, and Settings).
+  if (pathname === "/") {
+    return sendShimmedHtml(res, path.join(__dirname, "gallery.html"), method);
+  }
+  if (pathname === "/store-assets-v2.html") {
     return sendFile(res, path.join(__dirname, "store-assets-v2.html"), method);
   }
 

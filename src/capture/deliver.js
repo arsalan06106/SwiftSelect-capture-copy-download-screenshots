@@ -38,12 +38,12 @@ function send(message) {
  * chunks when it is large enough to threaten the message size ceiling.
  * Never throws: the gallery is a convenience, not part of the capture path.
  */
-export async function saveToGallery(blob, meta = {}, { force = false } = {}) {
+export async function saveToGalleryRecord(blob, meta = {}, { force = false } = {}) {
   try {
-    if (!blob) return false;
+    if (!blob) return { ok: false, id: null };
     if (!force) {
       const { saveToGallery: enabled } = await getOutputSettings();
-      if (!enabled) return false;
+      if (!enabled) return { ok: false, id: null };
     }
 
     const payload = {
@@ -57,13 +57,14 @@ export async function saveToGallery(blob, meta = {}, { force = false } = {}) {
     const dataUrl = await blobToDataUrl(blob);
     if (dataUrl.length <= CHUNK_CHARS) {
       const resp = await send({ type: "gallery-save", dataUrl, meta: payload });
-      return !!resp?.success;
+      return { ok: !!resp?.success, id: resp?.id ?? null };
     }
 
     const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const total = Math.ceil(dataUrl.length / CHUNK_CHARS);
+    let lastResp = null;
     for (let i = 0; i < total; i++) {
-      const resp = await send({
+      lastResp = await send({
         type: "gallery-save-chunk",
         key,
         index: i,
@@ -71,13 +72,18 @@ export async function saveToGallery(blob, meta = {}, { force = false } = {}) {
         chunk: dataUrl.slice(i * CHUNK_CHARS, (i + 1) * CHUNK_CHARS),
         meta: i === total - 1 ? payload : undefined,
       });
-      if (!resp?.success) return false;
+      if (!lastResp?.success) return { ok: false, id: null };
     }
-    return true;
+    return { ok: true, id: lastResp?.id ?? null };
   } catch (err) {
     console.debug("SwiftSelect: gallery save skipped", err);
-    return false;
+    return { ok: false, id: null };
   }
+}
+
+export async function saveToGallery(blob, meta = {}, opts = {}) {
+  const res = await saveToGalleryRecord(blob, meta, opts);
+  return !!res.ok;
 }
 
 /**

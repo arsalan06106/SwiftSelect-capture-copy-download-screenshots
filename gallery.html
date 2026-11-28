@@ -58,6 +58,9 @@
             </button>
 
             <div class="nav-label nav-types">Tools</div>
+            <button type="button" class="nav-item" data-filter="annotate">
+              <i data-icon="annotated"></i><span>Annotate</span>
+            </button>
             <button type="button" class="nav-item" data-filter="convert">
               <i data-icon="sparkle"></i><span>Batch Converter</span>
             </button>
@@ -716,6 +719,7 @@
             <button type="button" class="bulk-btn" data-bulk="copy" data-tip="Copy to clipboard"><i data-icon="copy"></i><span>Copy</span></button>
             <button type="button" class="bulk-btn" data-bulk="favorite" data-tip="Add to Favorites"><i data-icon="star"></i><span class="bulk-fav-label">Favorite</span></button>
             <button type="button" class="bulk-btn" data-bulk="download" data-tip="Download the files"><i data-icon="download"></i><span>Download</span></button>
+            <button type="button" class="bulk-btn" data-bulk="annotate" data-tip="Open or stitch in Annotate Studio"><i data-icon="annotated"></i><span>Annotate</span></button>
             <button type="button" class="bulk-btn" data-bulk="convert" data-tip="Open in the Batch Converter"><i data-icon="convert"></i><span>Convert</span></button>
             <button type="button" class="bulk-btn bulk-btn-danger" data-bulk="trash" data-tip="Move to Trash · Del"><i data-icon="trash"></i><span>Trash</span></button>
           </div>
@@ -748,6 +752,9 @@
       <button type="button" class="btn btn-icon lb-nav prev glass" id="lb-prev" aria-label="Previous" data-tip="Previous · ←" data-tip-pos="right"><i data-icon="prev"></i></button>
       <button type="button" class="btn btn-icon lb-nav next glass" id="lb-next" aria-label="Next" data-tip="Next · →" data-tip-pos="left"><i data-icon="next"></i></button>
     </div>
+
+    <!-- Full-screen Liquid Glass Annotate Bar overlay (opens in-place over Swift Gallery) -->
+    <section class="st-overlay" id="annotate-view" role="dialog" aria-modal="true" aria-label="Annotate" hidden></section>
 
     <script type="module" src="gallery.js"></script>
   </body>

@@ -527,7 +527,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
   if (message?.type === "open-annotate") {
-    chrome.tabs.create({ url: chrome.runtime.getURL(`annotate.html?id=${encodeURIComponent(message.id)}`) });
+    const ids = (Array.isArray(message.ids) ? message.ids : message.id ? [message.id] : [])
+      .map(Number)
+      .filter((n) => n > 0);
+    openExtensionPage("gallery.html", { hash: ids.length ? `#annotate/${ids.join(",")}` : "#annotate" });
     sendResponse?.({ success: true });
     return false;
   }

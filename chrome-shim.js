@@ -245,6 +245,13 @@
         return { success: true };
       }
 
+      case "open-annotate": {
+        const list = Array.isArray(message.ids) ? message.ids : message.id ? [message.id] : [];
+        const clean = list.map(Number).filter((n) => n > 0);
+        location.href = clean.length ? `gallery.html#annotate/${clean.join(",")}` : "gallery.html#annotate";
+        return { success: true };
+      }
+
       case "gallery-save":
         try {
           return await saveDataUrlToGallery(message.dataUrl, message.meta);

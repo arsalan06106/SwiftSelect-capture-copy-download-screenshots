@@ -18,7 +18,7 @@
 
 import { getSmartFilename, getOutputSettings, getOutputSettingsSync, cropSnapshotToMedia, currentToolbarLook } from "./utils.js";
 import { setLastBlob, downloadBlob } from "./download.js";
-import { saveToGallery } from "./deliver.js";
+import { saveToGallery, saveToGalleryRecord } from "./deliver.js";
 import { loadStyles, getCachedCssText, attachTooltip, hideCustomTooltip, trackSheen, setTooltipGuard } from "../ui.js";
 import { encodePngToIco, ICO_MAX_EDGE } from "../converter/rules.js";
 import { imageToPdf } from "../pdf.js";
@@ -2225,6 +2225,44 @@ function buildAnnotationUI() {
   };
   actionsGroup.appendChild(dlSplit);
 
+  // Open Local Image (load any local image directly into the in-page annotator)
+  const localFileInput = document.createElement("input");
+  localFileInput.type = "file";
+  localFileInput.accept = "image/*";
+  localFileInput.style.display = "none";
+  localFileInput.onchange = async () => {
+    const file = localFileInput.files?.[0];
+    localFileInput.value = "";
+    if (!file) return;
+    await loadLocalImageIntoAnnotator(file);
+  };
+  _annotateHost.appendChild(localFileInput);
+
+  const openLocalBtn = document.createElement("button");
+  openLocalBtn.className = "qs-guide-btn circle";
+  openLocalBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+  attachTooltip(openLocalBtn, "Open Local Image", "Annotate an image from your device (or paste with Ctrl+V)", "", 200, _annotateHost);
+  openLocalBtn.onclick = (e) => {
+    e?.stopPropagation?.();
+    hideCustomTooltip();
+    localFileInput.click();
+  };
+  actionsGroup.appendChild(openLocalBtn);
+
+  // Open in Full Annotate Studio (layers, filters, frames, templates, stitching)
+  const studioBtn = document.createElement("button");
+  studioBtn.className = "qs-guide-btn circle";
+  studioBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/></svg>';
+  attachTooltip(studioBtn, "Open in Full Studio", "Layers, filters, frames, templates & multi-image stitching", "", 200, _annotateHost);
+  studioBtn.onclick = async (e) => {
+    e?.stopPropagation?.();
+    hideCustomTooltip();
+    await handleOpenInFullStudio();
+  };
+  actionsGroup.appendChild(studioBtn);
+
   // Save to Gallery
   const galleryBtn = document.createElement("button");
   galleryBtn.className = "qs-guide-btn circle";
@@ -2384,6 +2422,7 @@ function buildAnnotationUI() {
   window.addEventListener("pointermove", onCanvasPointerMove);
   window.addEventListener("pointerup", onCanvasPointerUp);
   window.addEventListener("keydown", onAnnotateKeyDown, true);
+  window.addEventListener("paste", onAnnotatePaste, true);
 
   (document.body || document.documentElement).appendChild(_annotateHost);
 
@@ -4330,6 +4369,80 @@ async function handleSaveToGallery() {
   return ok;
 }
 
+async function loadLocalImageIntoAnnotator(file) {
+  if (!file || !file.type?.startsWith("image/")) return;
+  try {
+    const url = URL.createObjectURL(file);
+    const nextImg = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(im);
+      };
+      im.onerror = (err) => {
+        URL.revokeObjectURL(url);
+        reject(err);
+      };
+      im.src = url;
+    });
+    const prevImage = _baseImage;
+    const prevShapes = JSON.parse(JSON.stringify(_shapes));
+    _baseImage = nextImg;
+    _shapes = [];
+    _selectedShapeIndex = -1;
+    _undoStack.push({
+      type: "crop",
+      prevImage,
+      nextImage: nextImg,
+      prevShapes,
+      nextShapes: [],
+    });
+    _redoStack = [];
+    _sourceMeta = {
+      ..._sourceMeta,
+      title: (file.name || "Local Image").replace(/\.[^.]+$/, ""),
+    };
+    const titleEl = _infoEl?.querySelector?.(".qs-stage-title");
+    if (titleEl) titleEl.textContent = _sourceMeta.title;
+    renderCanvas();
+    chooseOpeningZoom();
+    updateHistoryUI();
+    notify(`Loaded ${file.name || "image"}`, "saved");
+  } catch {
+    notify("Could not load that image", "error");
+  }
+}
+
+async function handleOpenInFullStudio() {
+  const { mime, quality } = await getOutputSettings();
+  const out = await exportBlob(mime, quality);
+  if (!out) return false;
+  const res = await saveToGalleryRecord(
+    out.blob,
+    { type: "annotated", width: out.width, height: out.height, title: _sourceMeta.title, url: _sourceMeta.url },
+    { force: true },
+  );
+  if (res.ok) _markSaved();
+  try {
+    chrome.runtime.sendMessage({ type: "open-annotate", id: res.id || undefined });
+  } catch {}
+  closeAnnotationEditor();
+  return !!res.ok;
+}
+
+function onAnnotatePaste(e) {
+  if (!_annotateHost) return;
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+  const items = [...(e.clipboardData?.items || [])];
+  const imgItem = items.find((it) => it.type && it.type.startsWith("image/"));
+  if (!imgItem) return;
+  const file = imgItem.getAsFile();
+  if (!file) return;
+  e.preventDefault();
+  e.stopPropagation();
+  loadLocalImageIntoAnnotator(file);
+}
+
 function onAnnotateKeyDown(e) {
   if (e.key === "Escape") {
     if (cancelPendingHighlight()) return;
@@ -4484,6 +4597,7 @@ export function closeAnnotationEditor() {
   window.removeEventListener("pointermove", onCanvasPointerMove);
   window.removeEventListener("pointerup", onCanvasPointerUp);
   window.removeEventListener("keydown", onAnnotateKeyDown, true);
+  window.removeEventListener("paste", onAnnotatePaste, true);
   if (_onStageResize) window.removeEventListener("resize", _onStageResize);
   _onStageResize = null;
   if (_onToolbarResize) window.removeEventListener("resize", _onToolbarResize);

@@ -42,6 +42,7 @@ export const CHROME_STORE_FILES = [
   "options.js",
   "convert.html",
   "convert.js",
+  "studio.js",
 
   // Unbundled runtime ES modules & redirect scripts imported by extension pages
   "src/storage.js",
@@ -55,6 +56,8 @@ export const CHROME_STORE_FILES = [
   "src/convertRedirect.js",
   "src/converter/rules.js",
   "src/converter/engine.js",
+  "src/editor/model.js",
+  "src/editor/renderer.js",
   "src/pdf.js",
 
   // Icons

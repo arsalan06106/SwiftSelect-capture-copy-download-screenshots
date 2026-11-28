@@ -169,6 +169,10 @@ async function init() {
     await send({ type: "open-gallery" });
     window.close();
   };
+  const goStudio = async () => {
+    await send({ type: "open-annotate" });
+    window.close();
+  };
 
   if (view === "file-access" || (url.startsWith("file://") && !(await chrome.extension.isAllowedFileSchemeAccess()))) {
     showNotice({
@@ -204,6 +208,7 @@ async function init() {
         }),
       );
     }
+    actions.push(link("Open Annotate Studio", goStudio));
     actions.push(link("Open Gallery instead", goGallery));
     showNotice({
       glyph: "lock",
@@ -241,6 +246,7 @@ async function init() {
     window.close();
   });
   $("open-gallery").addEventListener("click", goGallery);
+  $("open-studio")?.addEventListener("click", goStudio);
   $("open-convert").addEventListener("click", async () => {
     await send({ type: "open-convert" });
     window.close();

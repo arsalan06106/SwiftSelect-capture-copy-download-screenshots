@@ -87,6 +87,7 @@ const TOOL_VIEWS = {
   convert: { el: "convert-view", title: "Batch Converter", sub: "Convert, resize and compress. Nothing leaves this device." },
 };
 const isToolView = (filter = state.filter) => filter in TOOL_VIEWS;
+const isAnnotateOpen = () => !$("annotate-view")?.hidden;
 
 /** Title for a library view; Settings (and anything unknown) reads as All. */
 const filterTitle = (filter) => FILTER_TITLE[filter] || FILTER_TITLE.all;
@@ -628,7 +629,9 @@ async function downloadRecordAsPdf(r) {
 }
 
 function annotateRecord(r) {
-  location.href = `annotate.html?id=${encodeURIComponent(r.id)}`;
+  if (!r) return;
+  if (lightbox.classList.contains("is-open")) closeLightbox();
+  openAnnotateWith([r.id]);
 }
 
 function cardsFor(ids) {
@@ -1201,6 +1204,7 @@ function stepLightbox(delta) {
 
 let settingsModule = null;
 let converterModule = null;
+let studioModule = null;
 
 const prefersReducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1275,7 +1279,39 @@ async function openConverterWith(ids) {
   await converterModule.addCaptureIds(ids);
 }
 
-/** #settings, #settings/shortcuts, #convert, #convert/3,7, #trash … */
+function closeAnnotateOverlay() {
+  const overlay = $("annotate-view");
+  if (!overlay || overlay.hidden) return;
+  overlay.classList.remove("is-open");
+  overlay.hidden = true;
+  document.body.classList.remove("is-annotate");
+  try {
+    const cleanHash = state.filter === "all" ? location.pathname : `${location.pathname}#${state.filter}`;
+    if (location.hash.startsWith("#annotate")) history.replaceState(null, "", cleanHash);
+  } catch {}
+  load();
+}
+
+async function openAnnotateWith(ids = []) {
+  clearSelection();
+  if (lightbox.classList.contains("is-open")) closeLightbox();
+  const overlay = $("annotate-view");
+  if (!overlay) return;
+  overlay.hidden = false;
+  document.body.classList.add("is-annotate");
+  requestAnimationFrame(() => overlay.classList.add("is-open"));
+  try {
+    history.replaceState(null, "", `${location.pathname}#annotate`);
+  } catch {}
+  studioModule ||= await import("./studio.js");
+  await studioModule.mountStudio({ onClose: closeAnnotateOverlay, onSaved: () => load() });
+  const list = (Array.isArray(ids) ? ids : ids ? [ids] : []).map(Number).filter((n) => n > 0);
+  if (list.length) {
+    await studioModule.openStudioWithCaptures(list, "open");
+  }
+}
+
+/** #settings, #settings/shortcuts, #convert, #convert/3,7, #annotate, #annotate/3,7, #trash … */
 function routeFromHash() {
   const [view, section] = location.hash.replace(/^#/, "").split("/");
   if (view === "capture") {
@@ -1288,11 +1324,17 @@ function routeFromHash() {
     } catch {}
     return;
   }
+  if (view === "annotate") {
+    const ids = String(section || "").split(",").map(Number).filter((n) => n > 0);
+    openAnnotateWith(ids);
+    return;
+  }
+  if (isAnnotateOpen()) closeAnnotateOverlay();
   const known = [...document.querySelectorAll(".nav-item")].map((n) => n.dataset.filter);
   if (view && known.includes(view)) setFilter(view, { section, fromHash: true });
   if (view === "convert" && section) {
     try {
-      history.replaceState(null, "", `${location.pathname}#convert`);
+      history.replaceState(null, "", `${location.pathname}#${view}`);
     } catch {}
   }
 }
@@ -1451,6 +1493,7 @@ function wireHeaderAndBulk() {
     }
     else if (kind === "favorite") toggleFavorite(ids, b.dataset.mode !== "off");
     else if (kind === "download") downloadRecords(selectedRecords());
+    else if (kind === "annotate") openAnnotateWith(ids);
     else if (kind === "convert") openConverterWith(ids);
     else if (kind === "trash") moveToTrash(ids);
     else if (kind === "restore") restoreFromTrash(ids);
@@ -1523,6 +1566,7 @@ function wireKeyboard() {
   document.addEventListener("keydown", (e) => {
     const typing = ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
     if (document.querySelector(".modal-root.is-open")) return;
+    if (isAnnotateOpen()) return;
     if (isToolView()) return;
 
     if (lightbox.classList.contains("is-open")) {
@@ -1635,7 +1679,12 @@ async function init() {
 
   $("nav").addEventListener("click", (e) => {
     const item = e.target.closest(".nav-item");
-    if (item) setFilter(item.dataset.filter);
+    if (!item) return;
+    if (item.dataset.filter === "annotate") {
+      openAnnotateWith([]);
+      return;
+    }
+    setFilter(item.dataset.filter);
   });
   $("view-toggle").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-view]");

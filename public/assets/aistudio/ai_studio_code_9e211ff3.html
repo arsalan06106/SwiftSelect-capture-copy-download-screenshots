@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#121316" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Gradia Web — Screenshot Beautifier</title>
+  <style>
+    :root {
+      --bg: #121316;
+      --surface: #1c1e24;
+      --surface-hover: #262932;
+      --border: #2e323d;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 780px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 4px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-hover);
+    }
+
+    /* Upload / Preview Stage */
+    .stage {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding: 16px;
+      /* Subtle checkerboard for transparent backgrounds */
+      background-image: 
+        linear-gradient(45deg, #181a20 25%, transparent 25%), 
+        linear-gradient(-45deg, #181a20 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #181a20 75%), 
+        linear-gradient(-45deg, transparent 75%, #181a20 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    .upload-prompt {
+      text-align: center;
+      padding: 40px 20px;
+      cursor: pointer;
+      width: 100%;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .upload-prompt:hover, .upload-prompt.dragover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.06);
+    }
+
+    .upload-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.12);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+    }
+
+    .upload-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .upload-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    canvas {
+      max-width: 100%;
+      max-height: 58dvh;
+      width: auto;
+      height: auto;
+      border-radius: 8px;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Action Buttons */
+    .actions {
+      display: none;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-action {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+
+    .btn-action:hover {
+      background: var(--surface-hover);
+    }
+
+    /* Controls Panel */
+    .controls {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: none;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .control-value {
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Background Swatches */
+    .swatches {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+
+    .swatches::-webkit-scrollbar {
+      display: none;
+    }
+
+    .swatch {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.15s, border-color 0.15s;
+      position: relative;
+    }
+
+    .swatch.active {
+      border-color: var(--accent);
+      transform: scale(1.08);
+    }
+
+    .swatch-transparent {
+      background-image: 
+        linear-gradient(45deg, #ccc 25%, transparent 25%), 
+        linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #ccc 75%), 
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+      background-size: 10px 10px;
+      background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+      background-color: #fff;
+    }
+
+    /* Sliders Grid */
+    .sliders-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 999px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #10b981;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    #fileInput {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Top Bar -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="4"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+        </div>
+        <span>Gradia Web</span>
+      </div>
+      <button class="btn-secondary" id="changeImageBtn" style="display: none;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        New Image
+      </button>
+    </header>
+
+    <!-- Hidden File Input (supports 1 or multiple images for side-by-side stitch) -->
+    <input type="file" id="fileInput" accept="image/*" multiple />
+
+    <!-- Main Stage -->
+    <div class="stage" id="stage">
+      <div class="upload-prompt" id="uploadPrompt">
+        <div class="upload-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3" ry="3"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </div>
+        <div class="upload-title">Tap to select screenshot(s)</div>
+        <div class="upload-subtitle">
+          Select 1 image, or select 2 images to stitch side-by-side!<br/>
+          You can also paste (Ctrl+V) or drag & drop here.
+        </div>
+      </div>
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <!-- Primary Export Actions -->
+    <div class="actions" id="actionsBar">
+      <button class="btn-primary" id="downloadBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download PNG
+      </button>
+      <button class="btn-action" id="shareBtn" title="Share or Save to Photos">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="5" r="3"/>
+          <circle cx="6" cy="12" r="3"/>
+          <circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        Share
+      </button>
+      <button class="btn-action" id="copyBtn" title="Copy to Clipboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Customization Controls -->
+    <div class="controls" id="controlsPanel">
+      <div class="control-group">
+        <div class="control-header">
+          <span>Background</span>
+          <span class="control-value" id="bgLabel">Pure White</span>
+        </div>
+        <div class="swatches" id="swatches">
+          <!-- Default Pure White matching reference image -->
+          <div class="swatch active" data-bg="solid:#ffffff" data-name="Pure White" style="background: #ffffff;"></div>
+          <div class="swatch swatch-transparent" data-bg="transparent" data-name="Transparent"></div>
+          <div class="swatch" data-bg="solid:#f1f5f9" data-name="Soft Gray" style="background: #f1f5f9;"></div>
+          <div class="swatch" data-bg="solid:#18181b" data-name="Dark Carbon" style="background: #18181b;"></div>
+          <div class="swatch" data-bg="grad:#e0c3fc,#8ec5fc" data-name="Lavender Sky" style="background: linear-gradient(135deg, #e0c3fc, #8ec5fc);"></div>
+          <div class="swatch" data-bg="grad:#ffecd2,#fcb69f" data-name="Warm Peach" style="background: linear-gradient(135deg, #ffecd2, #fcb69f);"></div>
+          <div class="swatch" data-bg="grad:#a1c4fd,#c2e9fb" data-name="Cool Breeze" style="background: linear-gradient(135deg, #a1c4fd, #c2e9fb);"></div>
+          <div class="swatch" data-bg="grad:#84fab0,#8fd3f4" data-name="Mint Aqua" style="background: linear-gradient(135deg, #84fab0, #8fd3f4);"></div>
+          <div class="swatch" data-bg="grad:#fa709a,#fee140" data-name="Sunset Glow" style="background: linear-gradient(135deg, #fa709a, #fee140);"></div>
+          <div class="swatch" data-bg="grad:#667eea,#764ba2" data-name="Deep Plum" style="background: linear-gradient(135deg, #667eea, #764ba2);"></div>
+        </div>
+      </div>
+
+      <div class="sliders-grid">
+        <div class="control-group">
+          <div class="control-header">
+            <span>Corner Radius</span>
+            <span class="control-value" id="radiusVal">4.2%</span>
+          </div>
+          <input type="range" id="radiusSlider" min="0" max="12" step="0.2" value="4.2" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <span>Padding</span>
+            <span class="control-value" id="paddingVal">4.0%</span>
+          </div>
+          <input type="range" id="paddingSlider" min="0" max="15" step="0.5" value="4.0" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <span>Shadow Intensity</span>
+            <span class="control-value" id="shadowVal">35%</span>
+          </div>
+          <input type="range" id="shadowSlider" min="0" max="100" step="1" value="35" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Saved!</div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const uploadPrompt = document.getElementById('uploadPrompt');
+    const changeImageBtn = document.getElementById('changeImageBtn');
+    const stage = document.getElementById('stage');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const actionsBar = document.getElementById('actionsBar');
+    const controlsPanel = document.getElementById('controlsPanel');
+
+    const radiusSlider = document.getElementById('radiusSlider');
+    const paddingSlider = document.getElementById('paddingSlider');
+    const shadowSlider = document.getElementById('shadowSlider');
+    const radiusVal = document.getElementById('radiusVal');
+    const paddingVal = document.getElementById('paddingVal');
+    const shadowVal = document.getElementById('shadowVal');
+    const bgLabel = document.getElementById('bgLabel');
+
+    const downloadBtn = document.getElementById('downloadBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const toast = document.getElementById('toast');
+
+    let loadedImages = [];
+    let currentBg = 'solid:#ffffff';
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    // Trigger File Selection
+    uploadPrompt.addEventListener('click', () => fileInput.click());
+    changeImageBtn.addEventListener('click', () => fileInput.click());
+
+    // Drag and Drop support
+    stage.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadPrompt.classList.add('dragover');
+    });
+    stage.addEventListener('dragleave', () => uploadPrompt.classList.remove('dragover'));
+    stage.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadPrompt.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFiles(e.dataTransfer.files);
+      }
+    });
+
+    // Clipboard Paste support
+    window.addEventListener('paste', (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const files = [];
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          files.push(item.getAsFile());
+        }
+      }
+      if (files.length > 0) handleFiles(files);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFiles(e.target.files);
+      }
+    });
+
+    async function handleFiles(fileList) {
+      const imageFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+      if (imageFiles.length === 0) return;
+
+      const promises = imageFiles.map(file => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      loadedImages = await Promise.all(promises);
+
+      uploadPrompt.style.display = 'none';
+      canvas.style.display = 'block';
+      changeImageBtn.style.display = 'inline-flex';
+      actionsBar.style.display = 'grid';
+      controlsPanel.style.display = 'flex';
+
+      renderCanvas();
+    }
+
+    // Helper: Cross-browser Rounded Rectangle Path
+    function roundedRectPath(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + width, y, x + width, y + height, r);
+      ctx.arcTo(x + width, y + height, x, y + height, r);
+      ctx.arcTo(x, y + height, x, y, r);
+      ctx.arcTo(x, y, x + width, y, r);
+      ctx.closePath();
+    }
+
+    function renderCanvas() {
+      if (loadedImages.length === 0) return;
+
+      // If multiple images are selected, normalize their height to match the first image
+      // and place them side-by-side with a subtle vertical divider (just like the example screenshot)
+      const targetHeight = loadedImages[0].naturalHeight;
+      const dividerWidth = loadedImages.length > 1 ? Math.max(4, Math.round(targetHeight * 0.0035)) : 0;
+
+      const scaledWidths = loadedImages.map(img => {
+        const scale = targetHeight / img.naturalHeight;
+        return Math.round(img.naturalWidth * scale);
+      });
+
+      const innerWidth = scaledWidths.reduce((a, b) => a + b, 0) + dividerWidth * (loadedImages.length - 1);
+      const innerHeight = targetHeight;
+
+      // Base reference dimension so effects scale cleanly at any resolution
+      const baseDim = Math.min(innerWidth, innerHeight);
+
+      const paddingPercent = parseFloat(paddingSlider.value) / 100;
+      const radiusPercent = parseFloat(radiusSlider.value) / 100;
+      const shadowIntensity = parseFloat(shadowSlider.value) / 100;
+
+      const pad = Math.round(baseDim * paddingPercent);
+      const radius = Math.round(baseDim * radiusPercent);
+
+      const totalWidth = innerWidth + pad * 2;
+      const totalHeight = innerHeight + pad * 2;
+
+      canvas.width = totalWidth;
+      canvas.height = totalHeight;
+
+      ctx.clearRect(0, 0, totalWidth, totalHeight);
+
+      // 1. Draw Background
+      if (currentBg.startsWith('solid:')) {
+        ctx.fillStyle = currentBg.split(':')[1];
+        ctx.fillRect(0, 0, totalWidth, totalHeight);
+      } else if (currentBg.startsWith('grad:')) {
+        const [c1, c2] = currentBg.split(':')[1].split(',');
+        const grad = ctx.createLinearGradient(0, 0, totalWidth, totalHeight);
+        grad.addColorStop(0, c1);
+        grad.addColorStop(1, c2);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, totalWidth, totalHeight);
+      }
+
+      // 2. Draw Drop Shadow (cast from a solid rounded shape before clipping)
+      if (shadowIntensity > 0) {
+        ctx.save();
+        const blur = baseDim * 0.075 * shadowIntensity;
+        const offsetY = baseDim * 0.006 * shadowIntensity;
+        const alpha = Math.min(0.55, 0.62 * shadowIntensity);
+
+        ctx.shadowColor = `rgba(0, 0, 0, ${alpha})`;
+        ctx.shadowBlur = blur;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = offsetY;
+
+        roundedRectPath(ctx, pad, pad, innerWidth, innerHeight, radius);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 3. Draw Rounded Clipped Screenshot(s)
+      ctx.save();
+      roundedRectPath(ctx, pad, pad, innerWidth, innerHeight, radius);
+      ctx.clip();
+
+      let currentX = pad;
+      loadedImages.forEach((img, index) => {
+        const w = scaledWidths[index];
+        ctx.drawImage(img, currentX, pad, w, innerHeight);
+        currentX += w;
+
+        // Draw vertical separator if stitching multiple screenshots
+        if (index < loadedImages.length - 1) {
+          ctx.fillStyle = '#d4d8dd';
+          ctx.fillRect(currentX, pad, dividerWidth, innerHeight);
+          currentX += dividerWidth;
+        }
+      });
+      ctx.restore();
+
+      // 4. Subtle 1px inner border so white screenshots look crisp on white backgrounds
+      ctx.save();
+      roundedRectPath(ctx, pad, pad, innerWidth, innerHeight, radius);
+      ctx.lineWidth = Math.max(1, Math.round(baseDim * 0.001));
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.07)';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Slider Events
+    radiusSlider.addEventListener('input', () => {
+      radiusVal.textContent = `${parseFloat(radiusSlider.value).toFixed(1)}%`;
+      renderCanvas();
+    });
+
+    paddingSlider.addEventListener('input', () => {
+      paddingVal.textContent = `${parseFloat(paddingSlider.value).toFixed(1)}%`;
+      renderCanvas();
+    });
+
+    shadowSlider.addEventListener('input', () => {
+      shadowVal.textContent = `${shadowSlider.value}%`;
+      renderCanvas();
+    });
+
+    // Background Swatches
+    document.querySelectorAll('.swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+        swatch.classList.add('active');
+        currentBg = swatch.dataset.bg;
+        bgLabel.textContent = swatch.dataset.name;
+        renderCanvas();
+      });
+    });
+
+    // Download PNG
+    downloadBtn.addEventListener('click', () => {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `gradia-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Image downloaded!');
+      }, 'image/png');
+    });
+
+    // Native Mobile Share (Save to Gallery / Send to Apps)
+    shareBtn.addEventListener('click', () => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `gradia-${Date.now()}.png`, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Beautified Screenshot'
+            });
+          } catch (err) {
+            // User cancelled share sheet
+          }
+        } else {
+          showToast('Native sharing not supported on this browser');
+        }
+      }, 'image/png');
+    });
+
+    // Copy to Clipboard
+    copyBtn.addEventListener('click', () => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          showToast('Copied to clipboard!');
+        } catch (err) {
+          showToast('Clipboard copy not supported here');
+        }
+      }, 'image/png');
+    });
+  </script>
+</body>
+</html>

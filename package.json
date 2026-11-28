@@ -11,9 +11,9 @@
     "build": "npm run build:css && npm run build:content && npm run build:annotate",
     "package": "npm run build && node scripts/package-extension.js",
     "package:verify": "node scripts/package-extension.js --verify-only",
-    "check": "node --check background.js && node --check offscreen.js && node --check popup.js && node --check gallery.js && node --check options.js && node --check convert.js && node --check src/converter/rules.js && node --check src/converter/engine.js && node --check src/downloadFile.js && node --check src/storage.js && node --check src/settings.js && node --check src/pageTheme.js && node --check src/peekData.js && node --check src/convertRedirect.js && node --check src/issues.js && node --check src/panelSettings.js && node --check src/pageKit.js",
+    "check": "node --check background.js && node --check offscreen.js && node --check popup.js && node --check gallery.js && node --check options.js && node --check convert.js && node --check studio.js && node --check src/editor/model.js && node --check src/editor/renderer.js && node --check src/converter/rules.js && node --check src/converter/engine.js && node --check src/downloadFile.js && node --check src/storage.js && node --check src/settings.js && node --check src/pageTheme.js && node --check src/peekData.js && node --check src/convertRedirect.js && node --check src/issues.js && node --check src/panelSettings.js && node --check src/pageKit.js",
     "lint": "npm run check && node --check server.js && node --check chrome-shim.js && node --check scripts/package-manifest.js && node --check scripts/package-extension.js",
-    "test": "node --test src/converter/rules.test.js scripts/package-manifest.test.js"
+    "test": "node --test src/editor/model.test.js src/converter/rules.test.js scripts/package-manifest.test.js"
   },
   "dependencies": {
     "esbuild": "^0.28.2",
